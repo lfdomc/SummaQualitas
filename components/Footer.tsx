@@ -10,7 +10,7 @@ export default function Footer() {
           {/* Company Info */}
           <div className="space-y-4 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start space-x-2">
-              <div className="relative bg-gray-200 animate-pulse rounded">
+              <div className="relative">
                 <OptimizedImage
                   src="/images/summa/logo_alone2.png"
                   alt="Logo"
