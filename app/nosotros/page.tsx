@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AnimatedCounter } from "@/components/AnimatedCounter"
+import { ScrollAnimation } from "@/components/ScrollAnimation"
 import { Award, Users, Target, Heart, Building2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -60,7 +62,7 @@ export default function NosotrosPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-12 sm:py-16 lg:py-20">
+      <section className="bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div className="order-2 lg:order-1">
@@ -95,11 +97,11 @@ export default function NosotrosPage() {
             </div>
             <div className="relative order-1 lg:order-2">
               <Image
-                src="/images/co1.webp?height=500&width=600&text=Team+ConstructPro"
+                src="/images/about.webp?height=500&width=600&text=Team+ConstructPro"
                 alt="Team"
                 width={600}
                 height={500}
-                className="rounded-lg shadow-2xl w-full h-auto"
+                className="rounded-2xl shadow-2xl w-full h-auto"
               />
             </div>
           </div>
@@ -144,24 +146,28 @@ export default function NosotrosPage() {
       {/* Values */}
       <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Values</h2>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
-              The principles that guide each of our projects and business decisions
-            </p>
-          </div>
+          <ScrollAnimation delay={100}>
+            <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Values</h2>
+              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
+                The principles that guide each of our projects and business decisions
+              </p>
+            </div>
+          </ScrollAnimation>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {values.map((value, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow p-2 sm:p-4">
-                <CardHeader className="pb-3 sm:pb-4">
-                  <value.icon className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4" />
-                  <CardTitle className="text-gray-900 text-base sm:text-lg">{value.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-gray-600 text-justify text-xs sm:text-sm">{value.description}</CardDescription>
-                </CardContent>
-              </Card>
+              <ScrollAnimation key={index} delay={200 + index * 100}>
+                <Card className="text-center hover:shadow-lg transition-shadow p-2 sm:p-4 h-full">
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <value.icon className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4" />
+                    <CardTitle className="text-gray-900 text-base sm:text-lg">{value.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-gray-600 text-justify text-xs sm:text-sm">{value.description}</CardDescription>
+                  </CardContent>
+                </Card>
+              </ScrollAnimation>
             ))}
           </div>
         </div>
@@ -170,51 +176,67 @@ export default function NosotrosPage() {
       {/* Team */}
       <section className="py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Team</h2>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
-              Highly qualified professionals committed to excellence in every project
-            </p>
-          </div>
+          <ScrollAnimation delay={100}>
+            <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Team</h2>
+              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
+                Highly qualified professionals committed to excellence in every project
+              </p>
+            </div>
+          </ScrollAnimation>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             {team.map((member, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow p-3 sm:p-4">
-                <CardHeader className="pb-3 sm:pb-4">
-                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 mx-auto mb-3 sm:mb-4">
-                    <Image
-                      src={member.image || "/placeholder.svg"}
-                      alt={member.name}
-                      fill
-                      className="rounded-full object-cover"
-                    />
-                  </div>
-                  <CardTitle className="text-gray-900 text-sm sm:text-base lg:text-lg">{member.name}</CardTitle>
-                  <CardDescription className="text-blue-600 font-medium text-xs sm:text-sm">{member.position}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 text-xs sm:text-sm text-justify">{member.description}</p>
-                </CardContent>
-              </Card>
+              <ScrollAnimation key={index} delay={200 + index * 150}>
+                <Card className="text-center hover:shadow-lg transition-shadow p-3 sm:p-4 h-full">
+                  <CardHeader className="pb-3 sm:pb-4">
+                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 mx-auto mb-3 sm:mb-4">
+                      <Image
+                        src={member.image || "/placeholder.svg"}
+                        alt={member.name}
+                        fill
+                        className="rounded-full object-cover"
+                      />
+                    </div>
+                    <CardTitle className="text-gray-900 text-sm sm:text-base lg:text-lg">{member.name}</CardTitle>
+                    <CardDescription className="text-blue-600 font-medium text-xs sm:text-sm">{member.position}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 text-xs sm:text-sm text-justify">{member.description}</p>
+                  </CardContent>
+                </Card>
+              </ScrollAnimation>
             ))}
           </div>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-blue-900 text-white">
+      <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-r from-gray-900 to-blue-800 text-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
             <div>
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-300 mb-2">500+</div>
+              <AnimatedCounter 
+                end={500} 
+                suffix="+" 
+                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-300 mb-2" 
+              />
               <div className="text-sm sm:text-base lg:text-lg text-blue-100">Completed Projects</div>
             </div>
             <div>
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-300 mb-2">20+</div>
+              <AnimatedCounter 
+                end={20} 
+                suffix="+" 
+                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-300 mb-2" 
+              />
               <div className="text-sm sm:text-base lg:text-lg text-blue-100">Years of Experience</div>
             </div>
             <div>
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-300 mb-2">100+</div>
+              <AnimatedCounter 
+                end={100} 
+                suffix="+" 
+                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-300 mb-2" 
+              />
               <div className="text-sm sm:text-base lg:text-lg text-blue-100">Satisfied Clients</div>
             </div>
 

@@ -73,7 +73,7 @@ export default function ProjectPage({ params }: ProjectPageProps) {
                 alt={project.title}
                 width={600}
                 height={400}
-                className="rounded-lg shadow-xl w-full h-auto"
+                className="rounded-2xl shadow-xl w-full h-auto"
               />
             </div>
           </div>
@@ -86,12 +86,12 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 sm:mb-10 lg:mb-12 text-center">Project Gallery</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {project.gallery.map((image, index) => (
-              <div key={index} className="relative h-48 sm:h-56 lg:h-64 group overflow-hidden rounded-lg">
+              <div key={index} className="relative h-48 sm:h-56 lg:h-64 group overflow-hidden rounded-xl">
                 <Image
                   src={image || "/placeholder.svg"}
                   alt={`${project.title} - Image ${index + 1}`}
                   fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-110"
+                  className="object-cover transition-transform duration-300 group-hover:scale-110 rounded-xl"
                 />
               </div>
             ))}
@@ -212,13 +212,13 @@ export default function ProjectPage({ params }: ProjectPageProps) {
               .slice(0, 3)
               .map((relatedProject) => (
                 <Link key={relatedProject.id} href={`/proyecto/${relatedProject.id}`}>
-                  <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105">
+                  <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl">
                     <div className="relative h-40 sm:h-44 lg:h-48">
                       <Image
                         src={relatedProject.image || "/placeholder.svg"}
                         alt={relatedProject.title}
                         fill
-                        className="object-cover"
+                        className="object-cover rounded-t-xl"
                       />
                     </div>
                     <CardHeader className="p-3 sm:p-4 lg:p-6">

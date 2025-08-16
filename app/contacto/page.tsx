@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { ScrollAnimation } from "@/components/ScrollAnimation"
 import { Phone, Mail, MapPin, Clock, Send } from "lucide-react"
 import { generateContactMessage, openWhatsApp } from "@/lib/whatsapp-utils"
 
@@ -45,7 +46,7 @@ export default function ContactoPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-12 sm:py-16 lg:py-20">
+      <section className="bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">Contact Us</h1>
@@ -63,9 +64,12 @@ export default function ContactoPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
             {/* Contact Form */}
             <div className="order-2 lg:order-1">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Send Us a Message</h2>
-              <Card>
-                <CardContent className="p-4 sm:p-6">
+              <ScrollAnimation delay={100}>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Send Us a Message</h2>
+              </ScrollAnimation>
+              <ScrollAnimation delay={200}>
+                <Card>
+                  <CardContent className="p-4 sm:p-6">
                   <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
@@ -153,16 +157,20 @@ export default function ContactoPage() {
                       Send Message
                     </Button>
                   </form>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </ScrollAnimation>
             </div>
 
             {/* Contact Info */}
             <div className="order-1 lg:order-2">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Contact Information</h2>
+              <ScrollAnimation delay={100}>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Contact Information</h2>
+              </ScrollAnimation>
 
               <div className="space-y-4 sm:space-y-6">
-                <Card className="hover:shadow-lg transition-shadow">
+                <ScrollAnimation delay={200}>
+                  <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader className="p-3 sm:p-6">
                     <div className="flex items-center space-x-3 sm:space-x-4">
                       <Phone className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
@@ -176,9 +184,11 @@ export default function ContactoPage() {
                     <p className="text-gray-700 font-medium text-sm sm:text-base">(506) 8846-0570</p>
                     <p className="text-gray-600 text-xs sm:text-sm">Monday to Friday: 8:00 AM - 6:00 PM</p>
                   </CardContent>
-                </Card>
+                  </Card>
+                </ScrollAnimation>
 
-                <Card className="hover:shadow-lg transition-shadow">
+                <ScrollAnimation delay={300}>
+                  <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader className="p-3 sm:p-6">
                     <div className="flex items-center space-x-3 sm:space-x-4">
                       <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
@@ -191,9 +201,11 @@ export default function ContactoPage() {
                   <CardContent className="p-3 sm:p-6 pt-0">
                     <p className="text-gray-700 font-medium text-sm sm:text-base break-all">fernando.apuy@qualitascr.com</p>
                   </CardContent>
-                </Card>
+                  </Card>
+                </ScrollAnimation>
 
-                <Card className="hover:shadow-lg transition-shadow">
+                <ScrollAnimation delay={400}>
+                  <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader className="p-3 sm:p-6">
                     <div className="flex items-center space-x-3 sm:space-x-4">
                       <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
@@ -207,9 +219,11 @@ export default function ContactoPage() {
                     <p className="text-gray-700 font-medium text-sm sm:text-base">Provincia Guanacaste</p>
                     <p className="text-gray-600 text-xs sm:text-sm">Monday to Friday: 8:00 AM - 5:00 PM</p>
                   </CardContent>
-                </Card>
+                  </Card>
+                </ScrollAnimation>
 
-                <Card className="hover:shadow-lg transition-shadow">
+                <ScrollAnimation delay={500}>
+                  <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader className="p-3 sm:p-6">
                     <div className="flex items-center space-x-3 sm:space-x-4">
                       <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
@@ -232,7 +246,8 @@ export default function ContactoPage() {
                       </p>
                     </div>
                   </CardContent>
-                </Card>
+                  </Card>
+                </ScrollAnimation>
               </div>
             </div>
           </div>

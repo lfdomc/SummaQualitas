@@ -11,9 +11,9 @@ interface ProjectCardProps {
 export default function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link href={`/proyecto/${project.id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
+      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer rounded-xl">
         <div className="relative h-40 sm:h-44 lg:h-48">
-          <Image src={project.image || "/placeholder.svg"} alt={project.title} fill className="object-cover" />
+          <Image src={project.image || "/placeholder.svg"} alt={project.title} fill className="object-cover rounded-t-xl" />
         </div>
         <CardHeader className="p-3 sm:p-4 lg:p-6">
           <div className="flex justify-between items-start gap-2">

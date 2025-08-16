@@ -49,7 +49,7 @@ export default function Header() {
           {/* Desktop CTA */}
           <div className="hidden md:flex">
             <Link href="/cotizacion">
-              <Button className="bg-blue-600 hover:bg-blue-700">Get Quote</Button>
+              <Button className="bg-gradient-to-r from-blue-900 to-blue-700 hover:from-gray-800 hover:to-blue-700 text-white rounded-full">Get Quote</Button>
             </Link>
           </div>
 
@@ -79,7 +79,7 @@ export default function Header() {
               ))}
               <div className="pt-2">
                 <Link href="/cotizacion" onClick={() => setIsMenuOpen(false)}>
-                  <Button className="bg-blue-600 hover:bg-blue-700 w-full py-3 text-base">Get Quote</Button>
+                  <Button className="bg-gradient-to-r from-gray-900 to-blue-800 hover:from-gray-800 hover:to-blue-700 text-white w-full py-3 text-base rounded-full">Get Quote</Button>
                 </Link>
               </div>
             </nav>
