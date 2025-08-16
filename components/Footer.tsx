@@ -86,18 +86,13 @@ export default function Footer() {
         <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
             <div className="flex space-x-4 sm:space-x-6">
-              <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors p-2">
+              <Link href="https://www.facebook.com/summaqualitascr/?locale=es_LA" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors p-2">
                 <Facebook className="h-5 w-5 sm:h-6 sm:w-6" />
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors p-2">
+              <Link href="https://www.instagram.com/summaqualitas/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors p-2">
                 <Instagram className="h-5 w-5 sm:h-6 sm:w-6" />
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors p-2">
-                <Twitter className="h-5 w-5 sm:h-6 sm:w-6" />
-              </Link>
-              <Link href="#" className="text-gray-400 hover:text-blue-400 transition-colors p-2">
-                <Linkedin className="h-5 w-5 sm:h-6 sm:w-6" />
-              </Link>
+              
             </div>
             <p className="text-gray-400 text-xs sm:text-sm text-center">
               © {new Date().getFullYear()} Temsa Tecnología. Todos los derechos reservados.
