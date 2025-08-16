@@ -1,6 +1,6 @@
 import {  Facebook, Instagram, Twitter, Linkedin, Phone, Mail, MapPin } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
+import OptimizedImage from "@/components/OptimizedImage"
 
 export default function Footer() {
   return (
@@ -10,13 +10,17 @@ export default function Footer() {
           {/* Company Info */}
           <div className="space-y-4 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start space-x-2">
-              <Image
-                            src="/images/summa/logo_alone2.png"
-                            alt="Logo"
-                            width={100}
-                            height={100}
-                            className="w-auto h-16 sm:h-20"
-                          />
+              <div className="relative bg-gray-200 animate-pulse rounded">
+                <OptimizedImage
+                  src="/images/summa/logo_alone2.png"
+                  alt="Logo"
+                  width={100}
+                  height={100}
+                  className="w-auto h-16 sm:h-20"
+                  sizes="(max-width: 640px) 64px, 80px"
+                  loading="lazy"
+                />
+              </div>
               <span className="text-2xl font-bold"></span>
             </div>
             <p className="text-gray-300 leading-relaxed text-sm sm:text-base">

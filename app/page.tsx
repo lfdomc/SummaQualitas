@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, Users, Award, Clock, Phone, Mail, MapPin } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import ProjectCard from "@/components/ProjectCard"
 import { projects } from "@/lib/projects-data"
 import { services } from "@/lib/services-data"
 import { AnimatedCounter } from "@/components/AnimatedCounter"
 import { ScrollAnimation } from "@/components/ScrollAnimation"
+import OptimizedImage from "@/components/OptimizedImage"
 
 export const metadata = {
   title: "Summa Qualitas Architecture and Construction",
@@ -64,13 +64,17 @@ export default function Home() {
               </div>
             </div>
             <div className="relative order-first lg:order-last">
-              <Image
-                src="/images/image1.webp?height=400&width=600&text=Construcción"
-                alt="Construction project"
-                width={450}
-                height={450}
-                className="rounded-2xl shadow-2xl w-full h-auto max-w-md mx-auto lg:max-w-none"
-              />
+              <div className="relative rounded-2xl">
+                <OptimizedImage
+                  src="/images/image1.webp"
+                  alt="Construction project"
+                  width={450}
+                  height={450}
+                  className="rounded-2xl shadow-2xl w-full h-auto max-w-md mx-auto lg:max-w-none"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 450px"
+                  priority
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -120,7 +124,7 @@ export default function Home() {
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-12 lg:mb-16">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Projects</h2>
-              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
+              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-center px-4">
                 Discover some of our most outstanding projects
               </p>
             </div>
@@ -176,7 +180,7 @@ export default function Home() {
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-12 lg:mb-16">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Contact Us</h2>
-              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
+              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-center px-4">
                 We are ready to make your next project a reality
               </p>
             </div>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AnimatedCounter } from "@/components/AnimatedCounter"
 import { ScrollAnimation } from "@/components/ScrollAnimation"
 import { Award, Users, Target, Heart, Building2 } from "lucide-react"
-import Image from "next/image"
+import OptimizedImage from "@/components/OptimizedImage"
 import Link from "next/link"
 
 export default function NosotrosPage() {
@@ -34,28 +34,28 @@ export default function NosotrosPage() {
   const team = [
     {
       name: "Ing. Fernando Apuy",
-      position: "Director General",
-      image: "/placeholder.svg?height=300&width=300&text=Carlos+Mendoza",
-      description: "20+ years of experience in construction and project development.",
+      position: "General Director",
+      image: "/placeholder.svg?height=300&width=300&text=Fernando+Apuy",
+      description: "Over 20 years of experience in construction and project development. Leads the company's strategic vision.",
     },
     {
       name: "Ing. Abraham Madriz",
       position: "Project Manager",
-      image: "/placeholder.svg?height=300&width=300&text=Roberto+Silva",
-      description: "Expert in complex project management and technical coordination.",
+      image: "/placeholder.svg?height=300&width=300&text=Abraham+Madriz",
+      description: "Expert in complex project management and technical coordination. Ensures successful execution of every project.",
     },
     {
       name: "Ing. Sofia Madriz",
       position: "Supply Administrator",
-      image: "/placeholder.svg?height=300&width=300&text=María+González",
-      description: "Specialist in architectural design and urban planning.",
+      image: "/placeholder.svg?height=300&width=300&text=Sofia+Madriz",
+      description: "Specialist in materials management and supply logistics. Ensures quality and availability of resources.",
     },
     
     {
       name: "Ing. Ana Rodríguez",
       position: "Quality Director",
       image: "/placeholder.svg?height=300&width=300&text=Ana+Rodríguez",
-      description: "Specialist in quality control and international certifications.",
+      description: "Specialist in quality control and international certifications. Supervises excellence standards.",
     },
   ]
 
@@ -96,13 +96,17 @@ export default function NosotrosPage() {
               </div>
             </div>
             <div className="relative order-1 lg:order-2">
-              <Image
-                src="/images/about.webp?height=500&width=600&text=Team+ConstructPro"
-                alt="Team"
-                width={600}
-                height={500}
-                className="rounded-2xl shadow-2xl w-full h-auto"
-              />
+              <div className="relative bg-gray-200 animate-pulse rounded-2xl">
+                <OptimizedImage
+                  src="/images/about.webp?height=500&width=600&text=Team+ConstructPro"
+                  alt="Team"
+                  width={600}
+                  height={500}
+                  className="rounded-2xl shadow-2xl w-full h-auto"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 600px"
+                  loading="lazy"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -191,12 +195,16 @@ export default function NosotrosPage() {
                 <Card className="text-center hover:shadow-lg transition-shadow p-3 sm:p-4 h-full">
                   <CardHeader className="pb-3 sm:pb-4">
                     <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 mx-auto mb-3 sm:mb-4">
-                      <Image
-                        src={member.image || "/placeholder.svg"}
-                        alt={member.name}
-                        fill
-                        className="rounded-full object-cover"
-                      />
+                      <div className="relative bg-gray-200 animate-pulse rounded-full w-full h-full">
+                        <OptimizedImage
+                          src={member.image || "/placeholder.svg"}
+                          alt={member.name}
+                          fill
+                          className="rounded-full object-cover"
+                          sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 128px"
+                          loading="lazy"
+                        />
+                      </div>
                     </div>
                     <CardTitle className="text-gray-900 text-sm sm:text-base lg:text-lg">{member.name}</CardTitle>
                     <CardDescription className="text-blue-600 font-medium text-xs sm:text-sm">{member.position}</CardDescription>

@@ -164,29 +164,7 @@ export default function CotizacionPage() {
             ))}
           </div>
 
-          {/* Call to Action */}
-          <ScrollAnimation delay={600}>
-            <div className="text-center mt-12 lg:mt-16">
-              <div className="bg-white rounded-2xl shadow-lg p-8 max-w-2xl mx-auto">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  Ready to Start Your Project?
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Get your free, detailed quote today and take the first step towards your dream construction project.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3">
-                    Start Quote Process
-                  </Button>
-                  <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3">
-                    View Sample Quote
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </ScrollAnimation>
-        </div>
-      </section>
+       
 
       {/* Quote Form */}
       <section className="py-12 sm:py-16 lg:py-20">
@@ -354,6 +332,30 @@ export default function CotizacionPage() {
               </Card>
             </ScrollAnimation>
           </div>
+        </div>
+      </section>
+
+   {/* Call to Action */}
+          <ScrollAnimation delay={600}>
+            <div className="text-center mt-12 lg:mt-16">
+              <div className="bg-white rounded-2xl shadow-lg p-8 max-w-2xl mx-auto">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">
+                  Ready to Start Your Project?
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Get your free, detailed quote today and take the first step towards your dream construction project.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3">
+                    Start Quote Process
+                  </Button>
+                  <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3">
+                    View Sample Quote
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </ScrollAnimation>
         </div>
       </section>
 

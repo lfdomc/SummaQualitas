@@ -2,10 +2,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Calendar, MapPin, Ruler, User, Clock, CheckCircle } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { projects } from "@/lib/projects-data"
 import { notFound } from "next/navigation"
+import OptimizedImage from "@/components/OptimizedImage"
 
 interface ProjectPageProps {
   params: {
@@ -13,8 +13,9 @@ interface ProjectPageProps {
   }
 }
 
-export default function ProjectPage({ params }: ProjectPageProps) {
-  const project = projects.find((p) => p.id === params.id)
+export default async function ProjectPage({ params }: ProjectPageProps) {
+  const { id } = await params
+  const project = projects.find((p) => p.id === id)
 
   if (!project) {
     notFound()
@@ -68,13 +69,17 @@ export default function ProjectPage({ params }: ProjectPageProps) {
             </div>
 
             <div className="relative order-1 lg:order-2">
-              <Image
-                src={project.image || "/placeholder.svg"}
-                alt={project.title}
-                width={600}
-                height={400}
-                className="rounded-2xl shadow-xl w-full h-auto"
-              />
+              <div className="relative bg-gray-200 animate-pulse rounded-2xl">
+                <OptimizedImage
+                  src={project.image || "/placeholder.svg"}
+                  alt={project.title}
+                  width={600}
+                  height={400}
+                  className="rounded-2xl shadow-xl w-full h-auto"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 80vw, 600px"
+                  priority
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -86,12 +91,14 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 sm:mb-10 lg:mb-12 text-center">Project Gallery</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {project.gallery.map((image, index) => (
-              <div key={index} className="relative h-48 sm:h-56 lg:h-64 group overflow-hidden rounded-xl">
-                <Image
+              <div key={index} className="relative h-48 sm:h-56 lg:h-64 group overflow-hidden rounded-xl bg-gray-200 animate-pulse">
+                <OptimizedImage
                   src={image || "/placeholder.svg"}
                   alt={`${project.title} - Image ${index + 1}`}
                   fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-110 rounded-xl"
+                  className="object-cover transition-all duration-300 group-hover:scale-110 rounded-xl"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  loading="lazy"
                 />
               </div>
             ))}
@@ -213,12 +220,14 @@ export default function ProjectPage({ params }: ProjectPageProps) {
               .map((relatedProject) => (
                 <Link key={relatedProject.id} href={`/proyecto/${relatedProject.id}`}>
                   <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-xl">
-                    <div className="relative h-40 sm:h-44 lg:h-48">
-                      <Image
+                    <div className="relative h-40 sm:h-44 lg:h-48 bg-gray-200 animate-pulse rounded-t-xl">
+                      <OptimizedImage
                         src={relatedProject.image || "/placeholder.svg"}
                         alt={relatedProject.title}
                         fill
                         className="object-cover rounded-t-xl"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        loading="lazy"
                       />
                     </div>
                     <CardHeader className="p-3 sm:p-4 lg:p-6">
