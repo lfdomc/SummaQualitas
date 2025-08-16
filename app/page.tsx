@@ -17,18 +17,26 @@ export const metadata = {
     canonical: "https://summaqualitas.com/ ",
   },
   openGraph: {
-    url: "https://summaqualitas.com/ ",
+    type: "website",
+    url: "https://summaqualitas.com/",
     title: "Summa Qualitas Construction Projects",
     description:
       "Summa Qualitas Architecture and Construction is a leading company in construction and renovation of residential and commercial projects in Costa Rica.",
     images: [
       {
-        url: "/images/summa/logo_2b.png",
+        url: "https://summaqualitas.com/images/summa/logo_2b.png",
         width: 1200,
         height: 630,
         alt: "Summa Qualitas Architecture and Construction",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Summa Qualitas Construction Projects",
+    description:
+      "Summa Qualitas Architecture and Construction is a leading company in construction and renovation of residential and commercial projects in Costa Rica.",
+    images: ["https://summaqualitas.com/images/summa/logo_2b.png"],
   },
 };
 
