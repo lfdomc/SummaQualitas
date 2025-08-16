@@ -45,11 +45,11 @@ export default function ContactoPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-20">
+      <section className="bg-gradient-to-r from-blue-900 to-blue-700 text-white py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-6">Contact Us</h1>
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">Contact Us</h1>
+            <p className="text-sm sm:text-base lg:text-xl text-blue-100 max-w-3xl mx-auto text-justify">
               We are here to help you make your project a reality. Get in touch with us and discover how
               we can work together.
             </p>
@@ -58,18 +58,18 @@ export default function ContactoPage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-20">
+      <section className="py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
             {/* Contact Form */}
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Send Us a Message</h2>
+            <div className="order-2 lg:order-1">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Send Us a Message</h2>
               <Card>
-                <CardContent className="p-6">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-4">
+                <CardContent className="p-4 sm:p-6">
+                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                           Full Name *
                         </label>
                         <Input
@@ -80,10 +80,11 @@ export default function ContactoPage() {
                           value={formData.name}
                           onChange={handleChange}
                           placeholder="Your full name"
+                          className="text-sm sm:text-base"
                         />
                       </div>
                       <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                           Email *
                         </label>
                         <Input
@@ -94,13 +95,14 @@ export default function ContactoPage() {
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="your@email.com"
+                          className="text-sm sm:text-base"
                         />
                       </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="phone" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                           Phone
                         </label>
                         <Input
@@ -110,10 +112,11 @@ export default function ContactoPage() {
                           value={formData.phone}
                           onChange={handleChange}
                           placeholder="+1 (555) 123-4567"
+                          className="text-sm sm:text-base"
                         />
                       </div>
                       <div>
-                        <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="subject" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                           Subject *
                         </label>
                         <Input
@@ -124,12 +127,13 @@ export default function ContactoPage() {
                           value={formData.subject}
                           onChange={handleChange}
                           placeholder="Subject of your inquiry"
+                          className="text-sm sm:text-base"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="message" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                         Message *
                       </label>
                       <Textarea
@@ -139,12 +143,13 @@ export default function ContactoPage() {
                         value={formData.message}
                         onChange={handleChange}
                         placeholder="Tell us about your project..."
-                        rows={6}
+                        rows={5}
+                        className="text-sm sm:text-base resize-none"
                       />
                     </div>
 
-                    <Button type="submit" size="lg" className="w-full bg-blue-600 hover:bg-blue-700">
-                      <Send className="h-5 w-5 mr-2" />
+                    <Button type="submit" size="lg" className="w-full bg-blue-600 hover:bg-blue-700 py-3 text-sm sm:text-base">
+                      <Send className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       Send Message
                     </Button>
                   </form>
@@ -153,71 +158,69 @@ export default function ContactoPage() {
             </div>
 
             {/* Contact Info */}
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">Contact Information</h2>
+            <div className="order-1 lg:order-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Contact Information</h2>
 
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center space-x-4">
-                      <Phone className="h-8 w-8 text-blue-600" />
+                  <CardHeader className="p-3 sm:p-6">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <Phone className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
                       <div>
-                        <CardTitle className="text-gray-900">Phone</CardTitle>
-                        <CardDescription>Call us directly</CardDescription>
+                        <CardTitle className="text-gray-900 text-sm sm:text-base lg:text-lg">Phone</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">Call us directly</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 font-medium">(506) 8846-0570</p>
-                    <p className="text-gray-600 text-sm">Monday to Friday: 8:00 AM - 6:00 PM</p>
+                  <CardContent className="p-3 sm:p-6 pt-0">
+                    <p className="text-gray-700 font-medium text-sm sm:text-base">(506) 8846-0570</p>
+                    <p className="text-gray-600 text-xs sm:text-sm">Monday to Friday: 8:00 AM - 6:00 PM</p>
                   </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center space-x-4">
-                      <Mail className="h-8 w-8 text-blue-600" />
+                  <CardHeader className="p-3 sm:p-6">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
                       <div>
-                        <CardTitle className="text-gray-900">Email</CardTitle>
-                        <CardDescription>Send us an email</CardDescription>
+                        <CardTitle className="text-gray-900 text-sm sm:text-base lg:text-lg">Email</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">Send us an email</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 font-medium">fernando.apuy@qualitascr.com</p>
-                    <p className="text-gray-600 text-sm"></p>
+                  <CardContent className="p-3 sm:p-6 pt-0">
+                    <p className="text-gray-700 font-medium text-sm sm:text-base break-all">fernando.apuy@qualitascr.com</p>
                   </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center space-x-4">
-                      <MapPin className="h-8 w-8 text-blue-600" />
+                  <CardHeader className="p-3 sm:p-6">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
                       <div>
-                        <CardTitle className="text-gray-900">Main Office</CardTitle>
-                        <CardDescription>Visit us</CardDescription>
+                        <CardTitle className="text-gray-900 text-sm sm:text-base lg:text-lg">Main Office</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">Visit us</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 font-medium">Provincia Guanacaste</p>
-                    <p className="text-gray-700 font-medium"></p>
-                    <p className="text-gray-600 text-sm">Monday to Friday: 8:00 AM - 5:00 PM</p>
+                  <CardContent className="p-3 sm:p-6 pt-0">
+                    <p className="text-gray-700 font-medium text-sm sm:text-base">Provincia Guanacaste</p>
+                    <p className="text-gray-600 text-xs sm:text-sm">Monday to Friday: 8:00 AM - 5:00 PM</p>
                   </CardContent>
                 </Card>
 
                 <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center space-x-4">
-                      <Clock className="h-8 w-8 text-blue-600" />
+                  <CardHeader className="p-3 sm:p-6">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
                       <div>
-                        <CardTitle className="text-gray-900">Hours</CardTitle>
-                        <CardDescription>We are available</CardDescription>
+                        <CardTitle className="text-gray-900 text-sm sm:text-base lg:text-lg">Hours</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">We are available</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-1 text-sm">
+                  <CardContent className="p-3 sm:p-6 pt-0">
+                    <div className="space-y-1 text-xs sm:text-sm">
                       <p className="text-gray-700">
                         <span className="font-medium">Monday - Friday:</span> 8:00 AM - 6:00 PM
                       </p>
@@ -227,7 +230,6 @@ export default function ContactoPage() {
                       <p className="text-gray-700">
                         <span className="font-medium">Sundays:</span> Closed
                       </p>
-                      
                     </div>
                   </CardContent>
                 </Card>

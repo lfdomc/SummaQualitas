@@ -8,7 +8,7 @@ export const services: Services[] = [
       description:
         "Construction of houses, condominiums and residential developments with the highest quality standards.",
       features: ["Architectural design", "Complete construction", "Luxury finishes", "Gardens and landscaping"],
-      image: "/images/residencial.webp?height=300&width=400&text=Residential+Construction",
+      image: "/images/residential1.webp?height=300&width=400&text=Residential+Construction",
     },
     {
       icon: Building,
@@ -29,7 +29,7 @@ export const services: Services[] = [
       title: "Renovations",
       description: "Renovation and modernization of existing spaces to maximize their potential.",
       features: ["Complete renovation", "Extensions", "Modernization", "Restoration"],
-      image: "/images/remodelaciones.webp?height=300&width=400&text=Renovations",
+      image: "/images/reno22.webp?height=300&width=400&text=Renovations",
     },
     {
       icon: Wrench,

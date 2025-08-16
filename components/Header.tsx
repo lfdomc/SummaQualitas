@@ -26,9 +26,9 @@ export default function Header() {
             <Image
               src="/images/summa/logo_2b.png"
               alt="Logo"
-              width={260}
-              height={260}
-              className=""
+              width={180}
+              height={180}
+              className="w-auto h-12 md:h-16"
             />
             <span className="text-[30px] font-bold text-gray-900"></span>
           </Link>
@@ -54,28 +54,34 @@ export default function Header() {
           </div>
 
           {/* Mobile menu button */}
-          <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <button 
+            className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors" 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
+          >
             {isMenuOpen ? <X className="h-6 w-6 text-gray-700" /> : <Menu className="h-6 w-6 text-gray-700" />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
-            <nav className="flex flex-col space-y-4">
+          <div className="md:hidden py-4 border-t border-gray-200 bg-white">
+            <nav className="flex flex-col space-y-2">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors py-3 px-2 rounded-md hover:bg-gray-50 block"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
                 </Link>
               ))}
-              <Link href="/cotizacion" onClick={() => setIsMenuOpen(false)}>
-                <Button className="bg-blue-600 hover:bg-blue-700 mt-4 w-full">Get Quote</Button>
-              </Link>
+              <div className="pt-2">
+                <Link href="/cotizacion" onClick={() => setIsMenuOpen(false)}>
+                  <Button className="bg-blue-600 hover:bg-blue-700 w-full py-3 text-base">Get Quote</Button>
+                </Link>
+              </div>
             </nav>
           </div>
         )}

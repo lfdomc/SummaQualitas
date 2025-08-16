@@ -37,42 +37,38 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-gray-900 to-blue-800 text-white py-20 lg:py-32">
+      <section className="relative bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-32">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
-                
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="space-y-4 sm:space-y-6 text-center lg:text-left">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold leading-tight">
                 Construction Company based in <span className="text-blue-300"> Guanacaste</span>, Costa Rica
-                
               </h1>
-              <p className="text-xl text-blue-100 leading-relaxed ">
+              <p className="text-base sm:text-lg lg:text-xl text-blue-100 leading-relaxed text-justify">
                 Over 20 years of experience in construction and development of high-quality residential and commercial projects.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/proyectos" className="flex items-center space-x-2">
-                <Button size="lg" className="bg-white text-blue-900 hover:bg-gray-100">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
+                <Link href="/proyectos" className="w-full sm:w-auto">
+                <Button size="lg" className="bg-white text-blue-900 hover:bg-gray-100 w-full sm:w-auto py-3 px-6">
                   View Projects
                 </Button>
                 </Link>
-                <Link href="/proyectos" className="flex items-center space-x-2">
+                <Link href="/contacto" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white text-white hover:bg-white hover:text-blue-900 bg-transparent"
+                  className="border-white text-white hover:bg-white hover:text-blue-900 bg-transparent w-full sm:w-auto py-3 px-6"
                 >Contact</Button>
                 </Link>
-                
-
               </div>
             </div>
-            <div className="relative">
+            <div className="relative order-first lg:order-last">
               <Image
-                src="/images/conste.webp?height=400&width=600&text=Construcción"
+                src="/images/image1.webp?height=400&width=600&text=Construcción"
                 alt="Construction project"
                 width={450}
                 height={450}
-                className="rounded-lg shadow-2xl"
+                className="rounded-lg shadow-2xl w-full h-auto max-w-md mx-auto lg:max-w-none"
               />
             </div>
           </div>
@@ -80,18 +76,18 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Our Services</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto text-justify">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Services</h2>
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
               We offer comprehensive construction solutions with the highest quality standards
             </p>
           </div>
 
-          <section className="py-5">
+          <section className="py-2 sm:py-5">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-3 gap-10">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
             {services.map((service, index) => (
               <Card key={index} className="flex flex-col p-6 hover:shadow-lg transition-shadow">
                 <CardHeader className="p-0 mb-4">
@@ -118,16 +114,16 @@ export default function Home() {
       </section>
 
       {/* Projects Section */}
-      <section className="py-20">
+      <section className="py-12 sm:py-16 lg:py-20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Our Projects</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Projects</h2>
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
               Discover some of our most outstanding projects
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {projects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
@@ -136,18 +132,18 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-blue-900 text-white">
+      <section className="py-12 sm:py-16 lg:py-20 bg-blue-900 text-white">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
             {[
               { number: "500+", label: "Completed Projects" },
               { number: "20+", label: "Years of Experience" },
               { number: "100+", label: "Satisfied Clients" },
               
             ].map((stat, index) => (
-              <div key={index}>
-                <div className="text-4xl lg:text-5xl font-bold text-blue-300 mb-2">{stat.number}</div>
-                <div className="text-lg text-blue-100">{stat.label}</div>
+              <div key={index} className="py-4">
+                <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-300 mb-2">{stat.number}</div>
+                <div className="text-base sm:text-lg text-blue-100">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -155,16 +151,16 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Contact Us</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Contact Us</h2>
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto text-justify px-4">
               We are ready to make your next project a reality
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
                 icon: Phone,
