@@ -272,7 +272,7 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
       {/* Mobile overlay */}
       {isMobile && mobileMenu.isOpen && (
         <div 
-          className="mobile-overlay fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="mobile-overlay fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => mobileMenu.close()}
           aria-hidden="true"
         />

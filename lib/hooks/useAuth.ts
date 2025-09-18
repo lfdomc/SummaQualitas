@@ -96,18 +96,35 @@ export function useAuth(): UseAuthReturn {
 
   const signOut = async () => {
     try {
-      // Llamar a API de logout
-      const response = await fetch('/api/auth/logout', { method: 'POST' });
-      if (response.ok) {
-        setAuthState({
-          user: null,
-          profile: null,
-          loading: false,
-          error: null,
-        });
+      console.log('🚪 [useAuth] Iniciando logout...');
+      
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('✅ [useAuth] Logout exitoso:', data);
+
+      setAuthState({
+        user: null,
+        profile: null,
+        loading: false,
+        error: null,
+      });
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error('❌ [useAuth] Error al cerrar sesión:', error);
+      setAuthState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Error al cerrar sesión',
+      }));
     }
   };
 

@@ -5,8 +5,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { GlobalSidebar } from "@/components/GlobalSidebar";
 import { ConditionalHeader } from "@/components/ConditionalHeader";
-
-
 import { ConditionalFooter } from "@/components/ConditionalFooter";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -66,8 +64,8 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased touch-manipulation`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <AuthProvider>

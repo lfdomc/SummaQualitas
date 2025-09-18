@@ -42,10 +42,10 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col mt-8 mb-8">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-32 xl:py-40">
-        <div className="container mx-auto px-4 max-w-7xl">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24 max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 xl:gap-16 items-center">
             <div className="space-y-4 sm:space-y-6 xl:space-y-8 text-center lg:text-left">
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-7xl font-bold leading-tight">
@@ -89,12 +89,12 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-gray-50 w-full">
-        <div className="container mx-auto px-4 max-w-7xl">
+      <section className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-muted/50 w-full">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24 max-w-7xl">
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-12 lg:mb-16 xl:mb-20">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 xl:mb-6">Our Services</h2>
-              <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl xl:max-w-4xl mx-auto text-justify px-4">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground mb-3 sm:mb-4 xl:mb-6">Our Services</h2>
+              <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-muted-foreground max-w-3xl xl:max-w-4xl mx-auto text-justify px-4">
                 We offer comprehensive construction solutions with the highest quality standards
               </p>
             </div>
@@ -105,15 +105,15 @@ export default function Home() {
               <ScrollAnimation key={index} delay={200 + index * 100}>
                 <Card className="flex flex-col p-6 hover:shadow-lg transition-shadow h-full">
                   <CardHeader className="p-0 mb-4">
-                    <service.icon className="h-12 w-12 text-blue-600 mb-4" />
-                    <CardTitle className="text-gray-900">{service.title}</CardTitle>
-                    <CardDescription className="text-gray-600 text-justify">{service.description}</CardDescription>
+                    <service.icon className="h-12 w-12 text-primary mb-4" />
+                    <CardTitle className="text-foreground">{service.title}</CardTitle>
+                    <CardDescription className="text-muted-foreground text-justify">{service.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
                     <ul className="space-y-2">
                       {service.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center text-sm text-gray-600">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full mr-3"></div>
+                        <li key={idx} className="flex items-center text-sm text-muted-foreground">
+                          <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
                           {feature}
                         </li>
                       ))}
@@ -128,11 +128,11 @@ export default function Home() {
 
       {/* Projects Section */}
       <section className="py-12 sm:py-16 lg:py-20 xl:py-24">
-        <div className="container mx-auto px-4 max-w-7xl">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24 max-w-7xl">
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-12 lg:mb-16 xl:mb-20">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 xl:mb-6">Our Projects</h2>
-              <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl xl:max-w-4xl mx-auto text-center px-4">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground mb-3 sm:mb-4 xl:mb-6">Our Projects</h2>
+              <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-muted-foreground max-w-3xl xl:max-w-4xl mx-auto text-center px-4">
                 Discover some of our most outstanding projects
               </p>
             </div>
@@ -150,7 +150,7 @@ export default function Home() {
 
       {/* Stats Section */}
       <section className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-gradient-to-r from-gray-900 to-blue-800 text-white">
-        <div className="container mx-auto px-4 max-w-7xl">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24 max-w-7xl">
           <ScrollAnimation delay={100}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 xl:gap-16 text-center">
               <div className="py-4 xl:py-8">
@@ -183,12 +183,12 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section className="bg-gray-50">
-        <div className="container mx-auto px-4 max-w-7xl">
+      <section className="bg-muted/50">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24 max-w-7xl">
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-12 lg:mb-16 xl:mb-20">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 xl:mb-6">Contact Us</h2>
-              <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl xl:max-w-4xl mx-auto text-center px-4">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-foreground mb-3 sm:mb-4 xl:mb-6 mt-6">Contact Us</h2>
+              <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-muted-foreground max-w-3xl xl:max-w-4xl mx-auto text-center px-4">
                 We are ready to make your next project a reality
               </p>
             </div>
@@ -218,11 +218,11 @@ export default function Home() {
               <ScrollAnimation key={index} delay={200 + index * 150}>
                 <Card className="text-center hover:shadow-lg transition-shadow h-full">
                   <CardHeader>
-                    <contact.icon className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                    <CardTitle className="text-gray-900">{contact.title}</CardTitle>
+                    <contact.icon className="h-12 w-12 text-primary mx-auto mb-4" />
+                    <CardTitle className="text-foreground">{contact.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Link href={contact.link} className="text-gray-600 hover:text-blue-600 transition-colors">
+                    <Link href={contact.link} className="text-muted-foreground hover:text-primary transition-colors">
                       {contact.info}
                     </Link>
                   </CardContent>

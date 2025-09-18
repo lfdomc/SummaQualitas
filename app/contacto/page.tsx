@@ -99,7 +99,7 @@ export default function ContactoPage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="text-center">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">Contáctanos</h1>
             <p className="text-sm sm:text-base lg:text-xl text-blue-100 max-w-3xl mx-auto text-center sm:text-justify">
@@ -112,7 +112,7 @@ export default function ContactoPage() {
 
       {/* Contact Section */}
       <section className="py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
             {/* Contact Form */}
             <div className="order-2 lg:order-1">

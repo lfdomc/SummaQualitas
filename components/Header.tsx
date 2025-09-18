@@ -47,11 +47,11 @@ export function Header() {
   }, [isMenuOpen, isMobile]);
 
   const navigationItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/projects', label: 'Proyectos', icon: FolderOpen },
-    { href: '/change-orders', label: 'Órdenes de Cambio', icon: FileText },
-    { href: '/reports', label: 'Reportes', icon: BarChart3 },
-    { href: '/settings', label: 'Configuración', icon: Settings },
+    { href: '/nosotros', label: 'Nosotros', icon: Home },
+    { href: '/servicios', label: 'Servicios', icon: FolderOpen },
+    { href: '/proyectos', label: 'Proyectos', icon: FileText },
+    { href: '/contacto', label: 'Contacto', icon: BarChart3 },
+    { href: '/cotizacion', label: 'Cotización', icon: Settings },
   ];
 
   return (
@@ -71,7 +71,7 @@ export function Header() {
               height={180}
               className="mobile-logo"
             />
-            <span className="text-mobile-lg sm:text-[30px] font-bold text-gray-900"></span>
+            <span className="text-mobile-lg sm:text-[30px] font-bold text-foreground"></span>
           </Link>
 
           {/* Desktop Navigation - Oculto en móvil y cuando el usuario está autenticado (tiene sidebar) */}
@@ -83,7 +83,7 @@ export function Header() {
                   <Link 
                     key={item.href}
                     href={item.href} 
-                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors touch-manipulation"
+                    className="flex items-center space-x-2 text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors touch-manipulation"
 
                   >
                     <Icon className="h-4 w-4" />
@@ -120,17 +120,17 @@ export function Header() {
                   </DropdownMenu>
                 ) : (
                   <>
-                    <Link href="/auth/login" className="hidden sm:inline-block">
-                      <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white rounded-full text-mobile-sm sm:text-sm">
+                    <Link href="/login" className="hidden sm:inline-block">
+                      <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-full text-mobile-sm sm:text-sm">
                         Iniciar Sesión
                       </Button>
                     </Link>
                     <Link href="/cotizacion" className="hidden sm:inline-block">
-                      <Button className="bg-gradient-to-r from-blue-900 to-blue-700 hover:from-gray-800 hover:to-blue-700 text-white rounded-full text-mobile-sm sm:text-sm">
+                      <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-mobile-sm sm:text-sm">
                         Get Quote
                       </Button>
                     </Link>
-                    <Link href="/auth/login" className="sm:hidden">
+                    <Link href="/login" className="sm:hidden">
                       <Button variant="ghost" size="sm" className="min-h-touch">
                         <User className="h-4 w-4" />
                       </Button>
@@ -170,7 +170,7 @@ export function Header() {
             />
             
             {/* Menú móvil */}
-            <div className="lg:hidden py-4 border-t border-gray-200 bg-white mobile-menu">
+            <div className="lg:hidden py-4 border-t border-border bg-card mobile-menu">
               <nav className="flex flex-col space-y-1">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
@@ -189,11 +189,11 @@ onClick={() => setIsMenuOpen(false)}
               
                 {/* Mobile Auth Buttons */}
                 {!loading && !isAuthenticated && (
-                  <div className="pt-4 space-y-3 border-t border-gray-100 mt-2">
+                  <div className="pt-4 space-y-3 border-t border-border mt-2">
                     <Link href="/cotizacion" onClick={() => setIsMenuOpen(false)}>
                       <Button className="mobile-primary-button w-full rounded-full">Get Quote</Button>
                     </Link>
-                    <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
+                    <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                       <Button className="mobile-secondary-button w-full rounded-full">Iniciar Sesión</Button>
                     </Link>
                   </div>

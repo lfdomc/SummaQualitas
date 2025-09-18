@@ -134,7 +134,7 @@ export default function CotizacionPage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="text-center">
             <Calculator className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 text-blue-300 mx-auto mb-4 sm:mb-6" />
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">Request Quote</h1>
@@ -148,7 +148,7 @@ export default function CotizacionPage() {
 
       {/* Process Steps */}
       <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <ScrollAnimation delay={100}>
             <div className="text-center mb-12 lg:mb-16">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
@@ -225,7 +225,7 @@ export default function CotizacionPage() {
 
       {/* Quote Form */}
       <section className="py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="max-w-4xl mx-auto">
             <ScrollAnimation delay={200}>
               <Card>
@@ -584,7 +584,7 @@ export default function CotizacionPage() {
 
       {/* Benefits */}
       <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Why choose our quote?</h2>

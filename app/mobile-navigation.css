@@ -283,15 +283,15 @@
 @media (prefers-color-scheme: dark) {
   .mobile-menu-container,
   .mobile-sidebar {
-    @apply bg-gray-900 text-white;
+    @apply bg-secondary text-secondary-foreground;
   }
   
   .mobile-nav-item {
-    @apply text-gray-300 hover:text-white hover:bg-gray-800;
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent;
   }
   
   .mobile-header {
-    @apply bg-gray-800 border-gray-600;
+    @apply bg-card border-border;
   }
 }
 

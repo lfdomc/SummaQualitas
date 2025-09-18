@@ -10,14 +10,15 @@ export enum UserRole {
 }
 
 export type UserRoleType = 'gerencia' | 'administrativo' | 'cliente';
-// Tipos alineados con el esquema SQL
-export type ProjectStatus = 'active' | 'completed' | 'paused' | 'cancelled';
+// Tipos alineados con el esquema SQL de la base de datos
+export type ProjectStatus = 'planificacion' | 'en_progreso' | 'pausado' | 'completado' | 'cancelado';
 
 export enum ProjectStatusEnum {
-  ACTIVE = 'active',
-  COMPLETED = 'completed',
-  PAUSED = 'paused',
-  CANCELLED = 'cancelled'
+  PLANIFICACION = 'planificacion',
+  EN_PROGRESO = 'en_progreso',
+  PAUSADO = 'pausado',
+  COMPLETADO = 'completado',
+  CANCELADO = 'cancelado'
 }
 export type ChangeType = 'material' | 'diseno' | 'cronograma' | 'presupuesto';
 export type ChangeStatus = 'pendiente' | 'aprobado' | 'rechazado';

@@ -13,7 +13,7 @@ export default function ServiciosPage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <ScrollAnimation delay={100}>
             <div className="text-center">
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">Our Services</h1>
@@ -28,7 +28,7 @@ export default function ServiciosPage() {
 
       {/* Services Grid */}
       <section className="py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="grid sm:grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
             {services.map((service, index) => (
               <ScrollAnimation key={index} delay={200 + index * 100}>
@@ -69,7 +69,7 @@ export default function ServiciosPage() {
 
       {/* CTA Section */}
       <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
-        <div className="container mx-auto px-4 text-center">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24 text-center">
           <ScrollAnimation delay={100}>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Ready to start your project?</h2>
             <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 max-w-2xl mx-auto text-justify px-4">

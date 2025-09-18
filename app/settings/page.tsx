@@ -20,7 +20,6 @@ function SettingsPage() {
   });
 
   const [preferences, setPreferences] = useState({
-    darkMode: false,
     language: 'es',
     timezone: 'America/Mexico_City',
   });
@@ -143,19 +142,7 @@ function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Modo oscuro</Label>
-                    <p className="text-sm text-gray-500">Cambiar a tema oscuro</p>
-                  </div>
-                  <Switch
-                    checked={preferences.darkMode}
-                    onCheckedChange={(checked) => 
-                      setPreferences(prev => ({ ...prev, darkMode: checked }))
-                    }
-                  />
-                </div>
-                <Separator />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="language">Idioma</Label>

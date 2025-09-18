@@ -160,24 +160,24 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-card border-b border-border">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-gray-900">
+              <Link href="/dashboard" className="flex items-center text-muted-foreground hover:text-foreground">
                 <Home className="h-4 w-4 mr-1" />
                 Dashboard
               </Link>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-900 font-medium">Administración</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <span className="text-foreground font-medium">Administración</span>
             </div>
             <div className="flex items-center space-x-2">
               <Badge variant="outline">
                 {user?.role === 'maestro' ? 'Usuario Maestro' : 'Administrador'}
               </Badge>
-              <span className="text-sm text-gray-600">{user?.email}</span>
+              <span className="text-sm text-muted-foreground">{user?.email}</span>
             </div>
           </div>
         </div>
@@ -185,9 +185,9 @@ export default function AdminLayout({
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
+        <aside className="w-64 bg-card border-r border-border min-h-screen">
           <nav className="p-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Panel Administrativo</h2>
+            <h2 className="text-lg font-semibold text-card-foreground mb-4">Panel Administrativo</h2>
             <ul className="space-y-2">
               {adminNavigation.map((item) => {
                 const Icon = item.icon;
@@ -199,7 +199,7 @@ export default function AdminLayout({
                     {isDisabled ? (
                       <div className={cn(
                         "flex items-center px-3 py-2 text-sm rounded-md cursor-not-allowed opacity-50",
-                        "text-gray-400 bg-gray-50"
+                        "text-muted-foreground bg-muted"
                       )}>
                         <Icon className="h-4 w-4 mr-3" />
                         <div className="flex-1">
@@ -211,7 +211,7 @@ export default function AdminLayout({
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-gray-400 mt-1">{item.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
                         </div>
                       </div>
                     ) : (
@@ -220,8 +220,8 @@ export default function AdminLayout({
                         className={cn(
                           "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
                           isActive
-                            ? "bg-blue-100 text-blue-700 border-r-2 border-blue-700"
-                            : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                            ? "bg-primary/10 text-primary border-r-2 border-primary"
+                            : "text-card-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
                       >
                         <Icon className="h-4 w-4 mr-3" />
@@ -234,7 +234,7 @@ export default function AdminLayout({
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
                         </div>
                       </Link>
                     )}

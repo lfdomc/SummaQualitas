@@ -28,7 +28,7 @@ const projectSchema = z.object({
   description: z.string().optional(),
   client_id: z.string().uuid('Selecciona un cliente válido').optional(),
   manager_id: z.string().uuid('Selecciona un gerente válido').optional(),
-  status: z.enum(['active', 'completed', 'paused', 'cancelled']),
+  status: z.enum(['planificacion', 'en_progreso', 'pausado', 'completado', 'cancelado']),
   location: z.string().optional(),
   exchange_rate_usd: z.number().min(0, 'El tipo de cambio debe ser mayor a 0').default(520),
   total_area: z.number().min(0, 'El área total debe ser mayor a 0').optional(),
@@ -84,7 +84,7 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       description: project?.description || '',
       client_id: project?.client_id || undefined,
       manager_id: project?.manager_id || undefined,
-      status: project?.status || 'active',
+      status: project?.status || 'planificacion',
       location: project?.location || '',
       exchange_rate_usd: project?.exchange_rate_usd || 520,
       total_area: project?.total_area || undefined,
@@ -187,13 +187,32 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
         router.push('/projects');
       }
     } catch (error) {
-      console.error('Error saving project:', {
-        message: error instanceof Error ? error.message : 'Error desconocido',
-        stack: error instanceof Error ? error.stack : undefined,
-        type: typeof error,
-        stringified: JSON.stringify(error)
+      console.error('Error saving project:', error);
+      
+      // Log más detallado del error
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          cause: error.cause
+        });
+      } else {
+        console.error('Non-Error object thrown:', {
+          type: typeof error,
+          value: error,
+          toString: String(error)
+        });
+      }
+      
+      // Log de los datos que se estaban enviando
+      console.error('Project data being sent:', {
+        ...projectData,
+        // Ocultar datos sensibles si los hay
       });
-      toast.error(isEditing ? 'Error al actualizar el proyecto' : 'Error al crear el proyecto');
+      
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al guardar el proyecto';
+      toast.error(isEditing ? `Error al actualizar el proyecto: ${errorMessage}` : `Error al crear el proyecto: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -264,10 +283,11 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="paused">Pausado</SelectItem>
-                        <SelectItem value="completed">Completado</SelectItem>
-                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                        <SelectItem value="planificacion">Planificación</SelectItem>
+                        <SelectItem value="en_progreso">En Progreso</SelectItem>
+                        <SelectItem value="pausado">Pausado</SelectItem>
+                        <SelectItem value="completado">Completado</SelectItem>
+                        <SelectItem value="cancelado">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

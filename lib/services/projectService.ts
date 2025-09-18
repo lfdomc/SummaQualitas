@@ -155,7 +155,7 @@ export async function createProject(projectData: CreateProjectData): Promise<Pro
         : (calculatedBudget > 0 
           ? calculatedBudget 
           : (projectData.presupuesto_inicial || 0)),
-      status: projectData.status || 'active',
+      status: projectData.status || 'planificacion',
       created_by: createdBy
     };
 
@@ -170,13 +170,43 @@ export async function createProject(projectData: CreateProjectData): Promise<Pro
       .single();
 
     if (error) {
-      const errorMessage = error?.message || error?.toString() || 'Error desconocido al crear proyecto';
-      throw new Error(`Error al crear proyecto: ${errorMessage}`);
+      console.error('❌ Error detallado de Supabase:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        fullError: error
+      });
+      
+      // Proporcionar mensajes de error más específicos
+      let userFriendlyMessage = 'Error desconocido al crear proyecto';
+      
+      if (error.code === '23505') {
+        userFriendlyMessage = 'Ya existe un proyecto con ese nombre';
+      } else if (error.code === '23503') {
+        userFriendlyMessage = 'El cliente seleccionado no existe';
+      } else if (error.code === '42703') {
+        userFriendlyMessage = 'Error en la estructura de la base de datos. Algunas columnas no existen.';
+      } else if (error.code === '42501') {
+        userFriendlyMessage = 'No tienes permisos para crear proyectos';
+      } else if (error.message) {
+        userFriendlyMessage = error.message;
+      }
+      
+      throw new Error(userFriendlyMessage);
     }
 
     return data;
   } catch (error) {
-    throw error;
+    console.error('❌ Error general en createProject:', error);
+    
+    // Si es un error que ya procesamos, re-lanzarlo
+    if (error instanceof Error) {
+      throw error;
+    }
+    
+    // Si es un error desconocido, crear un mensaje genérico
+    throw new Error('Error inesperado al crear el proyecto. Por favor, inténtalo de nuevo.');
   }
 }
 
@@ -305,9 +335,9 @@ export async function getProjectStats() {
 
     const stats = {
       total: projects?.length || 0,
-      active: projects?.filter(p => p.status === 'active').length || 0,
-      completed: projects?.filter(p => p.status === 'completed').length || 0,
-      cancelled: projects?.filter(p => p.status === 'cancelled').length || 0,
+      active: projects?.filter(p => p.status === 'en_progreso').length || 0,
+      completed: projects?.filter(p => p.status === 'completado').length || 0,
+      cancelled: projects?.filter(p => p.status === 'cancelado').length || 0,
       total_budget: projects?.reduce((sum: number, p: { budget?: number; presupuesto_inicial?: number }) => {
         const budget = Number(p.budget || p.presupuesto_inicial || 0);
         return sum + budget;

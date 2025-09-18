@@ -63,7 +63,7 @@ export default function NosotrosPage() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-gray-900 to-blue-800 text-white py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div className="order-2 lg:order-1">
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">About Us</h1>
@@ -114,7 +114,7 @@ export default function NosotrosPage() {
 
       {/* Mission & Vision */}
       <section className="py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
             <Card className="p-4 sm:p-6 lg:p-8">
               <CardHeader className="text-center">
@@ -149,7 +149,7 @@ export default function NosotrosPage() {
 
       {/* Values */}
       <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-12 lg:mb-16">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Values</h2>
@@ -179,7 +179,7 @@ export default function NosotrosPage() {
 
       {/* Team */}
       <section className="py-12 sm:py-16 lg:py-20">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <ScrollAnimation delay={100}>
             <div className="text-center mb-8 sm:mb-12 lg:mb-16">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Our Team</h2>
@@ -221,7 +221,7 @@ export default function NosotrosPage() {
 
       {/* Stats */}
       <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-r from-gray-900 to-blue-800 text-white">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-8 xl:px-16 2xl:px-24">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
             <div>
               <AnimatedCounter 

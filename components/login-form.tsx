@@ -50,8 +50,8 @@ export function LoginForm({
         password,
       });
       if (error) throw error;
-      // Redirect to dashboard after successful login
-      router.push("/dashboard");
+      // Redirect to projects after successful login
+      router.push("/projects");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

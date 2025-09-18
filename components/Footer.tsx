@@ -4,7 +4,7 @@ import OptimizedImage from "@/components/OptimizedImage"
 
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-blue-950 text-white">
       <div className="container mx-auto px-4 py-8 sm:py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Company Info */}
@@ -23,7 +23,7 @@ export function Footer() {
               </div>
               <span className="text-2xl font-bold"></span>
             </div>
-            <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
+            <p className="text-gray-200 leading-relaxed text-sm sm:text-base">
               Leading company in construction and renovations with over 20 years of experience.
             </p>
           </div>
@@ -34,7 +34,7 @@ export function Footer() {
             <ul className="space-y-2">
               {["Home", "Services", "Projects", "About Us", "Contact"].map((item) => (
                 <li key={item}>
-                  <Link href="#" className="text-gray-300 hover:text-blue-400 transition-colors text-sm sm:text-base">
+                  <Link href="#" className="text-gray-200 hover:text-blue-300 transition-colors text-sm sm:text-base">
                     {item}
                   </Link>
                 </li>
@@ -54,7 +54,7 @@ export function Footer() {
                 "Consulting",
               ].map((service) => (
                 <li key={service}>
-                  <Link href="#" className="text-gray-300 hover:text-blue-400 transition-colors text-sm sm:text-base">
+                  <Link href="#" className="text-gray-200 hover:text-blue-300 transition-colors text-sm sm:text-base">
                     {service}
                   </Link>
                 </li>
@@ -68,15 +68,15 @@ export function Footer() {
             <div className="space-y-3">
               <div className="flex items-center justify-center sm:justify-start space-x-3">
                 <Phone className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                <span className="text-gray-300 text-sm sm:text-base">+(506) 8846-0570</span>
+                <span className="text-gray-200 text-sm sm:text-base">+(506) 8846-0570</span>
               </div>
               <div className="flex items-center justify-center sm:justify-start space-x-3">
-                <Mail className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                <span className="text-gray-300 text-sm sm:text-base break-all">fernando.apuy@qualitascr.com</span>
+                <Mail className="h-5 w-5 text-blue-300 flex-shrink-0" />
+                <span className="text-gray-200 text-sm sm:text-base break-all">fernando.apuy@qualitascr.com</span>
               </div>
               <div className="flex items-center justify-center sm:justify-start space-x-3">
-                <MapPin className="h-5 w-5 text-blue-400 flex-shrink-0" />
-                <span className="text-gray-300 text-sm sm:text-base">Guanacaste, Costa Rica</span>
+                <MapPin className="h-5 w-5 text-blue-300 flex-shrink-0" />
+                <span className="text-gray-200 text-sm sm:text-base">Guanacaste, Costa Rica</span>
               </div>
             </div>
           </div>

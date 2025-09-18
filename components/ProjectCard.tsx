@@ -24,7 +24,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         </div>
         <CardHeader className="p-3 sm:p-4 lg:p-6">
           <div className="flex justify-between items-start gap-2">
-            <CardTitle className="text-gray-900 hover:text-blue-600 transition-colors text-sm sm:text-base lg:text-lg flex-1">{project.title}</CardTitle>
+            <CardTitle className="text-blue-800 hover:text-blue-600 transition-colors text-sm sm:text-base lg:text-lg flex-1">{project.title}</CardTitle>
             <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs sm:text-sm flex-shrink-0">
               {project.category}
             </Badge>

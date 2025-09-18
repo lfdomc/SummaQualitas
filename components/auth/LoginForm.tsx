@@ -29,7 +29,7 @@ interface LoginFormProps {
   redirectTo?: string;
 }
 
-export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormProps) {
+export function LoginForm({ onSuccess, redirectTo = '/projects' }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string>('');
   const [loading, setLoading] = useState(false);
