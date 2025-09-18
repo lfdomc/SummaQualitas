@@ -1,0 +1,691 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { ProjectService } from '@/lib/supabase/database';
+import { Project, ProjectFinancialSummary, UserRole } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import {
+  ArrowLeft,
+  Edit,
+  Calendar,
+  DollarSign,
+  Users,
+  MapPin,
+  Clock,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Building2,
+  FileText,
+  Settings
+} from 'lucide-react';
+import Link from 'next/link';
+import { BudgetBreakdown } from '@/components/projects/BudgetBreakdown';
+import { BudgetItemsBreakdown } from '@/components/projects/BudgetItemsBreakdown';
+import { BudgetPieChart } from '@/components/projects/BudgetPieChart';
+import { ProjectExpenses } from '@/components/projects/ProjectExpenses';
+import ProjectIncomes from '@/components/projects/ProjectIncomes';
+import ProjectFinancialAnalysis from '@/components/projects/ProjectFinancialAnalysis';
+import ProjectChangeOrders from '@/components/projects/ProjectChangeOrders';
+import { withAuth } from '@/components/auth/withAuth';
+
+function ProjectDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { profile } = useAuthContext();
+  const [project, setProject] = useState<Project | null>(null);
+  const [financialSummary, setFinancialSummary] = useState<ProjectFinancialSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const projectId = params.id as string;
+  const projectService = new ProjectService(false); // false para cliente
+
+  useEffect(() => {
+    if (projectId) {
+      loadProject();
+    }
+  }, [projectId]);
+
+  const loadProject = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [projectData, financialData] = await Promise.all([
+        projectService.getProjectById(projectId),
+        projectService.getProjectFinancialSummary(projectId)
+      ]);
+      
+      if (!projectData) {
+        throw new Error('Proyecto no encontrado');
+      }
+      
+      setProject(projectData);
+      // financialData puede ser null si el proyecto no tiene datos financieros
+      setFinancialSummary(financialData);
+    } catch (error) {
+      console.error('Error loading project:', error);
+      setError(error instanceof Error ? error.message : 'Error desconocido al cargar el proyecto');
+      toast.error('Error al cargar el proyecto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statusConfig = {
+    planning: { label: 'Planificación', variant: 'secondary' as const, icon: Clock },
+    active: { label: 'Activo', variant: 'success' as const, icon: TrendingUp },
+    paused: { label: 'Pausado', variant: 'outline' as const, icon: AlertTriangle },
+    on_hold: { label: 'En Pausa', variant: 'outline' as const, icon: AlertTriangle },
+    completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle },
+    cancelled: { label: 'Cancelado', variant: 'destructive' as const, icon: AlertTriangle }
+  };
+
+  const canEdit = profile && ['gerencia', 'administrativo'].includes(profile.role);
+
+  if (loading) {
+    return <ProjectDetailSkeleton />;
+  }
+
+  if (error || !project) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
+          <p className="text-gray-600 mb-6">{error || 'Proyecto no encontrado'}</p>
+          <Link href="/projects">
+            <Button>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver a Proyectos
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CR', {
+      style: 'currency',
+      currency: 'CRC',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const formatUSDCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
+  const calculateUSDAmount = (amount: number): number => {
+    const exchangeRate = project?.exchange_rate_usd || 500;
+    return exchangeRate > 0 ? amount / exchangeRate : 0;
+  };
+
+  const formatDate = (date: string) => {
+    if (!date) return 'Sin definir';
+    
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      return 'Fecha inválida';
+    }
+    
+    return dateObj.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Función para calcular quincenas entre dos fechas
+  const calculateFortnights = (startDate: string, endDate: string): number => {
+    if (!startDate || !endDate) return 0;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Calcular diferencia en días
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Convertir días a quincenas (15 días = 1 quincena)
+    return Math.ceil(diffDays / 15);
+  };
+
+  // Función para calcular costo por quincena
+  const calculateCostPerFortnight = (): number => {
+    if (!project?.mano_obra_quincenal) return 0;
+    
+    const fortnights = calculateFortnights(
+      project.estimated_start_date || '',
+      project.estimated_end_date || ''
+    );
+    
+    if (fortnights === 0) return 0;
+    
+    // El costo total de mano de obra dividido entre el número de quincenas
+    return project.mano_obra_quincenal / fortnights;
+  };
+
+  // Función para calcular meses entre dos fechas
+  const calculateMonths = (startDate: string, endDate: string): number => {
+    if (!startDate || !endDate) return 0;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Calcular diferencia en meses
+    const yearDiff = end.getFullYear() - start.getFullYear();
+    const monthDiff = end.getMonth() - start.getMonth();
+    
+    return yearDiff * 12 + monthDiff + (end.getDate() >= start.getDate() ? 1 : 0);
+  };
+
+  const StatusIcon = statusConfig[project.status]?.icon || Clock;
+  const statusInfo = statusConfig[project.status] || statusConfig.planning;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Breadcrumb */}
+      <div className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+        <Link href="/projects" className="hover:text-gray-700">
+          Proyectos
+        </Link>
+        <span>/</span>
+        <span>{project.name}</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-4">
+          <div className="p-3 bg-blue-100 rounded-lg">
+            <Building2 className="h-8 w-8 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
+            <div className="flex items-center space-x-4 mt-2">
+              <Badge variant={statusInfo.variant} className="flex items-center space-x-1">
+                <StatusIcon className="h-3 w-3" />
+                <span>{statusInfo.label}</span>
+              </Badge>
+              <span className="text-gray-500">ID: {project.id}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex space-x-2">
+          <Link href="/projects">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Button>
+          </Link>
+          {canEdit && (
+            <Link href={`/projects/${project.id}/edit`}>
+              <Button>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Resumen</TabsTrigger>
+          <TabsTrigger value="financial">Financiero</TabsTrigger>
+          {canEdit && <TabsTrigger value="expenses">Gastos</TabsTrigger>}
+          {canEdit && <TabsTrigger value="incomes">Ingresos</TabsTrigger>}
+          <TabsTrigger value="analysis">Análisis</TabsTrigger>
+          {canEdit && <TabsTrigger value="change-orders">Órdenes de Cambio</TabsTrigger>}
+          <TabsTrigger value="timeline">Cronograma</TabsTrigger>
+          <TabsTrigger value="documents">Documentos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Project Info Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Presupuesto del Proyecto</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Presupuesto Inicial */}
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">Presupuesto Inicial</p>
+                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
+                      {project.presupuesto_original ? formatCurrency(project.presupuesto_original) : 'No definido'}
+                    </div>
+                    {project.presupuesto_original && (
+                      <p className="text-sm text-gray-500">
+                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_original))}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Presupuesto Final */}
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">Presupuesto Final</p>
+                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">
+                      {project.presupuesto_final ? formatCurrency(project.presupuesto_final) : 'No definido'}
+                    </div>
+                    {project.presupuesto_final && (
+                      <p className="text-sm text-gray-500">
+                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_final))}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Diferencia */}
+                  {project.presupuesto_original && project.presupuesto_final && (
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-gray-600 font-medium">Variación por Órdenes de Cambio</p>
+                      <div className={`text-lg font-bold ${
+                        (project.presupuesto_final - project.presupuesto_original) >= 0 
+                          ? 'text-red-600' 
+                          : 'text-green-600'
+                      }`}>
+                        {(project.presupuesto_final - project.presupuesto_original) >= 0 ? '+' : ''}
+                        {formatCurrency(project.presupuesto_final - project.presupuesto_original)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-xs text-muted-foreground mt-4">
+                  Tipo de cambio: ₡{project.exchange_rate_usd || 500} por USD
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Cliente</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  <p className="font-medium">{typeof project.client === 'string' ? project.client : project.client?.name || 'Sin asignar'}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Ubicación</CardTitle>
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {project.location || 'No especificada'}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Detailed Dates Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Fechas del Proyecto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-600">Inicio Estimado</span>
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {project.estimated_start_date ? formatDate(project.estimated_start_date) : 'Sin definir'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-orange-600" />
+                    <span className="text-sm font-medium text-orange-600">Fin Estimado</span>
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {project.estimated_end_date ? formatDate(project.estimated_end_date) : 'Sin definir'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-600">Inicio Real</span>
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {project.actual_start_date ? formatDate(project.actual_start_date) : 'Sin definir'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-red-600" />
+                    <span className="text-sm font-medium text-red-600">Fin Real</span>
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {project.actual_end_date ? formatDate(project.actual_end_date) : 'Sin definir'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Datos Estimados */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Datos Estimados</h3>
+                <div className="grid grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium">Quincenas Estimadas</p>
+                  <p className="text-2xl font-bold text-blue-800">
+                    {calculateFortnights(
+                      project.estimated_start_date || '',
+                      project.estimated_end_date || ''
+                    )} quincenas
+                  </p>
+                </div>
+                <div className="bg-sky-50 p-4 rounded-lg">
+                  <p className="text-sm text-sky-600 font-medium">Meses Estimados</p>
+                  <p className="text-2xl font-bold text-sky-800">
+                    {calculateMonths(
+                      project.estimated_start_date || '',
+                      project.estimated_end_date || ''
+                    )} meses
+                  </p>
+                </div>
+                <div className="bg-cyan-50 p-4 rounded-lg">
+                  <p className="text-sm text-cyan-600 font-medium">Costo por Quincena Estimado</p>
+                  <p className="text-2xl font-bold text-cyan-800">
+                    {formatCurrency(calculateCostPerFortnight())}
+                  </p>
+                </div>
+              </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Budget Breakdown Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Desglose Presupuestario</CardTitle>
+              <CardDescription>Distribución detallada del presupuesto por categorías</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(() => {
+                  const totalBudget = (project.presupuesto_final || project.presupuesto_inicial || project.budget || 0);
+                  const calculatePercentage = (amount: number): string => {
+                    if (totalBudget === 0) return '0%';
+                    return `${((amount / totalBudget) * 100).toFixed(1)}%`;
+                  };
+                  
+                  return (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm font-medium">Costos Directos - Totales</span>
+                        </div>
+                        <p className="text-lg font-semibold">
+                          {project.costos_directos_materiales ? formatCurrency(project.costos_directos_materiales) : 'S/ 0.00'}
+                        </p>
+                        <p className="text-sm text-blue-600 font-medium">
+                          {calculatePercentage(project.costos_directos_materiales || 0)}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                          <span className="text-sm font-medium">Costos Indirectos</span>
+                        </div>
+                        <p className="text-lg font-semibold">
+                          {project.costos_indirectos ? formatCurrency(project.costos_indirectos) : 'S/ 0.00'}
+                        </p>
+                        <p className="text-sm text-yellow-600 font-medium">
+                          {calculatePercentage(project.costos_indirectos || 0)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                          <span className="text-sm font-medium">Gastos Administrativos</span>
+                        </div>
+                        <p className="text-lg font-semibold">
+                          {project.gastos_administrativos ? formatCurrency(project.gastos_administrativos) : 'S/ 0.00'}
+                        </p>
+                        <p className="text-sm text-purple-600 font-medium">
+                          {calculatePercentage(project.gastos_administrativos || 0)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <span className="text-sm font-medium">Mano de Obra Quincenal</span>
+                        </div>
+                        <p className="text-lg font-semibold">
+                          {project.mano_obra_quincenal ? formatCurrency(project.mano_obra_quincenal) : 'S/ 0.00'}
+                        </p>
+                        <p className="text-sm text-red-600 font-medium">
+                          {calculatePercentage(project.mano_obra_quincenal || 0)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                          <span className="text-sm font-medium">Imprevistos</span>
+                        </div>
+                        <p className="text-lg font-semibold">
+                          {project.imprevistos ? formatCurrency(project.imprevistos) : 'S/ 0.00'}
+                        </p>
+                        <p className="text-sm text-orange-600 font-medium">
+                          {calculatePercentage(project.imprevistos || 0)}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                          <span className="text-sm font-medium">Utilidad Esperada</span>
+                        </div>
+                        <p className="text-lg font-semibold">
+                          {project.utilidad_esperada ? formatCurrency(project.utilidad_esperada) : 'S/ 0.00'}
+                        </p>
+                        <p className="text-sm text-emerald-600 font-medium">
+                          {calculatePercentage(project.utilidad_esperada || 0)}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Description */}
+          {project.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Descripción del Proyecto</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 leading-relaxed">{project.description}</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-6">
+          {/* Partidas Presupuestarias */}
+          <BudgetItemsBreakdown 
+            project={project}
+            exchangeRate={project.exchange_rate_usd || 500}
+          />
+          
+          {/* Gráfico de Distribución del Presupuesto */}
+          <BudgetPieChart project={project} />
+          
+          {/* Desglose Detallado */}
+          {financialSummary && (
+            <BudgetBreakdown 
+              projectId={project.id}
+              totalBudget={project.budget || 0}
+              exchangeRate={project.exchange_rate_usd || 500}
+            />
+          )}
+        </TabsContent>
+
+        {canEdit && (
+          <TabsContent value="expenses" className="space-y-6">
+            <ProjectExpenses 
+              project={project} 
+              canEdit={canEdit} 
+              showHeader={false} 
+            />
+          </TabsContent>
+        )}
+
+        {canEdit && (
+          <TabsContent value="incomes" className="space-y-6">
+            <ProjectIncomes 
+              projectId={project.id}
+              clientId={project.client_id}
+              projectName={project.name}
+              canManage={canEdit}
+            />
+          </TabsContent>
+        )}
+
+        <TabsContent value="analysis" className="space-y-6">
+          <ProjectFinancialAnalysis 
+            projectId={project.id}
+            projectBudget={project.budget || 0}
+            projectExpenses={financialSummary?.expenses ? {
+              total: financialSummary.expenses.total || 0,
+              byCategory: financialSummary.expenses.byCategory || {}
+            } : {
+              total: 0,
+              byCategory: {}
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="timeline" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cronograma del Proyecto</CardTitle>
+              <CardDescription>
+                Visualización del progreso y hitos del proyecto
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">Cronograma en desarrollo</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {canEdit && (
+          <TabsContent value="change-orders" className="space-y-6">
+            <ProjectChangeOrders 
+              projectId={project.id}
+              projectName={project.name}
+            />
+          </TabsContent>
+        )}
+
+        <TabsContent value="documents" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Documentos del Proyecto</CardTitle>
+              <CardDescription>
+                Contratos, planos, permisos y otros documentos relacionados
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No hay documentos disponibles</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function ProjectDetailSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
+        {/* Breadcrumb skeleton */}
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-4 w-20" />
+          <span>/</span>
+          <Skeleton className="h-4 w-32" />
+        </div>
+
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Skeleton className="h-14 w-14 rounded-lg" />
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-20" />
+          </div>
+        </div>
+
+        {/* Tabs skeleton */}
+        <div className="space-y-4">
+          <div className="flex space-x-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+
+          {/* Cards skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default withAuth(ProjectDetailPage, ['gerencia', 'administrativo', 'cliente']);

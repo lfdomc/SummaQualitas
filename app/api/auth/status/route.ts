@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { UserService } from '@/lib/supabase/database';
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createClient();
+    const userService = new UserService();
+
+    // Obtener la sesión actual
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error('❌ [API Auth Status] Error al obtener sesión:', sessionError);
+      return NextResponse.json({
+        user: null,
+        profile: null,
+        error: sessionError.message,
+        isAuthenticated: false
+      });
+    }
+
+    if (!session?.user) {
+      return NextResponse.json({
+        user: null,
+        profile: null,
+        error: null,
+        isAuthenticated: false
+      });
+    }
+
+    // Obtener el perfil del usuario
+    try {
+      const profile = await userService.getUserProfile(session.user.id);
+      
+      return NextResponse.json({
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          email_confirmed_at: session.user.email_confirmed_at,
+          created_at: session.user.created_at,
+          updated_at: session.user.updated_at
+        },
+        profile,
+        error: null,
+        isAuthenticated: true
+      });
+    } catch (profileError) {
+      console.error('❌ [API Auth Status] Error al obtener perfil:', profileError);
+      
+      // Devolver usuario sin perfil si hay error
+      return NextResponse.json({
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          email_confirmed_at: session.user.email_confirmed_at,
+          created_at: session.user.created_at,
+          updated_at: session.user.updated_at
+        },
+        profile: null,
+        error: null,
+        isAuthenticated: true
+      });
+    }
+  } catch (error) {
+    console.error('❌ [API Auth Status] Error general:', error);
+    return NextResponse.json({
+      user: null,
+      profile: null,
+      error: error instanceof Error ? error.message : 'Error desconocido',
+      isAuthenticated: false
+    }, { status: 500 });
+  }
+}

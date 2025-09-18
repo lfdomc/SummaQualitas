@@ -1,0 +1,304 @@
+/* =====================================================
+   ESTILOS DE NAVEGACIÓN MÓVIL
+   ===================================================== */
+
+/* Contenedor móvil optimizado */
+.container-mobile {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Área segura para dispositivos con notch */
+.safe-area-inset {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Tamaño mínimo de toque para elementos interactivos */
+.min-h-touch {
+  min-height: 44px;
+}
+
+.min-w-touch {
+  min-width: 44px;
+}
+
+/* Optimización de manipulación táctil */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tamaños de texto móvil */
+.text-mobile-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.text-mobile-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-mobile-base {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.text-mobile-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+/* Espaciado móvil */
+.mobile-padding {
+  @apply p-3 sm:p-4;
+}
+
+.mobile-margin {
+  @apply m-2 sm:m-4;
+}
+
+/* Navegación móvil específica */
+.mobile-nav-item {
+  @apply flex items-center space-x-3 py-3 px-4 text-base font-medium;
+  @apply text-gray-700 hover:text-blue-600 hover:bg-gray-50;
+  @apply rounded-md transition-colors duration-200;
+  @apply touch-manipulation min-h-touch;
+}
+
+.mobile-nav-icon {
+  @apply h-5 w-5 flex-shrink-0;
+}
+
+/* Menú hamburguesa animado */
+.mobile-menu-button {
+  @apply relative p-2 rounded-md text-gray-700 hover:text-blue-600;
+  @apply hover:bg-gray-100 focus:outline-none focus:ring-2;
+  @apply focus:ring-blue-500 focus:ring-offset-2;
+  @apply transition-colors duration-200 touch-manipulation;
+}
+
+/* Overlay para menú móvil */
+.mobile-menu-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-40;
+  @apply transition-opacity duration-300 ease-in-out;
+}
+
+/* Contenedor del menú móvil */
+.mobile-menu-container {
+  @apply fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50;
+  @apply transform transition-transform duration-300 ease-in-out;
+  @apply overflow-y-auto;
+}
+
+.mobile-menu-container.open {
+  @apply translate-x-0;
+}
+
+.mobile-menu-container.closed {
+  @apply -translate-x-full;
+}
+
+/* Header móvil optimizado */
+.mobile-header {
+  @apply sticky top-0 z-50 bg-white shadow-sm w-full;
+  @apply border-b border-gray-200;
+  margin: 0;
+  padding: 0;
+}
+
+.mobile-header-content {
+  @apply flex items-center justify-between h-14 sm:h-16 w-full;
+  @apply px-4 sm:px-6 bg-white;
+  margin: 0;
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* Logo responsive */
+.mobile-logo {
+  @apply h-8 w-auto sm:h-10 md:h-12;
+}
+
+/* Botones de acción móvil */
+.mobile-action-button {
+  @apply inline-flex items-center justify-center;
+  @apply px-4 py-2 text-sm font-medium rounded-md;
+  @apply transition-colors duration-200;
+  @apply touch-manipulation min-h-touch;
+}
+
+.mobile-primary-button {
+  @apply mobile-action-button;
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.mobile-secondary-button {
+  @apply mobile-action-button;
+  @apply bg-white text-blue-600 border border-blue-600;
+  @apply hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+/* Sidebar móvil */
+.mobile-sidebar {
+  @apply fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl;
+  @apply transform transition-transform duration-300 ease-in-out;
+  @apply lg:relative lg:translate-x-0 lg:shadow-none;
+}
+
+.mobile-sidebar-header {
+  @apply flex items-center justify-between p-4 border-b border-gray-200;
+}
+
+.mobile-sidebar-content {
+  @apply flex-1 overflow-y-auto py-4;
+}
+
+.mobile-sidebar-footer {
+  @apply border-t border-gray-200 p-4;
+}
+
+/* Animaciones de entrada/salida */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.slide-out-right {
+  animation: slideOutRight 0.3s ease-in;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.slide-out-left {
+  animation: slideOutLeft 0.3s ease-in;
+}
+
+/* Estados de carga móvil */
+.mobile-loading {
+  @apply flex items-center justify-center p-8;
+}
+
+.mobile-loading-spinner {
+  @apply animate-spin h-8 w-8 text-blue-600;
+}
+
+/* Mensajes de estado móvil */
+.mobile-message {
+  @apply text-center p-6 text-gray-500;
+}
+
+.mobile-error {
+  @apply mobile-message text-red-600;
+}
+
+.mobile-success {
+  @apply mobile-message text-green-600;
+}
+
+/* Optimizaciones de rendimiento */
+.mobile-optimized {
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Media queries específicas para dispositivos móviles */
+@media (max-width: 640px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
+}
+
+@media (min-width: 641px) {
+  .mobile-only {
+    display: none;
+  }
+  
+  .desktop-only {
+    display: block;
+  }
+}
+
+/* Mejoras de accesibilidad móvil */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu-container,
+  .mobile-sidebar {
+    transition: none;
+  }
+  
+  .slide-in-right,
+  .slide-out-right,
+  .slide-in-left,
+  .slide-out-left {
+    animation: none;
+  }
+}
+
+/* Soporte para modo oscuro */
+@media (prefers-color-scheme: dark) {
+  .mobile-menu-container,
+  .mobile-sidebar {
+    @apply bg-gray-900 text-white;
+  }
+  
+  .mobile-nav-item {
+    @apply text-gray-300 hover:text-white hover:bg-gray-800;
+  }
+  
+  .mobile-header {
+    @apply bg-gray-800 border-gray-600;
+  }
+}
+
+/* Optimizaciones para pantallas de alta densidad */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .mobile-logo {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
