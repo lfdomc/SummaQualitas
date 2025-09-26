@@ -11,42 +11,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileUpload } from '@/components/ui/file-upload';
-import { Plus, Search, Filter, DollarSign, TrendingUp, TrendingDown, Calendar, Building2, Edit, Trash2 } from 'lucide-react';
+import { TranslatableInput } from '@/components/ui/translatable-input';
+import { Plus, Search, Filter, DollarSign, TrendingUp, TrendingDown, Calendar, Building2, Edit, Trash2, UserPlus, FileText, Upload, X, Calculator, Users, Truck, AlertTriangle } from 'lucide-react';
 import { ProjectService } from '@/lib/supabase/database';
-import { Project, Expense, CreateExpenseData, Supplier, EXPENSE_CATEGORIES } from '@/types/database';
+import { Project, Supplier } from '@/types/database';
+import { 
+  Expense, 
+  CreateExpenseData, 
+  ExpenseForm as ExpenseFormType,
+  ExpenseSummary,
+  EXPENSE_CATEGORIES, 
+  DIRECT_COST_SUBCATEGORIES, 
+  INDIRECT_COST_SUBCATEGORIES,
+  PAYMENT_STATUSES,
+  CURRENCIES
+} from '@/lib/types/expense';
+import { ExpenseService } from '@/lib/services/expenseService';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { uploadFile } from '@/lib/services/fileService';
+import { NewSupplierModal } from '@/components/suppliers/NewSupplierModal';
 
-type ExpenseCategory = 'costos_directos' | 'costos_indirectos' | 'gastos_administrativos' | 'mano_obra' | 'imprevistos';
-
-interface ExpenseForm {
-  project_id: string;
-  category: ExpenseCategory;
-  subcategory: string;
-  description: string;
-  amount: string;
-  currency: 'CRC' | 'USD';
-  exchange_rate: string;
-  date: string;
-  supplier_id: string;
-
-  reference: string;
-  details: string;
-  notes: string;
-  attachment_url: string;
-  attachment_name: string;
-  attachment_type: string;
-  attachment_size: number;
-}
-
-interface ExpenseSummary {
-  category: ExpenseCategory;
-  total: number;
-  totalUSD: number;
-  count: number;
-  percentage: number;
-}
+// Usando tipos optimizados de lib/types/expense
 
 interface ProjectSummary {
   project_id: string;
@@ -57,12 +43,17 @@ interface ProjectSummary {
   percentage: number;
 }
 
+// Instancia del servicio optimizado
+const expenseService = new ExpenseService();
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
@@ -71,31 +62,41 @@ export default function ExpensesPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false);
   
   const supabase = createClient();
-  const [expenseForm, setExpenseForm] = useState<ExpenseForm>({
+  const [expenseForm, setExpenseForm] = useState<ExpenseFormType>({
     project_id: '',
     category: 'costos_directos',
-    subcategory: '',
+    subcategory_direct: undefined,
+    subcategory_indirect: undefined,
     description: '',
     amount: '',
     currency: 'CRC',
     exchange_rate: '',
     date: new Date().toISOString().split('T')[0],
     supplier_id: 'none',
-
-    reference: '',
-    details: '',
+    invoice_number: '',
+    payment_status: 'pendiente',
+    payment_date: '',
     notes: '',
-    attachment_url: '',
-    attachment_name: '',
-    attachment_type: '',
-    attachment_size: 0
+    receipt_url: '',
+    reference: '',
+    reference_attachment_url: '',
+    reference_attachment_name: '',
+    reference_attachment_type: '',
+    reference_attachment_size: '',
+    details: ''
   });
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Efecto para resetear subcategoría cuando cambie la categoría
+  useEffect(() => {
+    setSelectedSubcategory('all');
+  }, [selectedCategory]);
 
   // Efecto para actualizar el tipo de cambio cuando se cambia la moneda a CRC
   useEffect(() => {
@@ -120,10 +121,7 @@ export default function ExpensesPage() {
       const result = await uploadFile(file);
       setExpenseForm(prev => ({
         ...prev,
-        attachment_url: result.url,
-        attachment_name: result.name,
-        attachment_type: result.type,
-        attachment_size: result.size
+        receipt_url: result.url
       }));
       toast.success('Archivo subido exitosamente');
       return result;
@@ -137,47 +135,75 @@ export default function ExpensesPage() {
   const handleFileRemove = () => {
     setExpenseForm(prev => ({
       ...prev,
-      attachment_url: '',
-      attachment_name: '',
-      attachment_type: '',
-      attachment_size: 0
+      receipt_url: ''
+    }));
+  };
+
+  const handleReferenceFileUpload = async (file: File) => {
+    try {
+      const result = await uploadFile(file);
+      setExpenseForm(prev => ({
+        ...prev,
+        reference_attachment_url: result.url,
+        reference_attachment_name: file.name,
+        reference_attachment_type: file.type,
+        reference_attachment_size: file.size.toString()
+      }));
+      toast.success('Comprobante de referencia subido exitosamente');
+      return result;
+    } catch (error) {
+      console.error('Error uploading reference file:', error);
+      toast.error('Error al subir el comprobante de referencia');
+      throw error;
+    }
+  };
+
+  const handleReferenceFileRemove = () => {
+    setExpenseForm(prev => ({
+      ...prev,
+      reference_attachment_url: '',
+      reference_attachment_name: '',
+      reference_attachment_type: '',
+      reference_attachment_size: ''
     }));
   };
 
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const projectService = new ProjectService();
-      const projectsResponse = await projectService.getProjects();
       
-      // Cargar proveedores
-      const { data: suppliersData, error: suppliersError } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('status', 'ACTIVO')
-        .order('name', { ascending: true });
+      // Cargar datos en paralelo para mejor rendimiento
+      const [projectsResponse, suppliersResponse, expensesResponse] = await Promise.all([
+        new ProjectService().getProjects(),
+        supabase
+          .from('suppliers')
+          .select('*')
+          .eq('status', 'ACTIVO')
+          .order('name', { ascending: true }),
+        expenseService.getExpenses(undefined, { 
+          page: 1, 
+          limit: 1000, 
+          sort_by: 'expense_date', 
+          sort_order: 'desc' 
+        })
+      ]);
       
-      if (suppliersError) {
-        console.error('Error loading suppliers:', suppliersError);
+      // Manejar respuesta de proyectos
+      if (projectsResponse.data) {
+        setProjects(projectsResponse.data as Project[]);
+      }
+      
+      // Manejar respuesta de proveedores
+      if (suppliersResponse.error) {
+        console.error('Error loading suppliers:', suppliersResponse.error);
         toast.error('Error al cargar proveedores');
       } else {
-        setSuppliers(suppliersData || []);
+        setSuppliers(suppliersResponse.data || []);
       }
       
-      setProjects(projectsResponse.data as Project[]);
+      // Manejar respuesta de gastos usando el servicio optimizado
+      setExpenses(expensesResponse.data || []);
       
-      // Cargar gastos desde la base de datos
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      if (expensesError) {
-        console.error('Error loading expenses:', expensesError);
-        toast.error('Error al cargar los gastos');
-      } else {
-        setExpenses(expensesData || []);
-      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar los datos');
@@ -220,51 +246,61 @@ export default function ExpensesPage() {
 
   const handleAddExpense = async () => {
     try {
-      // Convertir todo a colones para guardar en la base de datos
-      const inputAmount = parseFloat(expenseForm.amount);
-      const exchangeRate = parseFloat(expenseForm.exchange_rate) || 1;
-      
-      // Si es USD, convertir a colones; si es CRC, mantener el valor
-      const amountInCRC = expenseForm.currency === 'USD' ? inputAmount * exchangeRate : inputAmount;
-      const originalAmountUSD = expenseForm.currency === 'USD' ? inputAmount : inputAmount / exchangeRate;
-      
-      // Preparar datos para la base de datos (todo en colones)
-      const expenseData: CreateExpenseData = {
-        project_id: expenseForm.project_id,
-        category: expenseForm.category,
-        subcategory: expenseForm.subcategory || undefined,
-        description: expenseForm.description,
-        amount: amountInCRC, // Siempre en colones
-        amount_usd: originalAmountUSD, // Valor original en USD para referencia
-        currency: 'CRC', // Siempre guardar como CRC en la base
-        exchange_rate: exchangeRate, // Siempre guardar el tipo de cambio usado
-        date: expenseForm.date,
-        supplier_id: expenseForm.supplier_id === 'none' ? undefined : expenseForm.supplier_id,
-  
-        reference: expenseForm.reference || undefined,
-        details: expenseForm.details || undefined,
-        notes: expenseForm.notes || undefined,
-        attachment_url: expenseForm.attachment_url || undefined,
-        attachment_name: expenseForm.attachment_name || undefined,
-        attachment_type: expenseForm.attachment_type || undefined,
-        attachment_size: expenseForm.attachment_size || undefined
-      };
-      
-      // Guardar en la base de datos
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert([expenseData])
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Error saving expense:', error);
-        toast.error('Error al guardar el gasto en la base de datos');
+      // Validaciones básicas
+      if (!expenseForm.project_id) {
+        toast.error('Debe seleccionar un proyecto');
         return;
       }
       
-      // Actualizar la lista local
-      setExpenses(prev => [...prev, data]);
+      if (!expenseForm.description?.trim()) {
+        toast.error('La descripción es requerida');
+        return;
+      }
+      
+      if (!expenseForm.amount || parseFloat(expenseForm.amount) <= 0) {
+        toast.error('El monto debe ser mayor a 0');
+        return;
+      }
+      
+      const inputAmount = parseFloat(expenseForm.amount);
+      
+      // Preparar datos para la base de datos
+      const expenseData: CreateExpenseData = {
+        project_id: expenseForm.project_id,
+        category: expenseForm.category,
+        description: expenseForm.description.trim(),
+        amount: inputAmount,
+        currency: expenseForm.currency,
+        exchange_rate_usd: expenseForm.exchange_rate ? parseFloat(expenseForm.exchange_rate) : undefined,
+        expense_date: expenseForm.date,
+        supplier_id: expenseForm.supplier_id === 'none' ? undefined : expenseForm.supplier_id,
+        invoice_number: expenseForm.invoice_number?.trim() || undefined,
+        payment_status: expenseForm.payment_status as any || 'pendiente',
+        payment_date: expenseForm.payment_date || undefined,
+        notes: expenseForm.notes?.trim() || undefined,
+        receipt_url: expenseForm.receipt_url || undefined,
+        reference: expenseForm.reference?.trim() || undefined,
+        reference_attachment_url: expenseForm.reference_attachment_url || undefined,
+        reference_attachment_name: expenseForm.reference_attachment_name || undefined,
+        reference_attachment_type: expenseForm.reference_attachment_type || undefined,
+        reference_attachment_size: expenseForm.reference_attachment_size ? parseInt(expenseForm.reference_attachment_size) : undefined
+      };
+
+      // Agregar subcategorías según la categoría seleccionada
+      if (expenseForm.category === 'costos_directos' && expenseForm.subcategory_direct) {
+        expenseData.subcategory_direct = expenseForm.subcategory_direct;
+      }
+      
+      if (expenseForm.category === 'costos_indirectos' && expenseForm.subcategory_indirect) {
+        expenseData.subcategory_indirect = expenseForm.subcategory_indirect;
+      }
+      
+      // Usar el servicio optimizado para crear el gasto
+      const newExpense = await expenseService.createExpense(expenseData);
+      
+      // Actualizar la lista local agregando el nuevo gasto al inicio
+      setExpenses(prev => [newExpense, ...prev]);
+      
       setIsAddDialogOpen(false);
       resetExpenseForm();
       toast.success('Gasto agregado exitosamente');
@@ -278,54 +314,53 @@ export default function ExpensesPage() {
     setExpenseForm({
       project_id: '',
       category: 'costos_directos',
-      subcategory: '',
+      subcategory_direct: undefined,
+      subcategory_indirect: undefined,
       description: '',
       amount: '',
       currency: 'CRC',
       exchange_rate: '',
       date: new Date().toISOString().split('T')[0],
       supplier_id: 'none',
-  
-      reference: '',
-      details: '',
+      invoice_number: '',
+      payment_status: 'pendiente',
+      payment_date: '',
       notes: '',
-      attachment_url: '',
-      attachment_name: '',
-      attachment_type: '',
-      attachment_size: 0
+      receipt_url: '',
+      reference: '',
+      reference_attachment_url: '',
+      reference_attachment_name: '',
+      reference_attachment_type: '',
+      reference_attachment_size: '',
+      details: ''
     });
   };
 
   const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense);
     
-    // Determinar la moneda original y el monto original
-    // Si amount_usd existe y es diferente del cálculo CRC/exchange_rate, fue ingresado en USD
-    const exchangeRate = expense.exchange_rate || 1;
-    const calculatedUSD = expense.amount / exchangeRate;
-    const wasEnteredInUSD = expense.amount_usd && Math.abs(expense.amount_usd - calculatedUSD) > 0.01;
-    
-    const originalCurrency = wasEnteredInUSD ? 'USD' : 'CRC';
-    const originalAmount = wasEnteredInUSD ? expense.amount_usd : expense.amount;
-    
     setExpenseForm({
       project_id: expense.project_id,
-      category: expense.category,
-      subcategory: expense.subcategory || '',
+      category: expense.category || 'costos_directos',
+      subcategory_direct: expense.subcategory_direct || undefined,
+      subcategory_indirect: expense.subcategory_indirect || undefined,
       description: expense.description,
-      amount: originalAmount?.toString() || expense.amount.toString(),
-      currency: originalCurrency,
+      amount: expense.amount.toString(),
+      currency: expense.currency || 'CRC',
       exchange_rate: expense.exchange_rate?.toString() || '',
-      date: expense.date,
+      date: expense.expense_date || expense.date || new Date().toISOString().split('T')[0],
       supplier_id: expense.supplier_id || 'none',
-
-      reference: expense.reference || '',
-      details: expense.details || '',
+      invoice_number: expense.invoice_number || '',
+      payment_status: expense.payment_status || 'pendiente',
+      payment_date: expense.payment_date || '',
       notes: expense.notes || '',
-      attachment_url: expense.attachment_url || '',
-      attachment_name: expense.attachment_name || '',
-      attachment_type: expense.attachment_type || '',
-      attachment_size: expense.attachment_size || 0
+      receipt_url: expense.receipt_url || '',
+      reference: expense.reference || '',
+      reference_attachment_url: expense.reference_attachment_url || '',
+      reference_attachment_name: expense.reference_attachment_name || '',
+      reference_attachment_type: expense.reference_attachment_type || '',
+      reference_attachment_size: expense.reference_attachment_size?.toString() || '',
+      details: expense.details || ''
     });
     setIsEditDialogOpen(true);
   };
@@ -333,60 +368,95 @@ export default function ExpensesPage() {
   const handleUpdateExpense = async () => {
     if (!editingExpense) return;
     
+    // Preparar datos para la actualización (mover fuera del try para que esté disponible en catch)
+    let updateData: any = null;
+    
     try {
-      // Convertir todo a colones para guardar en la base de datos
-      const inputAmount = parseFloat(expenseForm.amount);
-      const exchangeRate = parseFloat(expenseForm.exchange_rate) || 1;
-      
-      // Si es USD, convertir a colones; si es CRC, mantener el valor
-      const amountInCRC = expenseForm.currency === 'USD' ? inputAmount * exchangeRate : inputAmount;
-      const originalAmountUSD = expenseForm.currency === 'USD' ? inputAmount : inputAmount / exchangeRate;
-      
-      // Preparar datos para la actualización (todo en colones)
-      const updateData = {
-        project_id: expenseForm.project_id,
-        category: expenseForm.category,
-        subcategory: expenseForm.subcategory || null,
-        description: expenseForm.description,
-        amount: amountInCRC, // Siempre en colones
-        amount_usd: originalAmountUSD, // Valor original en USD para referencia
-        currency: 'CRC', // Siempre guardar como CRC en la base
-        exchange_rate: exchangeRate, // Siempre guardar el tipo de cambio usado
-        date: expenseForm.date,
-        supplier_id: expenseForm.supplier_id === 'none' ? null : expenseForm.supplier_id,
-  
-        reference: expenseForm.reference || null,
-        details: expenseForm.details || null,
-        notes: expenseForm.notes || null,
-        attachment_url: expenseForm.attachment_url || null,
-        attachment_name: expenseForm.attachment_name || null,
-        attachment_type: expenseForm.attachment_type || null,
-        attachment_size: expenseForm.attachment_size || null
-      };
-      
-      // Actualizar en la base de datos
-      const { data, error } = await supabase
-        .from('expenses')
-        .update(updateData)
-        .eq('id', editingExpense.id)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Error updating expense:', error);
-        toast.error('Error al actualizar el gasto en la base de datos');
+      // Validaciones básicas
+      if (!expenseForm.project_id) {
+        toast.error('Debe seleccionar un proyecto');
         return;
       }
       
+      if (!expenseForm.category) {
+        toast.error('Debe seleccionar una categoría');
+        return;
+      }
+      
+      if (!expenseForm.description?.trim()) {
+        toast.error('La descripción es requerida');
+        return;
+      }
+      
+      if (!expenseForm.amount || isNaN(parseFloat(expenseForm.amount))) {
+        toast.error('El monto debe ser un número válido');
+        return;
+      }
+      
+      const inputAmount = parseFloat(expenseForm.amount);
+      
+      if (inputAmount <= 0) {
+        toast.error('El monto debe ser mayor a 0');
+        return;
+      }
+      
+      // Preparar datos para la actualización
+      updateData = {
+        project_id: expenseForm.project_id,
+        category: expenseForm.category,
+        description: expenseForm.description.trim(),
+        amount: inputAmount,
+        currency: expenseForm.currency,
+        exchange_rate_usd: expenseForm.exchange_rate ? parseFloat(expenseForm.exchange_rate) : undefined,
+        expense_date: expenseForm.date,
+        supplier_id: expenseForm.supplier_id === 'none' ? undefined : expenseForm.supplier_id,
+        invoice_number: expenseForm.invoice_number?.trim() || undefined,
+        payment_status: expenseForm.payment_status as any || 'pendiente',
+        payment_date: expenseForm.payment_date || undefined,
+        notes: expenseForm.notes?.trim() || undefined,
+        receipt_url: expenseForm.receipt_url || undefined,
+        reference: expenseForm.reference?.trim() || undefined,
+        // Campos de adjunto de referencia
+        reference_attachment_url: expenseForm.reference_attachment_url || undefined,
+        reference_attachment_name: expenseForm.reference_attachment_name || undefined,
+        reference_attachment_type: expenseForm.reference_attachment_type || undefined,
+        reference_attachment_size: expenseForm.reference_attachment_size ? parseInt(expenseForm.reference_attachment_size) : undefined,
+        // Limpiar subcategorías por defecto
+        subcategory_direct: undefined,
+        subcategory_indirect: undefined
+      };
+
+      // Agregar subcategorías según la categoría seleccionada
+      if (expenseForm.category === 'costos_directos' && expenseForm.subcategory_direct) {
+        updateData.subcategory_direct = expenseForm.subcategory_direct;
+      }
+      
+      if (expenseForm.category === 'costos_indirectos' && expenseForm.subcategory_indirect) {
+        updateData.subcategory_indirect = expenseForm.subcategory_indirect;
+      }
+      
+      // Usar el servicio optimizado para actualizar el gasto
+      const updatedExpense = await expenseService.updateExpense(editingExpense.id, updateData);
+      
       // Actualizar la lista local
-      setExpenses(prev => prev.map(exp => exp.id === editingExpense.id ? data : exp));
+      setExpenses(prev => prev.map(expense => 
+        expense.id === editingExpense.id ? updatedExpense : expense
+      ));
+      
       setIsEditDialogOpen(false);
       setEditingExpense(null);
       resetExpenseForm();
       toast.success('Gasto actualizado exitosamente');
     } catch (error) {
-      console.error('Error updating expense:', error);
-      toast.error('Error al actualizar el gasto');
+      console.error('Error updating expense (catch block):', {
+        error,
+        message: error instanceof Error ? error.message : 'Error desconocido',
+        stack: error instanceof Error ? error.stack : undefined,
+        updateData: updateData || 'No updateData available',
+        expenseId: editingExpense?.id || 'No expense ID',
+        formData: expenseForm
+      });
+      toast.error(`Error al actualizar el gasto: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -394,6 +464,33 @@ export default function ExpensesPage() {
     setIsEditDialogOpen(false);
     setEditingExpense(null);
     resetExpenseForm();
+  };
+
+  const handleNewSupplierCreated = async (newSupplier: Supplier) => {
+    // Recargar la lista de proveedores
+    try {
+      const { data: suppliersData, error: suppliersError } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('status', 'ACTIVO')
+        .order('name', { ascending: true });
+      
+      if (suppliersError) {
+        console.error('Error loading suppliers:', suppliersError);
+        toast.error('Error al cargar proveedores');
+      } else {
+        setSuppliers(suppliersData || []);
+        // Seleccionar automáticamente el nuevo proveedor
+        setExpenseForm(prev => ({ ...prev, supplier_id: newSupplier.id }));
+        toast.success('Proveedor creado y seleccionado exitosamente');
+      }
+    } catch (error) {
+      console.error('Error reloading suppliers:', error);
+      toast.error('Error al recargar proveedores');
+    }
+    
+    // Cerrar el modal
+    setIsNewSupplierModalOpen(false);
   };
 
   // Función para calcular rangos de fechas
@@ -434,6 +531,10 @@ export default function ExpensesPage() {
   const filteredExpenses = expenses.filter(expense => {
     const matchesProject = selectedProject === 'all' || expense.project_id === selectedProject;
     const matchesCategory = selectedCategory === 'all' || expense.category === selectedCategory;
+    const matchesSubcategory = selectedSubcategory === 'all' || 
+                              expense.subcategory_direct === selectedSubcategory || 
+                              expense.subcategory_indirect === selectedSubcategory;
+    const matchesSupplier = selectedSupplier === 'all' || expense.supplier_id === selectedSupplier;
     const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          expense.supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -442,18 +543,20 @@ export default function ExpensesPage() {
     if (dateFilter !== 'all') {
       const dateRange = getDateRange(dateFilter);
       if (dateRange) {
-        const expenseDate = new Date(expense.date);
+        const expenseDate = new Date(expense.expense_date);
         matchesDate = expenseDate >= dateRange.start && expenseDate <= dateRange.end;
       }
     }
     
-    return matchesProject && matchesCategory && matchesSearch && matchesDate;
+    return matchesProject && matchesCategory && matchesSubcategory && matchesSupplier && matchesSearch && matchesDate;
   });
 
   const projectSummary: ProjectSummary[] = projects.map(project => {
     const projectExpenses = filteredExpenses.filter(expense => expense.project_id === project.id);
     const total = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const totalUSD = Math.round(projectExpenses.reduce((sum, expense) => sum + (expense.amount_usd || 0), 0) * 100) / 100;
+    const totalUSD = Math.round(projectExpenses.reduce((sum, expense) => {
+      return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate || 600));
+    }, 0) * 100) / 100;
     
     // Calcular porcentaje respecto al presupuesto del proyecto
     const projectBudget = project.presupuesto_final || project.presupuesto_inicial || project.budget || 0;
@@ -470,7 +573,205 @@ export default function ExpensesPage() {
   }).filter(summary => summary.count > 0).sort((a, b) => b.total - a.total);
 
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const totalExpensesUSD = Math.round(filteredExpenses.reduce((sum, expense) => sum + (expense.amount_usd || 0), 0) * 100) / 100;
+  const totalExpensesUSD = Math.round(filteredExpenses.reduce((sum, expense) => {
+    return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate || 600));
+  }, 0) * 100) / 100;
+
+  // Función optimizada para calcular totales por categoría
+  const calculateCategoryTotals = (expenses: Expense[]) => {
+    const totals = {
+      costos_directos: { total_crc: 0, total_usd: 0, count: 0 },
+      costos_indirectos: { total_crc: 0, total_usd: 0, count: 0 },
+      mano_obra: { total_crc: 0, total_usd: 0, count: 0 },
+      administracion: { total_crc: 0, total_usd: 0, count: 0 },
+      imprevistos: { total_crc: 0, total_usd: 0, count: 0 }
+    };
+
+    expenses.forEach(expense => {
+      const category = expense.category;
+      if (totals[category]) {
+        totals[category].count++;
+        
+        const exchangeRate = expense.exchange_rate_usd || expense.exchange_rate || 600;
+        
+        if (expense.currency === 'USD') {
+          totals[category].total_usd += expense.amount;
+          totals[category].total_crc += expense.amount * exchangeRate;
+        } else {
+          totals[category].total_crc += expense.amount;
+          totals[category].total_usd += expense.amount / exchangeRate;
+        }
+      }
+    });
+
+    return totals;
+  };
+
+  // Calcular totales de categorías para gastos filtrados
+  const categoryTotals = calculateCategoryTotals(filteredExpenses);
+
+  // Función para obtener los colores de las categorías
+  const getCategoryColors = (categoryValue: string) => {
+    const colorMap: Record<string, { color: string; bgColor: string; borderColor: string }> = {
+      'costos_directos': {
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200'
+      },
+      'costos_indirectos': {
+        color: 'text-purple-600',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-200'
+      },
+      'mano_obra': {
+        color: 'text-green-600',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200'
+      },
+      'administracion': {
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-200'
+      },
+      'imprevistos': {
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200'
+      }
+    };
+    
+    return colorMap[categoryValue] || {
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-50',
+      borderColor: 'border-gray-200'
+    };
+  };
+
+  // Componente de resumen por categorías
+  const ExpenseSummary = () => {
+    const categories = [
+      {
+        key: 'costos_directos' as const,
+        label: 'Costos Directos',
+        icon: Building2,
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200'
+      },
+      {
+        key: 'costos_indirectos' as const,
+        label: 'Costos Indirectos',
+        icon: Calculator,
+        color: 'text-purple-600',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-200'
+      },
+      {
+        key: 'mano_obra' as const,
+        label: 'Mano de Obra',
+        icon: Users,
+        color: 'text-green-600',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200'
+      },
+      {
+        key: 'administracion' as const,
+        label: 'Administración',
+        icon: FileText,
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-200'
+      },
+      {
+        key: 'imprevistos' as const,
+        label: 'Imprevistos',
+        icon: AlertTriangle,
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200'
+      }
+    ];
+
+    const totalGeneral = Object.values(categoryTotals).reduce((sum, cat) => ({
+      total_crc: sum.total_crc + cat.total_crc,
+      total_usd: sum.total_usd + cat.total_usd,
+      count: sum.count + cat.count
+    }), { total_crc: 0, total_usd: 0, count: 0 });
+
+    return (
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Resumen de Gastos por Categoría
+          </CardTitle>
+          <CardDescription>
+            Total de {totalGeneral.count} gastos registrados
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+            {categories.map(category => {
+              const data = categoryTotals[category.key];
+              const Icon = category.icon;
+              
+              return (
+                <div
+                  key={category.key}
+                  className={`p-4 rounded-lg border-2 ${category.bgColor} ${category.borderColor} transition-all hover:shadow-md`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <Icon className={`h-5 w-5 ${category.color}`} />
+                    <span className="text-sm font-medium text-gray-600">
+                      {data.count} gastos
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2 text-sm">
+                    {category.label}
+                  </h3>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">USD:</span>
+                      <span className={`font-bold text-sm ${category.color}`}>
+                        ${data.total_usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">CRC:</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        ₡{data.total_crc.toLocaleString('es-CR')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Total General */}
+          <div className="border-t pt-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-gray-600" />
+                  <span className="font-semibold text-gray-900">Total General</span>
+                  <span className="text-sm text-gray-600">({totalGeneral.count} gastos)</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-gray-900">
+                    ${totalGeneral.total_usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    ₡{totalGeneral.total_crc.toLocaleString('es-CR')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -528,7 +829,7 @@ export default function ExpensesPage() {
                 <Label htmlFor="category">Categoría</Label>
                 <Select
                   value={expenseForm.category}
-                  onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value as ExpenseCategory }))}
+                  onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value as any }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -542,12 +843,63 @@ export default function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Subcategoría para Costos Directos */}
+              {expenseForm.category === 'costos_directos' && (
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory_direct">Subcategoría Directa *</Label>
+                  <Select 
+                    value={expenseForm.subcategory_direct || ''} 
+                    onValueChange={(value) => setExpenseForm(prev => ({ 
+                      ...prev, 
+                      subcategory_direct: value as 'subcontratos' | 'materiales' | 'otros',
+                      subcategory_indirect: undefined 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una subcategoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                        <SelectItem key={subcategory.value} value={subcategory.value}>
+                          {subcategory.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Subcategoría para Costos Indirectos */}
+              {expenseForm.category === 'costos_indirectos' && (
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory_indirect">Subcategoría Indirecta *</Label>
+                  <Select 
+                    value={expenseForm.subcategory_indirect || ''} 
+                    onValueChange={(value) => setExpenseForm(prev => ({ 
+                      ...prev, 
+                      subcategory_indirect: value as 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros',
+                      subcategory_direct: undefined 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una subcategoría" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                      {INDIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                        <SelectItem key={subcategory.value} value={subcategory.value}>
+                          {subcategory.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="description">Descripción</Label>
-                <Input
+                <TranslatableInput
                   id="description"
                   value={expenseForm.description}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(value) => setExpenseForm(prev => ({ ...prev, description: value }))}
                   placeholder="Descripción del gasto"
                 />
               </div>
@@ -599,7 +951,19 @@ export default function ExpensesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="supplier">Proveedor</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="supplier">Proveedor</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsNewSupplierModalOpen(true)}
+                    className="h-8 px-2"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Nuevo
+                  </Button>
+                </div>
                 <Select value={expenseForm.supplier_id} onValueChange={(value) => setExpenseForm(prev => ({ ...prev, supplier_id: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar proveedor" />
@@ -644,21 +1008,38 @@ export default function ExpensesPage() {
                 />
               </div>
               <div className="space-y-2 col-span-2">
+                <Label>Comprobante de Factura</Label>
                 <FileUpload
-                  title="Adjuntar Archivo"
-                  description="Sube facturas, recibos o documentos relacionados (PDF, JPEG, PNG, JPG)"
                   acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
-                  maxSize={5 * 1024 * 1024}
+                  maxFileSize={5 * 1024 * 1024}
                   onFileUpload={async (file) => {
                     const result = await handleFileUpload(file);
                     return result;
                   }}
                   onFileRemove={handleFileRemove}
-                  currentFile={expenseForm.attachment_name ? {
-                    name: expenseForm.attachment_name,
-                    type: expenseForm.attachment_type,
-                    size: expenseForm.attachment_size,
-                    url: expenseForm.attachment_url
+                  existingFile={expenseForm.receipt_url ? {
+                    name: expenseForm.receipt_url.split('/').pop() || 'Comprobante de Factura',
+                    type: 'application/pdf',
+                    size: 0,
+                    url: expenseForm.receipt_url
+                  } : undefined}
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Comprobante de Referencia</Label>
+                <FileUpload
+                  acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
+                  maxFileSize={5 * 1024 * 1024}
+                  onFileUpload={async (file) => {
+                    const result = await handleReferenceFileUpload(file);
+                    return result;
+                  }}
+                  onFileRemove={handleReferenceFileRemove}
+                  existingFile={expenseForm.reference_attachment_url ? {
+                    name: expenseForm.reference_attachment_name || 'Comprobante de Referencia',
+                    type: expenseForm.reference_attachment_type || 'application/pdf',
+                    size: expenseForm.reference_attachment_size || 0,
+                    url: expenseForm.reference_attachment_url
                   } : undefined}
                 />
               </div>
@@ -667,7 +1048,13 @@ export default function ExpensesPage() {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleAddExpense} disabled={!expenseForm.project_id || !expenseForm.description || !expenseForm.amount}>
+              <Button onClick={handleAddExpense} disabled={
+                  !expenseForm.project_id || 
+                  !expenseForm.description || 
+                  !expenseForm.amount ||
+                  (expenseForm.category === 'costos_directos' && !expenseForm.subcategory_direct) ||
+                  (expenseForm.category === 'costos_indirectos' && !expenseForm.subcategory_indirect)
+                }>
                 Agregar Gasto
               </Button>
             </DialogFooter>
@@ -701,7 +1088,7 @@ export default function ExpensesPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit_category">Categoría *</Label>
-                <Select value={expenseForm.category} onValueChange={(value: ExpenseCategory) => setExpenseForm(prev => ({ ...prev, category: value }))}>
+                <Select value={expenseForm.category} onValueChange={(value: any) => setExpenseForm(prev => ({ ...prev, category: value }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -714,21 +1101,63 @@ export default function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit_subcategory">Subcategoría</Label>
-                <Input
-                  id="edit_subcategory"
-                  value={expenseForm.subcategory}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, subcategory: e.target.value }))}
-                  placeholder="Subcategoría específica"
-                />
-              </div>
+              {/* Subcategoría para Costos Directos */}
+              {expenseForm.category === 'costos_directos' && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit_subcategory_direct">Subcategoría Directa *</Label>
+                  <Select 
+                    value={expenseForm.subcategory_direct || ''} 
+                    onValueChange={(value) => setExpenseForm(prev => ({ 
+                      ...prev, 
+                      subcategory_direct: value as 'subcontratos' | 'materiales' | 'otros',
+                      subcategory_indirect: undefined 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una subcategoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                        <SelectItem key={subcategory.value} value={subcategory.value}>
+                          {subcategory.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Subcategoría para Costos Indirectos */}
+              {expenseForm.category === 'costos_indirectos' && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit_subcategory_indirect">Subcategoría Indirecta *</Label>
+                  <Select 
+                    value={expenseForm.subcategory_indirect || ''} 
+                    onValueChange={(value) => setExpenseForm(prev => ({ 
+                      ...prev, 
+                      subcategory_indirect: value as 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros',
+                      subcategory_direct: undefined 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una subcategoría" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[200px] overflow-y-auto">
+                      {INDIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                        <SelectItem key={subcategory.value} value={subcategory.value}>
+                          {subcategory.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="edit_description">Descripción *</Label>
-                <Input
+                <TranslatableInput
                   id="edit_description"
                   value={expenseForm.description}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(value) => setExpenseForm(prev => ({ ...prev, description: value }))}
                   placeholder="Descripción del gasto"
                 />
               </div>
@@ -776,7 +1205,19 @@ export default function ExpensesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_supplier">Proveedor</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="edit_supplier">Proveedor</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsNewSupplierModalOpen(true)}
+                    className="h-8 px-2"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Nuevo
+                  </Button>
+                </div>
                 <Select value={expenseForm.supplier_id} onValueChange={(value) => setExpenseForm(prev => ({ ...prev, supplier_id: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona un proveedor" />
@@ -820,18 +1261,47 @@ export default function ExpensesPage() {
                 />
               </div>
               <div className="space-y-2 col-span-2">
+                <Label>Comprobante de Factura</Label>
                 <FileUpload
-                  label="Adjuntar Archivo"
-                  description="Sube facturas, recibos o documentos relacionados (PDF, JPEG, PNG, JPG)"
-                  acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
-                  maxSize={5 * 1024 * 1024}
                   onFileUpload={handleFileUpload}
                   onFileRemove={handleFileRemove}
-                  currentFile={expenseForm.attachment_name ? {
-                    name: expenseForm.attachment_name,
-                    type: expenseForm.attachment_type,
-                    size: expenseForm.attachment_size,
-                    url: expenseForm.attachment_url
+                  acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
+                  maxFileSize={5 * 1024 * 1024}
+                  existingFile={expenseForm.receipt_url ? (() => {
+                    const url = expenseForm.receipt_url;
+                    const fileName = url.split('/').pop() || 'Comprobante de Factura';
+                    const fileExtension = fileName.split('.').pop()?.toLowerCase();
+                    let fileType = 'application/octet-stream';
+                    
+                    if (fileExtension === 'pdf') {
+                      fileType = 'application/pdf';
+                    } else if (['jpg', 'jpeg'].includes(fileExtension || '')) {
+                      fileType = 'image/jpeg';
+                    } else if (fileExtension === 'png') {
+                      fileType = 'image/png';
+                    }
+                    
+                    return {
+                      name: decodeURIComponent(fileName),
+                      type: fileType,
+                      size: undefined,
+                      url: url
+                    };
+                  })() : undefined}
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Comprobante de Referencia</Label>
+                <FileUpload
+                  onFileUpload={handleReferenceFileUpload}
+                  onFileRemove={handleReferenceFileRemove}
+                  acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
+                  maxFileSize={5 * 1024 * 1024}
+                  existingFile={expenseForm.reference_attachment_url ? {
+                    name: expenseForm.reference_attachment_name || 'Comprobante de Referencia',
+                    type: expenseForm.reference_attachment_type || 'application/pdf',
+                    size: expenseForm.reference_attachment_size || 0,
+                    url: expenseForm.reference_attachment_url
                   } : undefined}
                 />
               </div>
@@ -840,7 +1310,13 @@ export default function ExpensesPage() {
               <Button variant="outline" onClick={handleCancelEdit}>
                 Cancelar
               </Button>
-              <Button onClick={handleUpdateExpense} disabled={!expenseForm.project_id || !expenseForm.description || !expenseForm.amount}>
+              <Button onClick={handleUpdateExpense} disabled={
+                  !expenseForm.project_id || 
+                  !expenseForm.description || 
+                  !expenseForm.amount ||
+                  (expenseForm.category === 'costos_directos' && !expenseForm.subcategory_direct) ||
+                  (expenseForm.category === 'costos_indirectos' && !expenseForm.subcategory_indirect)
+                }>
                 Actualizar Gasto
               </Button>
             </DialogFooter>
@@ -894,7 +1370,7 @@ export default function ExpensesPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <Label>Search</Label>
                 <div className="relative">
@@ -939,10 +1415,63 @@ export default function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Subcategoría</Label>
+                <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las subcategorías</SelectItem>
+                    {selectedCategory === 'costos_directos' && DIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                      <SelectItem key={subcategory.value} value={subcategory.value}>
+                        {subcategory.label}
+                      </SelectItem>
+                    ))}
+                    {selectedCategory === 'costos_indirectos' && INDIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                      <SelectItem key={subcategory.value} value={subcategory.value}>
+                        {subcategory.label}
+                      </SelectItem>
+                    ))}
+                    {(selectedCategory === 'all' || (selectedCategory !== 'costos_directos' && selectedCategory !== 'costos_indirectos')) && (
+                      <>
+                        {DIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                          <SelectItem key={subcategory.value} value={subcategory.value}>
+                            {subcategory.label}
+                          </SelectItem>
+                        ))}
+                        {INDIRECT_COST_SUBCATEGORIES.map(subcategory => (
+                          <SelectItem key={subcategory.value} value={subcategory.value}>
+                            {subcategory.label}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Proveedor</Label>
+                <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los proveedores</SelectItem>
+                    {suppliers.map(supplier => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-end">
                 <Button variant="outline" onClick={() => {
                   setSelectedProject('all');
                   setSelectedCategory('all');
+                  setSelectedSubcategory('all');
+                  setSelectedSupplier('all');
                   setSearchTerm('');
                   setDateFilter('all');
                   setStartDate('');
@@ -1001,6 +1530,9 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
+      {/* Expense Summary by Category */}
+      <ExpenseSummary categoryTotals={calculateCategoryTotals(filteredExpenses)} />
+
       {/* Expenses Table */}
       <Card>
         <CardHeader>
@@ -1030,6 +1562,8 @@ export default function ExpensesPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-center">Factura</TableHead>
+                  <TableHead className="text-center">Referencia</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1037,19 +1571,20 @@ export default function ExpensesPage() {
                 {filteredExpenses.map((expense) => {
                   const project = projects.find(p => p.id === expense.project_id);
                   const category = EXPENSE_CATEGORIES.find(cat => cat.value === expense.category);
+                  const categoryColors = getCategoryColors(expense.category);
                   
                   return (
                     <TableRow key={expense.id}>
                       <TableCell>
-                        {expense.date.split('-').reverse().join('/')}
+                        {expense.expense_date.split('-').reverse().join('/')}
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">{project?.name || 'Proyecto no encontrado'}</div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${categoryColors.color} ${categoryColors.bgColor} ${categoryColors.borderColor}`}>
                           {category?.label}
-                        </Badge>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">{expense.description}</div>
@@ -1062,12 +1597,50 @@ export default function ExpensesPage() {
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         <div className="space-y-1">
-                          {/* Siempre mostrar colones como principal (ya que todo se guarda en CRC) */}
-                          <div>₡{expense.amount.toLocaleString()}</div>
-                          {expense.amount_usd && (
-                            <div className="text-sm text-green-600">${expense.amount_usd.toLocaleString()}</div>
+                          {expense.currency === 'USD' ? (
+                            <>
+                              <div className="text-green-600">${expense.amount.toLocaleString()}</div>
+                              <div className="text-sm text-gray-500">
+                                ₡{(expense.amount * (expense.exchange_rate || 600)).toLocaleString()}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>₡{expense.amount.toLocaleString()}</div>
+                              <div className="text-sm text-green-600">
+                                ${(expense.amount / (expense.exchange_rate || 600)).toLocaleString()}
+                              </div>
+                            </>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {expense.receipt_url ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(expense.receipt_url, '_blank')}
+                            className="h-8 px-3"
+                          >
+                            Ver factura
+                          </Button>
+                        ) : (
+                          <span className="text-gray-400 text-sm">Sin factura</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {expense.reference_attachment_url ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(expense.reference_attachment_url, '_blank')}
+                            className="h-8 px-3"
+                          >
+                            Ver referencia
+                          </Button>
+                        ) : (
+                          <span className="text-gray-400 text-sm">Sin referencia</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center space-x-2">
@@ -1089,6 +1662,13 @@ export default function ExpensesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal para crear nuevo proveedor */}
+      <NewSupplierModal
+        isOpen={isNewSupplierModalOpen}
+        onClose={() => setIsNewSupplierModalOpen(false)}
+        onSupplierCreated={handleNewSupplierCreated}
+      />
     </div>
   );
 }

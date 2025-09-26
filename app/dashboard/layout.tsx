@@ -2,14 +2,27 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated } = useAuth();
+  const { user, loading } = useAuthContext();
+  const isAuthenticated = !!user;
+
+  // Mostrar loading mientras se verifica la autenticación
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

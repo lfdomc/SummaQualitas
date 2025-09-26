@@ -32,12 +32,12 @@ interface BudgetBreakdownProps {
 }
 
 const BUDGET_CATEGORIES = [
-  { value: 'materials', label: 'Materiales', icon: Building },
-  { value: 'labor', label: 'Mano de Obra', icon: Users },
-  { value: 'equipment', label: 'Equipos', icon: Wrench },
-  { value: 'transport', label: 'Transporte', icon: Truck },
-  { value: 'permits', label: 'Permisos y Licencias', icon: FileText },
-  { value: 'other', label: 'Otros', icon: Calculator }
+  { value: 'costos_directos', label: 'Costos Directos', icon: Building },
+  { value: 'costos_indirectos', label: 'Costos Indirectos', icon: Calculator },
+  { value: 'administracion', label: 'Administración', icon: FileText },
+  { value: 'mano_obra', label: 'Mano de Obra', icon: Users },
+  { value: 'imprevistos', label: 'Imprevistos', icon: Truck },
+  { value: 'utilidad', label: 'Utilidad', icon: TrendingUp }
 ];
 
 export function BudgetBreakdown({ projectId, totalBudget, exchangeRate = 500, onBudgetUpdate }: BudgetBreakdownProps) {

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.incomes (
     exchange_rate DECIMAL(10,4),
     
     -- Fechas
-    income_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    received_date DATE NOT NULL DEFAULT CURRENT_DATE,
     due_date DATE,
     
     -- Método y referencia de pago
@@ -51,7 +51,7 @@ COMMENT ON COLUMN public.incomes.amount IS 'Monto del ingreso en la moneda espec
 COMMENT ON COLUMN public.incomes.amount_usd IS 'Monto del ingreso convertido a USD';
 COMMENT ON COLUMN public.incomes.currency IS 'Moneda del ingreso: CRC o USD';
 COMMENT ON COLUMN public.incomes.exchange_rate IS 'Tipo de cambio utilizado para la conversión';
-COMMENT ON COLUMN public.incomes.income_date IS 'Fecha del ingreso';
+COMMENT ON COLUMN public.incomes.received_date IS 'Fecha del ingreso';
 COMMENT ON COLUMN public.incomes.due_date IS 'Fecha de vencimiento (si aplica)';
 COMMENT ON COLUMN public.incomes.payment_method IS 'Método de pago utilizado';
 COMMENT ON COLUMN public.incomes.reference_number IS 'Número de referencia del pago';
@@ -64,7 +64,7 @@ COMMENT ON COLUMN public.incomes.details IS 'Detalles adicionales del ingreso';
 -- Crear índices para mejorar el rendimiento
 CREATE INDEX IF NOT EXISTS idx_incomes_project_id ON public.incomes(project_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_client_id ON public.incomes(client_id);
-CREATE INDEX IF NOT EXISTS idx_incomes_date ON public.incomes(income_date);
+CREATE INDEX IF NOT EXISTS idx_incomes_date ON public.incomes(received_date);
 CREATE INDEX IF NOT EXISTS idx_incomes_status ON public.incomes(status);
 CREATE INDEX IF NOT EXISTS idx_incomes_category ON public.incomes(category);
 CREATE INDEX IF NOT EXISTS idx_incomes_amount ON public.incomes(amount);
@@ -116,8 +116,8 @@ SELECT
     COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0) as total_pending_amount,
     COALESCE(SUM(CASE WHEN i.status = 'confirmed' AND i.currency = 'USD' THEN i.amount ELSE 0 END), 0) as total_confirmed_usd,
     COALESCE(SUM(CASE WHEN i.status = 'confirmed' AND i.currency = 'CRC' THEN i.amount ELSE 0 END), 0) as total_confirmed_crc,
-    MIN(i.income_date) as first_income_date,
-    MAX(i.income_date) as last_income_date
+    MIN(i.received_date) as first_received_date,
+    MAX(i.received_date) as last_received_date
 FROM public.projects p
 LEFT JOIN public.clients c ON p.client_id = c.id
 LEFT JOIN public.incomes i ON p.id = i.project_id

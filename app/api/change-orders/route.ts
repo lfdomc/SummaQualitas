@@ -32,10 +32,19 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     
-    // Construir query base optimizada
+    // Construir query base optimizada con información del proyecto
     let query = supabase
       .from('change_orders')
-      .select('*');
+      .select(`
+        *,
+        project:projects (
+          id,
+          name,
+          description,
+          location,
+          status
+        )
+      `);
     
     // Aplicar filtros
     if (projectId && projectId !== 'all' && projectId.trim() !== '') {
@@ -113,21 +122,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const changeOrderData: CreateChangeOrderData = {
       project_id: body.project_id,
-      change_type: body.change_type,
       title: body.title,
       description: body.description,
-      designer: body.designer,
-      impact_type: body.impact_type,
-      cost_impact: parseFloat(body.cost_impact) || 0,
-      currency: body.currency || 'CRC',
-      exchange_rate: body.exchange_rate ? parseFloat(body.exchange_rate) : undefined,
-      cost_impact_crc: parseFloat(body.cost_impact_crc) || 0,
-      schedule_impact_days: parseInt(body.schedule_impact_days) || 0,
-      cost_impact_details: body.cost_impact_details || '',
-      quality_impact: body.quality_impact || '',
-      schedule_details: body.schedule_details || '',
-      risk_assessment: body.risk_assessment || '',
-      additional_comments: body.additional_comments || '',
+      amount: parseFloat(body.cost_impact_crc || body.cost_impact || body.amount) || 0,
+      currency: body.currency || 'USD',
+      status: body.status || 'pendiente',
+      request_date: body.request_date || new Date().toISOString().split('T')[0],
+      notes: body.additional_comments || body.notes || '',
     };
     
     // Validaciones básicas

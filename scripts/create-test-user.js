@@ -31,12 +31,13 @@ async function createTestUser() {
     
     // Crear perfil de usuario
     const { data: profileData, error: profileError } = await supabase
-      .from('user_profiles')
+      .from('users')
       .insert({
         id: authData.user.id,
         email: authData.user.email,
         full_name: 'Administrador Summa',
         role: 'gerencia',
+        is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -55,7 +56,7 @@ async function createTestUser() {
     
     // Verificar que el usuario fue creado correctamente
     const { data: verifyData, error: verifyError } = await supabase
-      .from('user_profiles')
+      .from('users')
       .select('*')
       .eq('email', 'admin@summa.com')
       .single();

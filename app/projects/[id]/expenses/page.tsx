@@ -134,7 +134,7 @@ function ProjectExpensesPage() {
         .from('expenses')
         .select('*')
         .eq('project_id', projectId)
-        .order('date', { ascending: false });
+        .order('expense_date', { ascending: false });
       
       if (error) throw error;
       setExpenses(data || []);
@@ -211,7 +211,7 @@ function ProjectExpensesPage() {
       amount: expense.amount,
       currency: expense.currency,
       exchange_rate: expense.exchange_rate || 500,
-      date: expense.date,
+      date: expense.expense_date,
       supplier_id: expense.supplier_id || '',
   
       reference: expense.reference || '',
@@ -654,7 +654,7 @@ Clear Filters
                   return (
                     <tr key={expense.id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
-                        {new Date(expense.date).toLocaleDateString('es-ES')}
+                        {new Date(expense.expense_date).toLocaleDateString('es-ES')}
                       </td>
                       <td className="p-4">
                         <Badge variant="outline">

@@ -20,7 +20,7 @@ import {
   BarChart3,
   PieChart
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, LabelList } from 'recharts';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ProjectKPIsProps {
@@ -83,7 +83,40 @@ export function ProjectKPIs({ projectId, project }: ProjectKPIsProps) {
         const totalIncomes = projectIncomes.reduce((sum, income) => sum + income.amount, 0);
         const projectProgress = project.progress || 0;
         const earnedValue = projectBudget * (projectProgress / 100);
-        const plannedValue = projectBudget * 0.5; // Estimación basada en cronograma esperado
+        
+        // Calcular valor planeado basado en las fechas del proyecto
+        const calculatePlannedValue = (): number => {
+          const startDate = project?.estimated_start_date || project?.actual_start_date;
+          const endDate = project?.estimated_end_date || project?.actual_end_date;
+          
+          if (!startDate || !endDate) {
+            // Si no hay fechas, usar el progreso actual como fallback
+            return projectBudget * (projectProgress / 100);
+          }
+          
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          const now = new Date();
+          
+          // Si el proyecto no ha comenzado, planned value = 0
+          if (now < start) {
+            return 0;
+          }
+          
+          // Si el proyecto ya terminó, planned value = presupuesto total
+          if (now >= end) {
+            return projectBudget;
+          }
+          
+          // Calcular el porcentaje de tiempo transcurrido
+          const totalDuration = end.getTime() - start.getTime();
+          const elapsedTime = now.getTime() - start.getTime();
+          const timeProgress = Math.min(100, Math.max(0, (elapsedTime / totalDuration) * 100));
+          
+          return projectBudget * (timeProgress / 100);
+        };
+        
+        const plannedValue = calculatePlannedValue();
         
         // Calcular métricas EVM específicas del proyecto
         const costPerformanceIndex = actualCost > 0 ? earnedValue / actualCost : 0;
@@ -379,9 +412,20 @@ export function ProjectKPIs({ projectId, project }: ProjectKPIsProps) {
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
-                      <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`} />
+                      <YAxis 
+                        domain={[0, 'dataMax']} 
+                        tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`} 
+                      />
                       <Tooltip formatter={(value: number) => [formatCurrency(value), '']} />
-                      <Bar dataKey="actual" fill="#8884d8" name="Costo Real" />
+                      <Bar dataKey="actual" fill="#8884d8" name="Costo Real">
+                        <LabelList 
+                          dataKey="actual" 
+                          position="center" 
+                          fill="white" 
+                          fontSize={12}
+                          formatter={(value: number) => `$${(value / 1000).toFixed(0)}K`}
+                        />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

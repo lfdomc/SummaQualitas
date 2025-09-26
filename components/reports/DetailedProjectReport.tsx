@@ -11,6 +11,7 @@ import { Income, Expense } from '@/types/database';
 import { projectService, incomeService, expenseService } from '@/lib/supabase/database';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { translateCategory } from '@/lib/utils';
 import {
   FileText,
   DollarSign,
@@ -23,7 +24,8 @@ import {
   Download,
   Calendar,
   AlertTriangle,
-  Eye
+  Eye,
+  Package
 } from 'lucide-react';
 const { format } = require('date-fns');
 const { es } = require('date-fns/locale');
@@ -34,6 +36,23 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ExpenseChartHTML } from './ExpenseChartHTML';
 
+// Función helper para obtener el presupuesto final con fallback
+const getFinalBudget = (project: Project): number => {
+  return project.presupuesto_final || 
+         project.presupuesto_inicial || 
+         project.presupuesto_original || 
+         project.budget || 
+         0;
+};
+
+// Función helper para obtener el presupuesto inicial con fallback
+const getInitialBudget = (project: Project): number => {
+  return project.presupuesto_original || 
+         project.presupuesto_inicial || 
+         project.budget || 
+         0;
+};
+
 interface ReportData {
   project: Project;
   incomes: Income[];
@@ -42,7 +61,7 @@ interface ReportData {
   exchangeRate: number;
 }
 
-type ReportSection = 'incomes' | 'direct_costs' | 'labor_costs' | 'indirect_costs' | 'admin_costs' | 'imprevistos' | 'summary';
+type ReportSection = 'incomes' | 'costos_directos' | 'costos_indirectos' | 'mano_obra' | 'imprevistos' | 'administracion' | 'summary';
 
 interface DetailedProjectReportProps {
   projectId?: string;
@@ -128,16 +147,30 @@ const StandardPage = ({ pageNumber, totalPages, projectName, title, children, cl
 );
 
 // Función global para calcular el número total de páginas
-const calculateTotalPages = (incomes: Income[], expenses: Expense[]) => {
-  let pageCount = 1; // Página 1: Ingresos
+const calculateTotalPages = (incomes: Income[], expenses: Expense[], changeOrders?: ChangeOrder[]) => {
+  let pageCount = 0;
   
-  // Definir secciones de costos (usar las mismas categorías que en costSections)
+  // Verificar si hay datos para Change Orders e Income
+  const hasChangeOrders = changeOrders && changeOrders.length > 0;
+  const hasIncomes = incomes && incomes.length > 0;
+  
+  // Página para Change Orders (solo si hay datos)
+  if (hasChangeOrders) {
+    pageCount++;
+  }
+  
+  // Página para Income (solo si hay datos)
+  if (hasIncomes) {
+    pageCount++;
+  }
+  
+  // Define cost sections (using current database categories)
   const costSections = [
     { title: 'DIRECT COSTS', expenses: expenses.filter(e => e.category === 'costos_directos') },
-    { title: 'LABOR COSTS', expenses: expenses.filter(e => e.category === 'mano_obra') },
     { title: 'INDIRECT COSTS', expenses: expenses.filter(e => e.category === 'costos_indirectos') },
-    { title: 'ADMINISTRATIVE COSTS', expenses: expenses.filter(e => e.category === 'gastos_administrativos') },
-    { title: 'CONTINGENCIES', expenses: expenses.filter(e => e.category === 'imprevistos') }
+    { title: 'LABOR', expenses: expenses.filter(e => e.category === 'mano_obra') },
+    { title: 'CONTINGENCIES', expenses: expenses.filter(e => e.category === 'imprevistos') },
+    { title: 'ADMINISTRATION', expenses: expenses.filter(e => e.category === 'administracion') }
   ];
   
   // Contar páginas para secciones de costos (cada sección con datos = 1 página)
@@ -149,10 +182,9 @@ const calculateTotalPages = (incomes: Income[], expenses: Expense[]) => {
   
   pageCount++; // Página para resumen ejecutivo
   pageCount++; // Página para gráfico de gastos
-  pageCount++; // Página para órdenes de cambio y presupuesto final
   
   // Página para anexos (solo si hay adjuntos)
-  if (incomes.some(income => income.attachment_url) || expenses.some(expense => expense.attachment_url)) {
+  if (incomes.some(income => income.receipt_url) || expenses.some(expense => expense.receipt_url)) {
     pageCount++;
   }
   
@@ -167,7 +199,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [exchangeRate, setExchangeRate] = useState<number>(520); // Tipo de cambio por defecto
-  const [isCustomRate, setIsCustomRate] = useState<boolean>(false);
+  const [tempExchangeRate, setTempExchangeRate] = useState<string>('520'); // Estado temporal para el input
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [dataCache, setDataCache] = useState<Map<string, { data: ReportData; timestamp: number }>>(new Map());
@@ -175,14 +207,19 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
   // Configuración de caché (5 minutos)
   const CACHE_DURATION = 5 * 60 * 1000;
 
+  // Sincronizar el estado temporal con el estado principal
+  useEffect(() => {
+    setTempExchangeRate(exchangeRate.toString());
+  }, [exchangeRate]);
+
   const sections = [
-    { id: 'incomes' as ReportSection, name: 'Income', icon: DollarSign },
-    { id: 'direct_costs' as ReportSection, name: 'Direct Costs', icon: Building },
-    { id: 'labor_costs' as ReportSection, name: 'Labor Costs', icon: Users },
-    { id: 'indirect_costs' as ReportSection, name: 'Indirect Costs', icon: Settings },
-    { id: 'admin_costs' as ReportSection, name: 'Administrative Costs', icon: FileText },
-    { id: 'imprevistos' as ReportSection, name: 'Contingencies', icon: AlertTriangle },
-    { id: 'summary' as ReportSection, name: 'General Summary', icon: TrendingUp }
+    { id: 'incomes' as ReportSection, name: 'Ingresos', icon: DollarSign },
+    { id: 'costos_directos' as ReportSection, name: 'Costos Directos', icon: Building },
+    { id: 'costos_indirectos' as ReportSection, name: 'Costos Indirectos', icon: Settings },
+    { id: 'mano_obra' as ReportSection, name: 'Mano de Obra', icon: Users },
+    { id: 'imprevistos' as ReportSection, name: 'Imprevistos', icon: AlertTriangle },
+    { id: 'administracion' as ReportSection, name: 'Administración', icon: Package },
+    { id: 'summary' as ReportSection, name: 'Resumen General', icon: TrendingUp }
   ];
 
   const fetchProjects = useCallback(async () => {
@@ -255,6 +292,26 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         fetch(`/api/change-orders?project_id=${selectedProjectId}`)
       ]);
       
+      // Log temporal para debuggear campos reference e invoice_number
+      console.log('Debug - Primeros 3 gastos:', expenses.slice(0, 3).map(expense => ({
+        id: expense.id,
+        description: expense.description,
+        reference: expense.reference,
+        invoice_number: expense.invoice_number,
+        supplier: expense.supplier?.name,
+        category: expense.category
+      })));
+      
+      // Log adicional para verificar categorías de todos los gastos
+      console.log('Debug - Categorías de gastos:', expenses.map(expense => expense.category));
+      console.log('Debug - Total de gastos:', expenses.length);
+      
+      // Log para verificar filtrado por categorías específicas
+      const directCosts = expenses.filter(e => e.category === 'costos_directos');
+      const indirectCosts = expenses.filter(e => e.category === 'costos_indirectos');
+      console.log('Debug - Costos directos encontrados:', directCosts.length);
+      console.log('Debug - Costos indirectos encontrados:', indirectCosts.length);
+      
 
 
       // Intentar obtener datos del proyecto
@@ -279,14 +336,13 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
           status: 'active' as const,
           budget: 0,
           presupuesto_inicial: 0,
-          costos_directos_materiales: 0,
-          costos_directos_equipos: 0,
+          costos_directos: 0,
           costos_indirectos: 0,
-          gastos_administrativos: 0,
-          mano_obra_quincenal: 0,
+          administracion: 0,
+          mano_obra: 0,
           imprevistos: 0,
-          utilidad_esperada: 0,
-          estimated_start_date: incomes.length > 0 ? incomes[0].income_date : new Date().toISOString().split('T')[0],
+          utilidad: 0,
+          estimated_start_date: incomes.length > 0 ? incomes[0].received_date : new Date().toISOString().split('T')[0],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -299,6 +355,8 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       
       // La API puede devolver { data: [...] } o directamente [...]
       const changeOrders = Array.isArray(changeOrdersData) ? changeOrdersData : (changeOrdersData.data || []);
+
+
 
       const newReportData = {
         project,
@@ -805,51 +863,27 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
               
               <div className="flex flex-col space-y-1">
                 <label className="text-sm font-medium text-gray-700">Exchange Rate (USD)</label>
-                <div className="flex space-x-2">
-                  <Select 
-                     value={isCustomRate ? 'custom' : exchangeRate.toString()} 
-                     onValueChange={(value) => {
-                       if (value === 'custom') {
-                         setIsCustomRate(true);
-                       } else {
-                         setIsCustomRate(false);
-                         setExchangeRate(Number(value));
-                       }
-                     }}
-                   >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="500">₡500</SelectItem>
-                      <SelectItem value="510">₡510</SelectItem>
-                      <SelectItem value="520">₡520</SelectItem>
-                      <SelectItem value="530">₡530</SelectItem>
-                      <SelectItem value="540">₡540</SelectItem>
-                      <SelectItem value="550">₡550</SelectItem>
-                      <SelectItem value="560">₡560</SelectItem>
-                      <SelectItem value="570">₡570</SelectItem>
-                      <SelectItem value="580">₡580</SelectItem>
-                      <SelectItem value="590">₡590</SelectItem>
-                      <SelectItem value="600">₡600</SelectItem>
-                      <SelectItem value="custom">Personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {isCustomRate && (
-                     <input
-                       type="number"
-                       placeholder="Enter exchange rate"
-                       value={exchangeRate}
-                       className="px-3 py-2 border border-gray-300 rounded-md text-sm w-40"
-                       onChange={(e) => {
-                         const value = Number(e.target.value);
-                         if (value > 0) {
-                           setExchangeRate(value);
-                         }
-                       }}
-                     />
-                   )}
-                </div>
+                <input
+                  type="number"
+                  placeholder="Ingrese el tipo de cambio"
+                  value={tempExchangeRate}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm w-40"
+                  min="1"
+                  step="0.01"
+                  onChange={(e) => {
+                    setTempExchangeRate(e.target.value);
+                  }}
+                  onBlur={(e) => {
+                    const value = Number(e.target.value);
+                    if (value > 0) {
+                      setExchangeRate(value);
+                      setTempExchangeRate(value.toString());
+                    } else {
+                      // Si el valor no es válido, restaurar el valor anterior
+                      setTempExchangeRate(exchangeRate.toString());
+                    }
+                  }}
+                />
               </div>
               <div className="flex flex-col space-y-2">
                 <Button 
@@ -905,7 +939,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
                 <div>
                   <p className="text-sm font-medium text-gray-500">Final Budget</p>
                   <p className="text-sm font-semibold">
-                    {formatCurrency(reportData.project.presupuesto_final || reportData.project.presupuesto_inicial || 0, 'CRC')}
+                    {formatCurrency(getFinalBudget(reportData.project), 'CRC')}
                   </p>
                 </div>
                 <div>
@@ -973,34 +1007,72 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
                 formatCurrency={formatCurrency}
               />
             )}
-            {currentSection === 'direct_costs' && (
-              <CostReportSection 
-                title="Direct Costs"
-                expenses={reportData.expenses.filter(e => e.category === 'costos_directos')}
-                convertCurrency={convertCurrency}
-                formatCurrency={formatCurrency}
-              />
+            {currentSection === 'costos_directos' && (
+              <div>
+                <CostReportSection 
+                  title="Costos Directos"
+                  expenses={reportData.expenses.filter(e => e.category === 'costos_directos')}
+                  convertCurrency={convertCurrency}
+                  formatCurrency={formatCurrency}
+                />
+                {/* Debug temporal - mostrar información de gastos */}
+                <Card className="mt-4 bg-yellow-50 border-yellow-200">
+                  <CardHeader>
+                    <CardTitle className="text-sm text-yellow-800">Debug Info - Costos Directos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xs space-y-2">
+                      <p><strong>Total gastos cargados:</strong> {reportData.expenses.length}</p>
+                      <p><strong>Gastos con categoría 'costos_directos':</strong> {reportData.expenses.filter(e => e.category === 'costos_directos').length}</p>
+                      <p><strong>Categorías encontradas:</strong> {[...new Set(reportData.expenses.map(e => e.category))].join(', ')}</p>
+                      <p><strong>Primeros 3 gastos con reference/invoice:</strong></p>
+                      <ul className="ml-4">
+                        {reportData.expenses.slice(0, 3).map((expense, i) => (
+                          <li key={i}>
+                            {expense.description} - Cat: {expense.category} - Ref: {expense.reference || 'N/A'} - Invoice: {expense.invoice_number || 'N/A'}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
-            {currentSection === 'labor_costs' && (
+            {currentSection === 'costos_indirectos' && (
+              <div>
+                <CostReportSection 
+                  title="Costos Indirectos"
+                  expenses={reportData.expenses.filter(e => e.category === 'costos_indirectos')}
+                  convertCurrency={convertCurrency}
+                  formatCurrency={formatCurrency}
+                />
+                {/* Debug temporal - mostrar información de gastos */}
+                <Card className="mt-4 bg-blue-50 border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="text-sm text-blue-800">Debug Info - Costos Indirectos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xs space-y-2">
+                      <p><strong>Total gastos cargados:</strong> {reportData.expenses.length}</p>
+                      <p><strong>Gastos con categoría 'costos_indirectos':</strong> {reportData.expenses.filter(e => e.category === 'costos_indirectos').length}</p>
+                      <p><strong>Categorías encontradas:</strong> {[...new Set(reportData.expenses.map(e => e.category))].join(', ')}</p>
+                      <p><strong>Gastos con reference o invoice_number:</strong></p>
+                      <ul className="ml-4">
+                        {reportData.expenses.filter(e => e.reference || e.invoice_number).slice(0, 5).map((expense, i) => (
+                          <li key={i}>
+                            {expense.description} - Cat: {expense.category} - Ref: {expense.reference || 'N/A'} - Invoice: {expense.invoice_number || 'N/A'}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            {currentSection === 'mano_obra' && (
               <CostReportSection 
-                title="Labor Costs"
+                title="Mano de Obra"
                 expenses={reportData.expenses.filter(e => e.category === 'mano_obra')}
-                convertCurrency={convertCurrency}
-                formatCurrency={formatCurrency}
-              />
-            )}
-            {currentSection === 'indirect_costs' && (
-              <CostReportSection 
-                title="Indirect Costs"
-                expenses={reportData.expenses.filter(e => e.category === 'costos_indirectos')}
-                convertCurrency={convertCurrency}
-                formatCurrency={formatCurrency}
-              />
-            )}
-            {currentSection === 'admin_costs' && (
-              <CostReportSection 
-                title="Administrative Costs"
-                expenses={reportData.expenses.filter(e => e.category === 'gastos_administrativos')}
                 convertCurrency={convertCurrency}
                 formatCurrency={formatCurrency}
               />
@@ -1009,6 +1081,14 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
               <CostReportSection 
                 title="Imprevistos"
                 expenses={reportData.expenses.filter(e => e.category === 'imprevistos')}
+                convertCurrency={convertCurrency}
+                formatCurrency={formatCurrency}
+              />
+            )}
+            {currentSection === 'administracion' && (
+              <CostReportSection 
+                title="Administración"
+                expenses={reportData.expenses.filter(e => e.category === 'administracion')}
                 convertCurrency={convertCurrency}
                 formatCurrency={formatCurrency}
               />
@@ -1024,19 +1104,19 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         </>
       )}
       
-      {/* Vista Previa del PDF */}
+      {/* PDF Preview */}
       {showPreview && reportData && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
                 <Eye className="h-5 w-5 mr-2" />
-                Vista Previa del PDF
+                PDF Preview
               </div>
 
             </CardTitle>
             <CardDescription>
-              Esta es una representación de cómo se verá el PDF cuando se genere
+              This is a representation of how the PDF will look when generated
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1088,16 +1168,29 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
   const profitMarginCRC = totalIncomesCRC > 0 ? (netProfitCRC / totalIncomesCRC) * 100 : 0;
   const profitMarginUSD = totalIncomesUSD > 0 ? (netProfitUSD / totalIncomesUSD) * 100 : 0;
 
-  // Secciones de costos como en el PDF
+  // Cost sections as in the PDF
   const costSections = [
     { title: 'DIRECT COSTS', expenses: expenses.filter(e => e.category === 'costos_directos') },
-    { title: 'LABOR COSTS', expenses: expenses.filter(e => e.category === 'mano_obra') },
     { title: 'INDIRECT COSTS', expenses: expenses.filter(e => e.category === 'costos_indirectos') },
-    { title: 'ADMINISTRATIVE COSTS', expenses: expenses.filter(e => e.category === 'gastos_administrativos') },
-    { title: 'CONTINGENCIES', expenses: expenses.filter(e => e.category === 'imprevistos') }
+    { title: 'LABOR', expenses: expenses.filter(e => e.category === 'mano_obra') },
+    { title: 'CONTINGENCIES', expenses: expenses.filter(e => e.category === 'imprevistos') },
+    { title: 'ADMINISTRATION', expenses: expenses.filter(e => e.category === 'administracion') }
   ];
 
-  const totalPages = calculateTotalPages(incomes, expenses);
+  // Determinar qué páginas mostrar basado en los datos disponibles
+  const hasChangeOrders = changeOrders && changeOrders.length > 0;
+  const hasIncomes = incomes && incomes.length > 0;
+  const costSectionsWithData = costSections.filter(section => section.expenses.length > 0);
+
+  // Calcular el total de páginas dinámicamente
+  let totalPages = 0;
+  if (hasChangeOrders) totalPages++; // Página de Change Orders
+  if (hasIncomes) totalPages++; // Página de Income
+  totalPages += costSectionsWithData.length; // Páginas de costos con datos
+  totalPages += 2; // Página de gráfico y resumen final
+
+  // Contador de página actual
+  let currentPageNumber = 1;
 
   return (
     <>
@@ -1313,53 +1406,54 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
         `
       }} />
       <div id="pdf-preview-content" className="bg-white" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
-        {/* Página 1: Órdenes de Cambio y Presupuesto Final */}
-      <StandardPage 
-        pageNumber={1} 
-        totalPages={calculateTotalPages(incomes, expenses)} 
-        projectName={project.name}
-        title="CHANGE ORDERS & FINAL BUDGET"
-      >
+        {/* Change Orders & Final Budget Page - Only if there's data */}
+        {hasChangeOrders && (
+          <StandardPage 
+            pageNumber={currentPageNumber++} 
+            totalPages={totalPages} 
+            projectName={project.name}
+            title="CHANGE ORDERS & FINAL BUDGET"
+          >
         <div className="letter-section">
-          {/* Información de Presupuesto */}
+          {/* Budget Information */}
           <div className="mb-6">
             <h3 className="text-lg font-bold mb-4" style={{ color: '#2980b9' }}>BUDGET SUMMARY</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="bg-gray-50 p-4 rounded">
                 <div className="text-sm text-gray-600">Initial Budget</div>
                 <div className="text-xl font-bold" style={{ color: '#2980b9' }}>
-                  {formatCurrency(project.presupuesto_original || project.presupuesto_inicial || 0, 'CRC')}
+                  {formatCurrency(getInitialBudget(project), 'CRC')}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {formatCurrency(convertCurrency(project.presupuesto_original || project.presupuesto_inicial || 0, 'CRC', 'USD'), 'USD')}
+                  {formatCurrency(convertCurrency(getInitialBudget(project), 'CRC', 'USD'), 'USD')}
                 </div>
               </div>
               <div className="bg-gray-50 p-4 rounded">
                 <div className="text-sm text-gray-600">Final Budget</div>
-                <div className="text-xl font-bold" style={{ color: project.presupuesto_final && project.presupuesto_final !== (project.presupuesto_original || project.presupuesto_inicial) ? '#e74c3c' : '#2980b9' }}>
-                  {formatCurrency(project.presupuesto_final || project.presupuesto_inicial || 0, 'CRC')}
+                <div className="text-xl font-bold" style={{ color: getFinalBudget(project) !== getInitialBudget(project) ? '#e74c3c' : '#2980b9' }}>
+                  {formatCurrency(getFinalBudget(project), 'CRC')}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {formatCurrency(convertCurrency(project.presupuesto_final || project.presupuesto_inicial || 0, 'CRC', 'USD'), 'USD')}
+                  {formatCurrency(convertCurrency(getFinalBudget(project), 'CRC', 'USD'), 'USD')}
                 </div>
               </div>
             </div>
-            {project.presupuesto_final && project.presupuesto_final !== (project.presupuesto_original || project.presupuesto_inicial) && (
+            {getFinalBudget(project) !== getInitialBudget(project) && (
               <div className="bg-yellow-50 p-4 rounded border-l-4 border-yellow-400">
                 <div className="text-sm text-gray-600">Budget Variation</div>
-                <div className="text-lg font-bold" style={{ color: (project.presupuesto_final - (project.presupuesto_original || project.presupuesto_inicial || 0)) >= 0 ? '#e74c3c' : '#27ae60' }}>
-                  {(project.presupuesto_final - (project.presupuesto_original || project.presupuesto_inicial || 0)) >= 0 ? '+' : ''}
-                  {formatCurrency(project.presupuesto_final - (project.presupuesto_original || project.presupuesto_inicial || 0), 'CRC')}
+                <div className="text-lg font-bold" style={{ color: (getFinalBudget(project) - getInitialBudget(project)) >= 0 ? '#e74c3c' : '#27ae60' }}>
+                  {(getFinalBudget(project) - getInitialBudget(project)) >= 0 ? '+' : ''}
+                  {formatCurrency(getFinalBudget(project) - getInitialBudget(project), 'CRC')}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {(project.presupuesto_final - (project.presupuesto_original || project.presupuesto_inicial || 0)) >= 0 ? '+' : ''}
-                  {formatCurrency(convertCurrency(project.presupuesto_final - (project.presupuesto_original || project.presupuesto_inicial || 0), 'CRC', 'USD'), 'USD')}
+                  {(getFinalBudget(project) - getInitialBudget(project)) >= 0 ? '+' : ''}
+                  {formatCurrency(convertCurrency(getFinalBudget(project) - getInitialBudget(project), 'CRC', 'USD'), 'USD')}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Tabla de Órdenes de Cambio */}
+          {/* Change Orders Table */}
           <div className="mb-6">
             <h3 className="text-lg font-bold mb-4" style={{ color: '#2980b9' }}>CHANGE ORDERS</h3>
             {changeOrders && changeOrders.length > 0 ? (
@@ -1470,14 +1564,16 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
           </div>
         </div>
       </StandardPage>
+        )}
 
-      {/* Página 2: Tabla de Ingresos */}
-      <StandardPage 
-        pageNumber={2} 
-        totalPages={calculateTotalPages(incomes, expenses)} 
-        projectName={project.name}
-        title="PROJECT INCOME"
-      >
+      {/* Project Income Page - Only if there's data */}
+      {hasIncomes && (
+        <StandardPage 
+          pageNumber={currentPageNumber++} 
+          totalPages={totalPages} 
+          projectName={project.name}
+          title="PROJECT INCOME"
+        >
         <div className="table-section">
           {incomes.length === 0 ? (
             <p className="text-gray-500 italic text-sm text-center">No data available</p>
@@ -1497,7 +1593,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                   {incomes.map((income, index) => (
                     <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
                       <td className="p-2" style={{ color: '#000000' }}>{index + 1}</td>
-                      <td className="p-2" style={{ color: '#000000' }}>{format(new Date(income.income_date), 'dd/MM/yyyy')}</td>
+                      <td className="p-2" style={{ color: '#000000' }}>{format(new Date(income.received_date), 'dd/MM/yyyy')}</td>
                       <td className="p-2" style={{ color: '#000000' }}>{income.description.length > 25 ? income.description.substring(0, 22) + '...' : income.description}</td>
                       <td className="p-2" style={{ color: '#000000' }}>{formatCurrency(income.amount, income.currency)}</td>
                       <td className="p-2" style={{ color: '#000000' }}>{formatCurrency(convertCurrency(income.amount, income.currency, 'USD'), 'USD')}</td>
@@ -1516,8 +1612,9 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
           )}
         </div>
       </StandardPage>
+      )}
 
-      {/* Páginas 2-N: Secciones de Costos (una por página) */}
+      {/* Páginas de Secciones de Costos (una por página) - Solo las que tienen datos */}
       {costSections.map((section, sectionIndex) => {
         if (section.expenses.length === 0) return null;
         
@@ -1529,7 +1626,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
           <StandardPage 
             key={section.title}
             pageNumber={currentPageNumber} 
-            totalPages={calculateTotalPages(incomes, expenses)} 
+            totalPages={calculateTotalPages(incomes, expenses, changeOrders)} 
             projectName={project.name}
             title={section.title}
           >
@@ -1542,11 +1639,11 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                     <thead>
                       <tr style={{ backgroundColor: '#2980b9', color: 'white' }}>
                         <th className="p-2 text-left font-bold">#</th>
-                        <th className="p-2 text-left font-bold">Fecha</th>
+                        <th className="p-2 text-left font-bold">Date</th>
                         {section.title === 'DIRECT COSTS' && (
-                          <th className="p-2 text-left font-bold">Proveedor</th>
+                          <th className="p-2 text-left font-bold">Supplier</th>
                         )}
-                        <th className="p-2 text-left font-bold">Descripción</th>
+                        <th className="p-2 text-left font-bold">Description</th>
                         {(section.title === 'DIRECT COSTS' || section.title === 'INDIRECT COSTS') && (
                           <th className="p-2 text-left font-bold">Reference</th>
                         )}
@@ -1558,13 +1655,15 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                       {section.expenses.map((expense, index) => (
                         <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
                           <td className="p-2" style={{ color: '#000000' }}>{index + 1}</td>
-                          <td className="p-2" style={{ color: '#000000' }}>{format(new Date(expense.date), 'dd/MM/yyyy')}</td>
+                          <td className="p-2" style={{ color: '#000000' }}>{format(new Date(expense.expense_date), 'dd/MM/yyyy')}</td>
                           {section.title === 'DIRECT COSTS' && (
                             <td className="p-2" style={{ color: '#000000' }}>{expense.supplier?.name || '-'}</td>
                           )}
-                          <td className="p-2" style={{ color: '#000000' }}>{expense.description.length > 25 ? expense.description.substring(0, 22) + '...' : expense.description}</td>
+                          <td className="p-2" style={{ color: '#000000' }}>{expense.description?.length > 25 ? expense.description.substring(0, 22) + '...' : (expense.description || 'No description')}</td>
                           {(section.title === 'DIRECT COSTS' || section.title === 'INDIRECT COSTS') && (
-                            <td className="p-2" style={{ color: '#000000' }}>{expense.reference || '-'}</td>
+                            <td className="p-2" style={{ color: '#000000' }}>
+                              {expense.reference || expense.invoice_number || '-'}
+                            </td>
                           )}
                           <td className="p-2" style={{ color: '#000000' }}>{formatCurrency(expense.amount, expense.currency)}</td>
                           <td className="p-2" style={{ color: '#000000' }}>{formatCurrency(convertCurrency(expense.amount, expense.currency, 'USD'), 'USD')}</td>
@@ -1577,8 +1676,8 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                         const sectionTotalUSD = section.expenses.reduce((sum, expense) => {
                           return sum + convertCurrency(expense.amount, expense.currency, 'USD');
                         }, 0);
-                        const colSpan = section.title === 'COSTOS DIRECTOS' ? 5 : 
-                                       (section.title === 'COSTOS INDIRECTOS' ? 4 : 3);
+                        const colSpan = section.title === 'DIRECT COSTS' ? 5 : 
+                                       (section.title === 'INDIRECT COSTS' ? 4 : 3);
                         
                         return (
                           <tr style={{ backgroundColor: '#f8f9fa', borderTop: '2px solid #2980b9' }}>
@@ -1600,7 +1699,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
       {/* Página N: Resumen Ejecutivo */}
       <StandardPage 
         pageNumber={1 + costSections.filter(s => s.expenses.length > 0).length + 1} 
-        totalPages={calculateTotalPages(incomes, expenses)} 
+        totalPages={calculateTotalPages(incomes, expenses, changeOrders)} 
         projectName={project.name}
         title="EXECUTIVE SUMMARY"
       >
@@ -1657,7 +1756,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                 <span className="font-bold" style={{ color: '#000000' }}>Total Budget (Final):</span>
                 <div className="text-right">
                   <div className="font-bold text-xl" style={{ color: '#2980b9' }}>
-                    {formatCurrency(convertCurrency(project.presupuesto_final || project.presupuesto_inicial || 0, 'CRC', 'USD'), 'USD')}
+                    {formatCurrency(convertCurrency(getFinalBudget(project), 'CRC', 'USD'), 'USD')}
                   </div>
                 </div>
               </div>
@@ -1674,8 +1773,8 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
               <div className="flex justify-between">
                 <span className="font-bold" style={{ color: '#000000' }}>Remaining to Pay:</span>
                 <div className="text-right">
-                  <div className="font-bold text-xl" style={{ color: convertCurrency(project.presupuesto_final || project.presupuesto_inicial || 0, 'CRC', 'USD') - totalIncomesUSD >= 0 ? '#e74c3c' : '#27ae60' }}>
-                    {formatCurrency(convertCurrency(project.presupuesto_final || project.presupuesto_inicial || 0, 'CRC', 'USD') - totalIncomesUSD, 'USD')}
+                  <div className="font-bold text-xl" style={{ color: convertCurrency(getFinalBudget(project), 'CRC', 'USD') - totalIncomesUSD >= 0 ? '#e74c3c' : '#27ae60' }}>
+                    {formatCurrency(convertCurrency(getFinalBudget(project), 'CRC', 'USD') - totalIncomesUSD, 'USD')}
                   </div>
                 </div>
               </div>
@@ -1684,7 +1783,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                 <span className="font-bold" style={{ color: '#000000' }}>% Paid of Final Budget:</span>
                 <div className="text-right">
                   <div className="font-bold text-xl" style={{ color: '#2980b9' }}>
-                    {((convertCurrency(project.presupuesto_final || project.presupuesto_inicial || 0, 'CRC', 'USD')) > 0 ? (totalIncomesUSD / (convertCurrency(project.presupuesto_final || project.presupuesto_inicial || 0, 'CRC', 'USD') || 1)) * 100 : 0).toFixed(2)}%
+                    {((convertCurrency(getFinalBudget(project), 'CRC', 'USD')) > 0 ? (totalIncomesUSD / (convertCurrency(getFinalBudget(project), 'CRC', 'USD') || 1)) * 100 : 0).toFixed(2)}%
                   </div>
                 </div>
               </div>
@@ -1696,7 +1795,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
       {/* Página N+1: Gráfico de Gastos */}
       <StandardPage 
         pageNumber={1 + costSections.filter(s => s.expenses.length > 0).length + 2} 
-        totalPages={calculateTotalPages(incomes, expenses)} 
+        totalPages={calculateTotalPages(incomes, expenses, changeOrders)} 
         projectName={project.name}
         title="EXPENSE ANALYSIS BY CATEGORY"
         className="chart-container"
@@ -1713,13 +1812,9 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
         </div>
       </StandardPage>
 
-      {/* Página de Anexos - Separada */}
-      <AttachmentsPage 
-        incomes={incomes}
-        expenses={expenses}
-        project={project}
-        costSections={costSections}
-      />    </div>    </>
+
+    </div>
+    </>
   );
 }
 
@@ -1750,7 +1845,7 @@ function ExpenseChart({ costSections, convertCurrency, formatCurrency, incomes, 
   const chartHeight = 300;
   const chartWidth = 500;
   const leftMargin = 100;
-  const bottomMargin = 140; // Increased for better label spacing
+  const bottomMargin = 60; // Reduced since labels are now inside bars
   const topMargin = 100;
   const rightMargin = 60;
   
@@ -1893,17 +1988,17 @@ function ExpenseChart({ costSections, convertCurrency, formatCurrency, incomes, 
                      {formatCurrency(item.amount, 'USD')}
                    </text>
                   
-                  {/* Área para etiqueta debajo de la barra - sin caja */}
+                  {/* Etiqueta de categoría dentro de la barra */}
                   <text
                     x={x + barWidth / 2}
-                    y={topMargin + chartHeight + 20}
+                    y={y + barHeight / 2}
                     textAnchor="middle"
-                    className="text-xs font-medium fill-gray-600"
-                    style={{ fontSize: '9px' }}
+                    className="text-xs font-bold fill-white"
+                    style={{ fontSize: '10px' }}
                   >
                     {(() => {
                       const words = item.shortTitle.split(' ');
-                      const maxWidth = barWidth + 25; // Available width for text
+                      const maxWidth = barWidth - 10; // Available width for text inside bar
                       const lineHeight = 12;
                       let lines = [];
                       let currentLine = '';
@@ -1911,7 +2006,7 @@ function ExpenseChart({ costSections, convertCurrency, formatCurrency, incomes, 
                       words.forEach(word => {
                         const testLine = currentLine ? `${currentLine} ${word}` : word;
                         // Approximate character width calculation (rough estimate)
-                        const estimatedWidth = testLine.length * 6;
+                        const estimatedWidth = testLine.length * 5.5;
                         
                         if (estimatedWidth <= maxWidth) {
                           currentLine = testLine;
@@ -1929,23 +2024,28 @@ function ExpenseChart({ costSections, convertCurrency, formatCurrency, incomes, 
                         lines.push(currentLine);
                       }
                       
+                      // Limit to 2 lines to fit inside the bar
+                      lines = lines.slice(0, 2);
+                      
                       return lines.map((line, lineIndex) => (
                         <tspan
                           key={lineIndex}
                           x={x + barWidth / 2}
-                          dy={lineIndex === 0 ? 0 : lineHeight}
+                          dy={lineIndex === 0 ? -(lines.length - 1) * lineHeight / 2 : lineHeight}
                         >
                           {line}
                         </tspan>
                       ));
                     })()}
                   </text>
+                  
+                  {/* Porcentaje arriba de la barra, debajo del valor */}
                   <text
                     x={x + barWidth / 2}
-                    y={topMargin + chartHeight + 55}
+                    y={y - 20}
                     textAnchor="middle"
-                    className="fill-gray-500 font-medium"
-                    style={{ fontSize: '10px' }}
+                    className="fill-gray-600 font-medium"
+                    style={{ fontSize: '9px' }}
                   >
                     {((item.amount / chartData.reduce((sum, d) => sum + d.amount, 0)) * 100).toFixed(1)}%
                   </text>
@@ -1953,15 +2053,7 @@ function ExpenseChart({ costSections, convertCurrency, formatCurrency, incomes, 
               );
             })}
 
-            {/* X-axis label */}
-            <text 
-              x={(leftMargin + chartWidth) / 2} 
-              y={topMargin + chartHeight + bottomMargin - 20} 
-              textAnchor="middle" 
-              className="text-xs font-medium fill-gray-500"
-            >
-              Categorías de Gastos
-            </text>
+
           </svg>
         </div>
         
@@ -2031,19 +2123,19 @@ interface AttachmentsPageProps {
   expenses: Expense[];
   project: Project;
   costSections: { title: string; expenses: Expense[] }[];
+  changeOrders: ChangeOrder[];
 }
 
-function AttachmentsPage({ incomes, expenses, project, costSections }: AttachmentsPageProps) {
-  // Solo mostrar si hay adjuntos
-  if (!incomes.some(income => income.attachment_url) && !expenses.some(expense => expense.attachment_url)) {
+function AttachmentsPage({ incomes, expenses, project, costSections, changeOrders }: AttachmentsPageProps) {
+  if (!incomes.some(income => income.receipt_url) && !expenses.some(expense => expense.receipt_url)) {
     return null;
   }
 
   const pageNumber = 1 + costSections.filter(s => s.expenses.length > 0).length + 3;
-  const totalPages = calculateTotalPages(incomes, expenses);
+  const totalPages = calculateTotalPages(incomes, expenses, changeOrders);
 
   return (
-    <StandardPage 
+    <StandardPage
       pageNumber={pageNumber}
       totalPages={totalPages}
       projectName={project.name}
@@ -2051,145 +2143,135 @@ function AttachmentsPage({ incomes, expenses, project, costSections }: Attachmen
       className="annexes-container"
     >
       <div className="table-section">
-          
-          {/* Adjuntos de Ingresos */}
-          {incomes.some(income => income.attachment_url) && (
-            <div className="mb-6">
-              <h3 className="text-md font-semibold mb-3" style={{ color: '#2980b9' }}>Income Attachments</h3>
-              {incomes.filter(income => income.attachment_url).length === 0 ? (
-                <p className="text-gray-500 italic text-sm">No data available</p>
-              ) : (
-                <div className="overflow-x-auto table-container">
-                  <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#2980b9', color: 'white' }}>
-                        <th className="p-2 text-left font-bold">#</th>
-                        <th className="p-2 text-left font-bold">Description</th>
-                <th className="p-2 text-left font-bold">Date</th>
-                <th className="p-2 text-left font-bold">Attached File</th>
-                <th className="p-2 text-left font-bold">Type</th>
-                <th className="p-2 text-right font-bold">Size</th>
+        {incomes.some(income => income.receipt_url) && (
+          <div className="mb-6">
+            <h3 className="text-md font-semibold mb-3" style={{ color: '#2980b9' }}>Income Attachments</h3>
+            <div className="overflow-x-auto table-container">
+              <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#2980b9', color: 'white' }}>
+                    <th className="p-2 text-left font-bold">#</th>
+                    <th className="p-2 text-left font-bold">Description</th>
+                    <th className="p-2 text-left font-bold">Date</th>
+                    <th className="p-2 text-left font-bold">Attached File</th>
+                    <th className="p-2 text-left font-bold">Type</th>
+                    <th className="p-2 text-right font-bold">Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incomes
+                    .filter(income => income.receipt_url)
+                    .map((income, index) => (
+                      <tr key={income.id} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
+                        <td className="p-2">{index + 1}</td>
+                        <td className="p-2">{income.description.length > 25 ? income.description.substring(0, 22) + '...' : income.description}</td>
+                        <td className="p-2">
+                          {income.received_date && !isNaN(new Date(income.received_date).getTime()) 
+                            ? format(new Date(income.received_date), 'dd/MM/yyyy') 
+                            : 'N/A'
+                          }
+                        </td>
+                        <td className="p-2">
+                          {income.receipt_url ? (
+                            <a 
+                              href={income.receipt_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                              title="Click to view the file"
+                            >
+                              Receipt
+                            </a>
+                          ) : (
+                            'Receipt'
+                          )}
+                        </td>
+                        <td className="p-2">PDF</td>
+                        <td className="p-2 text-right">N/A</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {incomes
-                        .filter(income => income.attachment_url)
-                        .map((income, index) => (
-                          <tr key={income.id} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
-                            <td className="p-2">{index + 1}</td>
-                            <td className="p-2">{income.description.length > 25 ? income.description.substring(0, 22) + '...' : income.description}</td>
-                            <td className="p-2">
-                              {income.income_date && !isNaN(new Date(income.income_date).getTime()) 
-                                ? format(new Date(income.income_date), 'dd/MM/yyyy') 
-                                : 'N/A'
-                              }
-                            </td>
-                            <td className="p-2">
-                              {income.attachment_url ? (
-                                <a 
-                                  href={income.attachment_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                                  title="Click to view the file"
-                                >
-                                  {income.attachment_name || 'Attached file'}
-                                </a>
-                              ) : (
-                                income.attachment_name || 'Attached file'
-                              )}
-                            </td>
-                            <td className="p-2">
-                              {income.attachment_type?.toUpperCase() || 'N/A'}
-                            </td>
-                            <td className="p-2 text-right">
-                              {income.attachment_size ? `${(income.attachment_size / 1024).toFixed(1)} KB` : 'N/A'}
-                            </td>
-                          </tr>
-                        ))
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    ))
+                  }
+                </tbody>
+              </table>
             </div>
-          )}
-          
-          {/* Adjuntos de Gastos */}
-          {expenses.some(expense => expense.attachment_url) && (
-            <div className="mb-6">
-              <h3 className="text-md font-semibold mb-3" style={{ color: '#e74c3c' }}>Expense Attachments</h3>
-              {expenses.filter(expense => expense.attachment_url).length === 0 ? (
-                <p className="text-gray-500 italic text-sm">No hay datos disponibles</p>
-              ) : (
-                <div className="overflow-x-auto table-container">
-                  <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#e74c3c', color: 'white' }}>
-                        <th className="p-2 text-left font-bold">#</th>
-                        <th className="p-2 text-left font-bold">Category</th>
-                        <th className="p-2 text-left font-bold">Description</th>
-                        <th className="p-2 text-left font-bold">Date</th>
-                        <th className="p-2 text-left font-bold">Attached File</th>
-                        <th className="p-2 text-left font-bold">Type</th>
-                        <th className="p-2 text-right font-bold">Size</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {expenses
-                        .filter(expense => expense.attachment_url)
-                        .map((expense, index) => (
-                          <tr key={expense.id} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
-                            <td className="p-2" style={{ color: '#000000' }}>{index + 1}</td>
-                            <td className="p-2" style={{ color: '#000000' }}>{expense.description.length > 25 ? expense.description.substring(0, 22) + '...' : expense.description}</td>
-                            <td className="p-2" style={{ color: '#000000' }}>
-                              {expense.category?.replace('_', ' ').toUpperCase() || 'N/A'}
-                            </td>
-                            <td className="p-2" style={{ color: '#000000' }}>
-                              {expense.date && !isNaN(new Date(expense.date).getTime()) 
-                                ? format(new Date(expense.date), 'dd/MM/yyyy') 
-                                : 'N/A'
-                              }
-                            </td>
-                            <td className="p-2" style={{ color: '#000000' }}>
-                              {expense.attachment_url ? (
-                                <a 
-                                  href={expense.attachment_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                                  title="Click to view the file"
-                                >
-                                  {expense.attachment_name || 'Attached file'}
-                                </a>
-                              ) : (
-                                expense.attachment_name || 'Attached file'
-                              )}
-                            </td>
-                            <td className="p-2" style={{ color: '#000000' }}>
-                              {expense.attachment_type?.toUpperCase() || 'N/A'}
-                            </td>
-                            <td className="p-2 text-right" style={{ color: '#000000' }}>
-                              {expense.attachment_size ? `${(expense.attachment_size / 1024).toFixed(1)} KB` : 'N/A'}
-                            </td>
-                          </tr>
-                        ))
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Nota informativa */}
-          <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-xs text-blue-700">
-              <strong>Note:</strong> The attached files listed in this section are available
-          digitally in the system. Click on the file name to view the original document 
-              and verify its content.
-            </p>
           </div>
+        )}
+        
+        {expenses.some(expense => expense.receipt_url || expense.reference_attachment_url) && (
+          <div className="mb-6">
+            <h3 className="text-md font-semibold mb-3" style={{ color: '#e74c3c' }}>Expense Attachments</h3>
+            <div className="overflow-x-auto table-container">
+              <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#e74c3c', color: 'white' }}>
+                    <th className="p-2 text-left font-bold">#</th>
+                    <th className="p-2 text-left font-bold">Category</th>
+                    <th className="p-2 text-left font-bold">Description</th>
+                    <th className="p-2 text-left font-bold">Date</th>
+                    <th className="p-2 text-left font-bold">Invoice Receipt</th>
+                    <th className="p-2 text-left font-bold">Reference Attachment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses
+                    .filter(expense => expense.receipt_url || expense.reference_attachment_url)
+                    .map((expense, index) => (
+                      <tr key={expense.id} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
+                        <td className="p-2" style={{ color: '#000000' }}>{index + 1}</td>
+                        <td className="p-2" style={{ color: '#000000' }}>{expense.description.length > 25 ? expense.description.substring(0, 22) + '...' : expense.description}</td>
+                        <td className="p-2" style={{ color: '#000000' }}>
+                          {translateCategory(expense.category || '')}
+                        </td>
+                        <td className="p-2" style={{ color: '#000000' }}>
+                          {expense.expense_date && !isNaN(new Date(expense.expense_date).getTime()) 
+                            ? format(new Date(expense.expense_date), 'dd/MM/yyyy') 
+                            : 'N/A'
+                          }
+                        </td>
+                        <td className="p-2" style={{ color: '#000000' }}>
+                          {expense.receipt_url ? (
+                            <a 
+                              href={expense.receipt_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                              title="Click to view the invoice receipt"
+                            >
+                              Invoice
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-2" style={{ color: '#000000' }}>
+                          {expense.reference_attachment_url ? (
+                            <a 
+                              href={expense.reference_attachment_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                              title="Click to view the reference attachment"
+                            >
+                              {expense.reference_attachment_name || 'Reference'}
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        
+        <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-xs text-blue-700">
+            <strong>Note:</strong> The attached files listed in this section are available digitally in the system. Click on the file name to view the original document and verify its content.
+          </p>
+        </div>
       </div>
     </StandardPage>
   );
@@ -2210,7 +2292,7 @@ function IncomeReportSection({ reportData, convertCurrency, formatCurrency }: In
     return sum + convertCurrency(income.amount, income.currency, 'USD');
   }, 0);
 
-  const budgetDifference = (reportData.project.presupuesto_final || reportData.project.presupuesto_inicial || 0) - totalCRC;
+  const budgetDifference = getFinalBudget(reportData.project) - totalCRC;
 
   return (
     <Card>
@@ -2249,7 +2331,7 @@ function IncomeReportSection({ reportData, convertCurrency, formatCurrency }: In
                       <TableCell>{income.description}</TableCell>
                       <TableCell>{income.reference || '-'}</TableCell>
                       <TableCell>
-                        {format(new Date(income.income_date), 'dd/MM/yyyy', { locale: es })}
+                        {format(new Date(income.received_date), 'dd/MM/yyyy', { locale: es })}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(amountCRC, 'CRC')}
@@ -2374,9 +2456,9 @@ function CostReportSection({ title, expenses, convertCurrency, formatCurrency }:
                     <TableRow key={expense.id}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell>{expense.description}</TableCell>
-                      <TableCell>{expense.reference || '-'}</TableCell>
+                      <TableCell>{expense.reference || expense.invoice_number || '-'}</TableCell>
                       <TableCell>
-                        {format(new Date(expense.date), 'dd/MM/yyyy', { locale: es })}
+                        {format(new Date(expense.expense_date), 'dd/MM/yyyy', { locale: es })}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatCurrency(amountCRC, 'CRC')}
@@ -2461,7 +2543,7 @@ function SummaryReportSection({ reportData, convertCurrency, formatCurrency }: S
   }, 0);
 
   // Calcular totales por categoría de gastos
-  const categories = ['costos_directos', 'mano_obra', 'costos_indirectos', 'gastos_administrativos', 'imprevistos'];
+  const categories = ['direct_cost', 'mano_obra', 'equipos', 'servicios', 'transporte', 'otros'];
   const categoryTotals = categories.map(category => {
     const categoryExpenses = reportData.expenses.filter(e => e.category === category);
     const totalCRC = categoryExpenses.reduce((sum, expense) => {
@@ -2474,11 +2556,12 @@ function SummaryReportSection({ reportData, convertCurrency, formatCurrency }: S
     return {
       category,
       name: {
-          costos_directos: 'Costos Directos',
+          direct_cost: 'Direct Cost',
           mano_obra: 'Mano de Obra',
-          costos_indirectos: 'Costos Indirectos',
-          gastos_administrativos: 'Costos Administrativos',
-          imprevistos: 'Imprevistos'
+          equipos: 'Equipos',
+          servicios: 'Servicios',
+          transporte: 'Transporte',
+          otros: 'Otros'
         }[category],
       totalCRC,
       totalUSD
@@ -2491,7 +2574,7 @@ function SummaryReportSection({ reportData, convertCurrency, formatCurrency }: S
   const netProfitCRC = totalIncomesCRC - totalExpensesCRC;
   const netProfitUSD = totalIncomesUSD - totalExpensesUSD;
   
-  const budgetDifference = (reportData.project.presupuesto_final || reportData.project.presupuesto_inicial || 0) - totalIncomesCRC;
+  const budgetDifference = getFinalBudget(reportData.project) - totalIncomesCRC;
 
   return (
     <Card>

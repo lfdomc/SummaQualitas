@@ -9,7 +9,7 @@ interface Expense {
   description: string;
   amount: number;
   currency: string;
-  date: string;
+  expense_date: string;
   suppliers?: {
     name: string;
   };
@@ -55,13 +55,13 @@ export default function TestExpensesPage() {
           description,
           amount,
           currency,
-          date,
+          expense_date,
           suppliers (
             name
           )
         `)
         .eq('project_id', projectId)
-        .order('date', { ascending: false });
+        .order('expense_date', { ascending: false });
       
       if (expensesError) {
         setError(`Error al cargar expenses: ${expensesError.message}`);
@@ -163,7 +163,7 @@ export default function TestExpensesPage() {
                 <div key={expense.id} className="p-3 bg-gray-50 rounded">
                   <div className="font-medium">{expense.description}</div>
                   <div className="text-sm text-gray-600">
-                    {expense.amount.toLocaleString()} {expense.currency} - {expense.date}
+                    {expense.amount.toLocaleString()} {expense.currency} - {expense.expense_date}
                   </div>
                   {expense.suppliers && (
                     <div className="text-sm text-blue-600">

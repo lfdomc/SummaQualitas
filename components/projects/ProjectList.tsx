@@ -304,44 +304,44 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
                   </div>
 
                   {/* Budget Breakdown Summary */}
-                  {(project.costos_directos_materiales || project.costos_directos_equipos || project.mano_obra_quincenal) && (
+                  {(project.costos_directos || project.costos_indirectos || project.mano_obra) && (
                     <div className="border-t pt-3">
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">Desglose Presupuestario:</h4>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                        {project.costos_directos_materiales && (
+                        {project.costos_directos && (
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <span>Materiales: {formatCurrency(project.costos_directos_materiales)}</span>
-                          </div>
-                        )}
-                        {project.costos_directos_equipos && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span>Equipos: {formatCurrency(project.costos_directos_equipos)}</span>
-                          </div>
-                        )}
-                        {project.mano_obra_quincenal && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                            <span>M.O.: {formatCurrency(project.mano_obra_quincenal)}</span>
+                            <span>Costos Directos: {formatCurrency(project.costos_directos)}</span>
                           </div>
                         )}
                         {project.costos_indirectos && (
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                            <span>Indirectos: {formatCurrency(project.costos_indirectos)}</span>
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span>Costos Indirectos: {formatCurrency(project.costos_indirectos)}</span>
                           </div>
                         )}
-                        {project.utilidad_esperada && (
+                        {project.administracion && (
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                            <span>Utilidad: {formatCurrency(project.utilidad_esperada)}</span>
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span>Administración: {formatCurrency(project.administracion)}</span>
+                          </div>
+                        )}
+                        {project.mano_obra && (
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span>Mano de Obra: {formatCurrency(project.mano_obra)}</span>
                           </div>
                         )}
                         {project.imprevistos && (
                           <div className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                             <span>Imprevistos: {formatCurrency(project.imprevistos)}</span>
+                          </div>
+                        )}
+                        {project.utilidad && (
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                            <span>Utilidad: {formatCurrency(project.utilidad)}</span>
                           </div>
                         )}
                       </div>

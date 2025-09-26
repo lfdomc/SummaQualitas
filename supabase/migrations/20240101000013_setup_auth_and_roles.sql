@@ -317,9 +317,8 @@ ORDER BY u.created_at DESC;
 -- Grant access to the view based on RLS
 ALTER VIEW user_management_view OWNER TO postgres;
 
--- Create RLS policy for the view
-CREATE POLICY "Gerencia can view user management" ON user_management_view
-    FOR SELECT USING (get_user_role() = 'gerencia');
+-- Note: RLS policies cannot be applied directly to views
+-- Access control is handled through the underlying table policies
 
 -- Function to get system statistics (for dashboard)
 CREATE OR REPLACE FUNCTION get_system_statistics()

@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Edit, Trash2, DollarSign, TrendingUp, Calendar, Eye } from 'lucide-react';
 import { incomeService } from '@/lib/supabase/database';
 import type { Income, CreateIncomeData, UpdateIncomeData, ProjectIncomesSummary } from '@/lib/types';
-import { INCOME_STATUSES, INCOME_CATEGORIES } from '@/types/database';
+import { INCOME_STATUSES, INCOME_CATEGORIES, mapIncomeCategory, mapIncomeStatus, reverseMapIncomeCategory, reverseMapIncomeStatus } from '@/types/database';
 import { toast } from 'sonner';
 import { FileUpload } from '@/components/ui/file-upload';
 import { fileService } from '@/lib/services/fileService';
@@ -47,16 +47,13 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
     description: '',
     amount: 0,
     currency: 'CRC',
-    income_date: new Date().toISOString().split('T')[0],
+    received_date: new Date().toISOString().split('T')[0],
     payment_method: 'transferencia',
     category: 'pago_proyecto',
-    status: 'pending',
+    status: 'pendiente',
     reference: '',
     notes: '',
-    attachment_url: undefined,
-    attachment_name: undefined,
-    attachment_type: undefined,
-    attachment_size: undefined
+    receipt_url: undefined
   });
 
   useEffect(() => {
@@ -70,7 +67,13 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
         incomeService.getProjectIncomes(projectId),
         incomeService.getProjectIncomesSummary(projectId)
       ]);
-      setIncomes(incomesData);
+      // Aplicar mapeo inverso para convertir categorías y status de español a inglés
+      const mappedIncomes = incomesData.map(income => ({
+        ...income,
+        category: reverseMapIncomeCategory(income.category),
+        status: reverseMapIncomeStatus(income.status)
+      }));
+      setIncomes(mappedIncomes);
       setSummary(summaryData);
     } catch (error) {
       console.error('Error loading project incomes:', error);
@@ -90,10 +93,9 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
       const incomeData: CreateIncomeData = {
         ...incomeForm,
         amount: Number(incomeForm.amount),
-        attachment_url: incomeForm.attachment_url,
-        attachment_name: incomeForm.attachment_name,
-        attachment_type: incomeForm.attachment_type,
-        attachment_size: incomeForm.attachment_size
+        category: mapIncomeCategory(incomeForm.category),
+        status: mapIncomeStatus(incomeForm.status),
+        receipt_url: incomeForm.receipt_url
       };
 
       await incomeService.createIncome(incomeData);
@@ -118,16 +120,13 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
         description: incomeForm.description,
         amount: Number(incomeForm.amount),
         currency: incomeForm.currency,
-        income_date: incomeForm.income_date,
+        received_date: incomeForm.received_date,
         payment_method: incomeForm.payment_method,
-        category: incomeForm.category,
-        status: incomeForm.status,
+        category: mapIncomeCategory(incomeForm.category),
+        status: mapIncomeStatus(incomeForm.status),
         reference: incomeForm.reference,
         notes: incomeForm.notes,
-        attachment_url: incomeForm.attachment_url,
-        attachment_name: incomeForm.attachment_name,
-        attachment_type: incomeForm.attachment_type,
-        attachment_size: incomeForm.attachment_size
+        receipt_url: incomeForm.receipt_url
       };
 
       await incomeService.updateIncome(selectedIncome.id, updateData);
@@ -165,16 +164,13 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
       description: income.description,
       amount: income.amount,
       currency: income.currency,
-      income_date: income.income_date,
+      received_date: income.received_date,
       payment_method: income.payment_method,
       category: income.category,
       status: income.status,
       reference: income.reference || '',
       notes: income.notes || '',
-      attachment_url: income.attachment_url || undefined,
-      attachment_name: income.attachment_name || undefined,
-      attachment_type: income.attachment_type || undefined,
-      attachment_size: income.attachment_size || undefined
+      receipt_url: income.receipt_url || undefined
     });
     setIsEditDialogOpen(true);
   };
@@ -186,16 +182,13 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
       description: '',
       amount: 0,
       currency: 'CRC',
-      income_date: new Date().toISOString().split('T')[0],
+      received_date: new Date().toISOString().split('T')[0],
       payment_method: 'transferencia',
       category: 'pago_proyecto',
       status: 'pending',
       reference: '',
       notes: '',
-      attachment_url: undefined,
-      attachment_name: undefined,
-      attachment_type: undefined,
-      attachment_size: undefined
+      receipt_url: undefined
     });
   };
 
@@ -204,10 +197,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
       const result = await fileService.uploadFile(file, 'income-attachments');
       setIncomeForm({
         ...incomeForm,
-        attachment_url: result.url,
-        attachment_name: result.name,
-        attachment_type: result.type,
-        attachment_size: result.size
+        receipt_url: result.url
       });
       return result;
     } catch (error) {
@@ -385,9 +375,9 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
               <TableBody>
                 {incomes.map((income) => (
                   <TableRow key={income.id}>
-                    <TableCell>
-                      {new Date(income.income_date).toLocaleDateString('es-ES')}
-                    </TableCell>
+                     <TableCell>
+                       {new Date(income.received_date).toLocaleDateString('es-ES')}
+                     </TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">{income.description}</div>
@@ -522,12 +512,12 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="income_date">Fecha de Ingreso</Label>
+              <Label htmlFor="received_date">Fecha de Ingreso</Label>
               <Input
-                id="income_date"
+                id="received_date"
                 type="date"
-                value={incomeForm.income_date}
-                onChange={(e) => setIncomeForm({ ...incomeForm, income_date: e.target.value })}
+                value={incomeForm.received_date}
+                onChange={(e) => setIncomeForm({ ...incomeForm, received_date: e.target.value })}
               />
             </div>
 
@@ -573,10 +563,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
                 onFileUpload={handleFileUpload}
                 onFileRemove={() => setIncomeForm({
                   ...incomeForm,
-                  attachment_url: undefined,
-                  attachment_name: undefined,
-                  attachment_type: undefined,
-                  attachment_size: undefined
+                  receipt_url: undefined
                 })}
                 acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
                 maxFileSize={10 * 1024 * 1024}
@@ -642,12 +629,12 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit_income_date">Fecha de Ingreso</Label>
+              <Label htmlFor="edit_received_date">Fecha de Ingreso</Label>
               <Input
-                id="edit_income_date"
+                id="edit_received_date"
                 type="date"
-                value={incomeForm.income_date}
-                onChange={(e) => setIncomeForm({ ...incomeForm, income_date: e.target.value })}
+                value={incomeForm.received_date}
+                onChange={(e) => setIncomeForm({ ...incomeForm, received_date: e.target.value })}
               />
             </div>
 
@@ -725,18 +712,15 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
                 onFileUpload={handleFileUpload}
                 onFileRemove={() => setIncomeForm({
                   ...incomeForm,
-                  attachment_url: undefined,
-                  attachment_name: undefined,
-                  attachment_type: undefined,
-                  attachment_size: undefined
+                  receipt_url: undefined
                 })}
                 acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
                 maxFileSize={10 * 1024 * 1024}
-                existingFile={incomeForm.attachment_name ? {
-                  name: incomeForm.attachment_name,
-                  url: incomeForm.attachment_url || '',
-                  type: incomeForm.attachment_type || '',
-                  size: incomeForm.attachment_size || 0
+                existingFile={incomeForm.receipt_url ? {
+                  name: 'Receipt',
+                  url: incomeForm.receipt_url || '',
+                  type: 'application/pdf',
+                  size: 0
                 } : undefined}
               />
             </div>

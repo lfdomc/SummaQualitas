@@ -22,7 +22,7 @@ export enum ProjectStatusEnum {
 }
 export type ChangeType = 'material' | 'diseno' | 'cronograma' | 'presupuesto';
 export type ChangeStatus = 'pendiente' | 'aprobado' | 'rechazado';
-export type BudgetCategory = 'costos_directos' | 'costos_indirectos' | 'gastos_administrativos' | 'mano_obra' | 'imprevistos' | 'utilidad_esperada';
+export type BudgetCategory = 'costos_directos' | 'costos_indirectos' | 'administracion' | 'mano_obra' | 'imprevistos' | 'utilidad';
 export type EquipmentStatus = 'disponible' | 'en_uso' | 'mantenimiento' | 'fuera_servicio';
 export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -75,13 +75,19 @@ export interface Project {
   presupuesto_original?: number;
   presupuesto_final?: number;
   // Campos de desglose presupuestario
-  costos_directos_materiales?: number;
-  costos_directos_equipos?: number;
+  costos_directos?: number;
   costos_indirectos?: number;
-  gastos_administrativos?: number;
-  mano_obra_quincenal?: number;
+  mano_obra?: number;
+  administracion?: number;
   imprevistos?: number;
-  utilidad_esperada?: number;
+  utilidad?: number;
+  // Campos de porcentajes
+  costos_directos_porcentaje?: number;
+  costos_indirectos_porcentaje?: number;
+  mano_obra_porcentaje?: number;
+  administracion_porcentaje?: number;
+  imprevistos_porcentaje?: number;
+  utilidad_porcentaje?: number;
   // Fechas detalladas
   estimated_start_date?: string;
   actual_start_date?: string;
@@ -360,31 +366,45 @@ export interface ProjectKPIs {
 export interface CreateProjectDTO {
   name: string;
   description?: string;
-  client_id: string;
-  start_date?: string;
-  estimated_end_date?: string;
+  client_id?: string;
+  manager_id?: string;
+  status?: ProjectStatus;
   location?: string;
-  area?: number;
-  budget: number;
-  // Campos de presupuesto
+  
+  // Campos de área y tipo de cambio
+  total_area?: number;
+  exchange_rate_usd?: number;
+  
+  // Campos de presupuesto principal
   presupuesto_inicial?: number;
   presupuesto_original?: number;
   presupuesto_final?: number;
-  // Campos de desglose presupuestario
-  costos_directos_materiales?: number;
-  costos_directos_equipos?: number;
+  budget?: number;
+  
+  // Campos de desglose presupuestario por montos
+  costos_directos?: number;
   costos_indirectos?: number;
-  gastos_administrativos?: number;
-  mano_obra_quincenal?: number;
+  mano_obra?: number;
+  administracion?: number;
   imprevistos?: number;
-  utilidad_esperada?: number;
-  // Nuevos campos para desglose por porcentajes
-  exchange_rate_usd?: number;
-  total_area?: number;
+  utilidad?: number;
+  // Campos de porcentajes
+  costos_directos_porcentaje?: number;
+  costos_indirectos_porcentaje?: number;
+  mano_obra_porcentaje?: number;
+  administracion_porcentaje?: number;
+  imprevistos_porcentaje?: number;
+  utilidad_porcentaje?: number;
+  
   // Fechas detalladas
   estimated_start_date?: string;
+  estimated_end_date?: string;
   actual_start_date?: string;
   actual_end_date?: string;
+  
+  // Campos legacy para compatibilidad
+  start_date?: string;
+  area?: number;
 }
 
 export interface UpdateProjectDTO extends Partial<CreateProjectDTO> {
@@ -532,16 +552,13 @@ export interface Income {
   description: string;
   amount: number;
   currency: string;
-  income_date: string;
+  received_date: string;
   payment_method?: string;
   reference?: string;
   category: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -552,32 +569,26 @@ export interface CreateIncomeData {
   description: string;
   amount: number;
   currency: string;
-  income_date: string;
+  received_date: string;
   payment_method?: string;
   reference?: string;
   category: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado';
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
 }
 
 export interface UpdateIncomeData {
   description?: string;
   amount?: number;
   currency?: string;
-  income_date?: string;
+  received_date?: string;
   payment_method?: string;
   reference?: string;
   category?: string;
-  status?: 'pending' | 'confirmed' | 'cancelled';
+  status?: 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado';
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
 }
 
 export interface ProjectIncomesSummary {
@@ -592,16 +603,16 @@ export interface ProjectIncomesSummary {
   total_confirmed_crc: number;
   total_amount: number;
   confirmed_amount: number;
-  first_income_date?: string;
-  last_income_date?: string;
+  first_received_date?: string;
+  last_received_date?: string;
 }
 
 export interface IncomeFilters {
   status?: string[];
   project_id?: string;
   client_id?: string;
-  income_date_from?: string;
-  income_date_to?: string;
+  received_date_from?: string;
+  received_date_to?: string;
   amount_min?: number;
   amount_max?: number;
   payment_method?: string;
@@ -611,73 +622,28 @@ export interface IncomeFilters {
   date_to?: string;
 }
 
-export interface Expense {
-  id: string;
-  project_id: string;
-  project?: Project;
-  category: string;
-  subcategory?: string;
-  description: string;
-  amount: number;
-  currency: 'CRC' | 'USD';
-  exchange_rate_usd?: number;
-  date: string;
-  supplier_id?: string;
-  supplier?: Supplier;
-  reference?: string;
-  details?: string;
-  notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface CreateExpenseData {
-  project_id: string;
-  category: string;
-  subcategory?: string;
-  description: string;
-  amount: number;
-  currency: 'CRC' | 'USD';
-  exchange_rate_usd?: number;
-  date: string;
-  supplier_id?: string;
-  reference?: string;
-  details?: string;
-  notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
-}
-
-export interface UpdateExpenseData {
-  category?: string;
-  subcategory?: string;
-  description?: string;
-  amount?: number;
-  currency?: 'CRC' | 'USD';
-  exchange_rate_usd?: number;
-  date?: string;
-  supplier_id?: string;
-  reference?: string;
-  details?: string;
-  notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
-}
+// Re-export expense types from dedicated module
+export type {
+  Expense,
+  CreateExpenseData,
+  UpdateExpenseData,
+  ExpenseForm as ExpenseFormType,
+  ExpenseSummary,
+  ProjectExpenseSummary,
+  ExpenseFilters,
+  ExpenseCategory,
+  DirectCostSubcategory,
+  IndirectCostSubcategory,
+  PaymentStatus,
+  Currency
+} from './types/expense';
 
 export interface MonthlyIncomeReport {
   id: string;
   amount: number;
   currency: 'CRC' | 'USD';
   exchange_rate_usd?: number;
-  income_date: string;
+  received_date: string;
   description?: string;
   reference?: string;
   notes?: string;

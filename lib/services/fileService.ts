@@ -115,11 +115,11 @@ export const uploadFile = async (file: File, folder: string = 'attachments'): Pr
     if (file.type.startsWith('image/')) {
       const compressed = await compressImage(file, 2048); // 2MB máximo para imágenes
       fileToUpload = compressed.file;
-      console.log(`Imagen comprimida: ${(compressed.originalSize / 1024).toFixed(1)}KB → ${(compressed.compressedSize / 1024).toFixed(1)}KB`);
+      // Imagen comprimida exitosamente
     } else if (file.type === 'application/pdf') {
       const compressed = await compressPDF(file);
       fileToUpload = compressed.file;
-      console.log(`PDF procesado: ${(compressed.originalSize / 1024).toFixed(1)}KB → ${(compressed.compressedSize / 1024).toFixed(1)}KB`);
+      // PDF procesado exitosamente
     }
     
     // Crear FormData para enviar a la API

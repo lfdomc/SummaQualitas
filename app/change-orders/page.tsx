@@ -46,13 +46,13 @@ import {
   CheckCircle,
   Eye,
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { ChangeOrder, Project } from '@/types/database';
 
 export default function ChangeOrdersPage() {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,14 +121,12 @@ export default function ChangeOrdersPage() {
 
   const filteredChangeOrders = useMemo(() => {
     return changeOrders.filter(order => {
-      // Requerir que se seleccione un proyecto específico
-      if (!selectedProject) return false;
-      
       const matchesSearch = order.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            order.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            order.designer?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesProject = order.project_id === selectedProject;
+      // Si no hay proyecto seleccionado o es 'all', mostrar todas las órdenes
+      const matchesProject = !selectedProject || selectedProject === 'all' || order.project_id === selectedProject;
       const matchesType = selectedType === 'all' || order.change_type === selectedType;
       const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
       
@@ -138,13 +136,13 @@ export default function ChangeOrdersPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'secondary' as const },
-      approved: { label: 'Aprobada', variant: 'default' as const },
-      rejected: { label: 'Rechazada', variant: 'destructive' as const },
-      implemented: { label: 'Implementada', variant: 'default' as const },
+      pendiente: { label: 'Pendiente', variant: 'secondary' as const },
+      aprobado: { label: 'Aprobada', variant: 'default' as const },
+      rechazado: { label: 'Rechazada', variant: 'destructive' as const },
+      implementado: { label: 'Implementada', variant: 'default' as const },
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pendiente;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -265,7 +263,7 @@ export default function ChangeOrdersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {filteredChangeOrders.filter(o => o.status === 'pending_approval').length}
+                {filteredChangeOrders.filter(o => o.status === 'pendiente').length}
               </div>
             </CardContent>
           </Card>
@@ -367,10 +365,10 @@ export default function ChangeOrdersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="approved">Aprobada</SelectItem>
-                  <SelectItem value="rejected">Rechazada</SelectItem>
-                  <SelectItem value="implemented">Implementada</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="aprobado">Aprobada</SelectItem>
+                  <SelectItem value="rechazado">Rechazada</SelectItem>
+                  <SelectItem value="implementado">Implementada</SelectItem>
                 </SelectContent>
               </Select>
             </div>

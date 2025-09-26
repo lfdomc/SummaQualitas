@@ -264,27 +264,5 @@ CREATE POLICY "Gerencia and administrativo can update suppliers" ON suppliers
 CREATE POLICY "Gerencia can delete suppliers" ON suppliers
     FOR DELETE USING (get_user_role() = 'gerencia');
 
--- INCOMES TABLE POLICIES (updating existing policies to be consistent)
-DROP POLICY IF EXISTS "Users can view all incomes" ON incomes;
-DROP POLICY IF EXISTS "Users can insert incomes" ON incomes;
-DROP POLICY IF EXISTS "Users can update incomes" ON incomes;
-
--- All authenticated users can view incomes
-CREATE POLICY "Authenticated users can view incomes" ON incomes
-    FOR SELECT USING (auth.role() = 'authenticated');
-
--- Gerencia and administrativo can insert incomes
-CREATE POLICY "Gerencia and administrativo can insert incomes" ON incomes
-    FOR INSERT WITH CHECK (
-        get_user_role() IN ('gerencia', 'administrativo')
-    );
-
--- Gerencia and administrativo can update incomes
-CREATE POLICY "Gerencia and administrativo can update incomes" ON incomes
-    FOR UPDATE USING (
-        get_user_role() IN ('gerencia', 'administrativo')
-    );
-
--- Only gerencia can delete incomes
-CREATE POLICY "Gerencia can delete incomes" ON incomes
-    FOR DELETE USING (get_user_role() = 'gerencia');
+-- INCOMES TABLE POLICIES will be created in the main database migration
+-- since the table is defined there

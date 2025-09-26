@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Project, Expense, Supplier, EXPENSE_CATEGORIES } from '@/types/database';
+import { Project, Expense, Supplier, EXPENSE_CATEGORIES, DIRECT_COST_SUBCATEGORIES, INDIRECT_COST_SUBCATEGORIES } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,8 +27,9 @@ import {
 
 interface CreateExpenseData {
   project_id: string;
-  category: string;
-  subcategory?: string;
+  category: 'costos_directos' | 'costos_indirectos' | 'mano_obra' | 'imprevistos' | 'administracion';
+  subcategory_direct?: 'subcontratos' | 'materiales' | 'otros';
+  subcategory_indirect?: 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros';
   description: string;
   amount: number;
   currency: 'CRC' | 'USD';
@@ -65,8 +66,9 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
   // Estado del formulario de gastos
   const [expenseForm, setExpenseForm] = useState<CreateExpenseData>({
     project_id: project.id,
-    category: '',
-    subcategory: '',
+    category: 'costos_directos',
+    subcategory_direct: undefined,
+    subcategory_indirect: undefined,
     description: '',
     amount: 0,
     currency: 'CRC',
@@ -91,7 +93,7 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
         .from('expenses')
         .select('*')
         .eq('project_id', project.id)
-        .order('date', { ascending: false });
+        .order('expense_date', { ascending: false });
 
       if (error) throw error;
       
@@ -132,18 +134,27 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
         return;
       }
 
+      // Validar subcategorías requeridas
+      if (expenseForm.category === 'costos_directos' && !expenseForm.subcategory_direct) {
+        toast.error('Por favor seleccione una subcategoría para costos directos');
+        return;
+      }
+
+      if (expenseForm.category === 'costos_indirectos' && !expenseForm.subcategory_indirect) {
+        toast.error('Por favor seleccione una subcategoría para costos indirectos');
+        return;
+      }
+
       const expenseData = {
         ...expenseForm,
         supplier_id: expenseForm.supplier_id || null,
-        subcategory: expenseForm.subcategory || null,
+        subcategory_direct: expenseForm.subcategory_direct || null,
+        subcategory_indirect: expenseForm.subcategory_indirect || null,
   
         reference: expenseForm.reference || null,
         details: expenseForm.details || null,
         notes: expenseForm.notes || null,
-        attachment_url: expenseForm.attachment_url || null,
-        attachment_name: expenseForm.attachment_name || null,
-        attachment_type: expenseForm.attachment_type || null,
-        attachment_size: expenseForm.attachment_size || null
+        receipt_url: expenseForm.attachment_url || null
       };
 
       const { data, error } = await supabase
@@ -173,21 +184,19 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
         .from('expenses')
         .update({
           category: expenseForm.category,
-          subcategory: expenseForm.subcategory || null,
+          subcategory_direct: expenseForm.subcategory_direct || null,
+          subcategory_indirect: expenseForm.subcategory_indirect || null,
           description: expenseForm.description,
           amount: expenseForm.amount,
           currency: expenseForm.currency,
           exchange_rate: expenseForm.exchange_rate,
-          date: expenseForm.date,
+          expense_date: expenseForm.date,
           supplier_id: expenseForm.supplier_id || null,
     
           reference: expenseForm.reference || null,
           details: expenseForm.details || null,
           notes: expenseForm.notes || null,
-          attachment_url: expenseForm.attachment_url || null,
-          attachment_name: expenseForm.attachment_name || null,
-          attachment_type: expenseForm.attachment_type || null,
-          attachment_size: expenseForm.attachment_size || null
+          receipt_url: expenseForm.attachment_url || null
         })
         .eq('id', editingExpense.id);
 
@@ -226,8 +235,9 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
   const resetForm = () => {
     setExpenseForm({
       project_id: project.id,
-      category: '',
-      subcategory: '',
+      category: 'costos_directos',
+      subcategory_direct: undefined,
+      subcategory_indirect: undefined,
       description: '',
       amount: 0,
       currency: 'CRC',
@@ -268,12 +278,13 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
     setExpenseForm({
       project_id: expense.project_id,
       category: expense.category,
-      subcategory: expense.subcategory || '',
+      subcategory_direct: expense.subcategory_direct || undefined,
+      subcategory_indirect: expense.subcategory_indirect || undefined,
       description: expense.description,
       amount: expense.amount,
       currency: expense.currency,
       exchange_rate: expense.exchange_rate || 500,
-      date: expense.date,
+      date: expense.expense_date,
       supplier_id: expense.supplier_id || '',
   
       reference: expense.reference || '',
@@ -378,7 +389,14 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                       <Label htmlFor="category">Categoría *</Label>
                       <Select
                         value={expenseForm.category}
-                        onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value })}
+                        onValueChange={(value: any) => {
+                          setExpenseForm({ 
+                            ...expenseForm, 
+                            category: value,
+                            subcategory_direct: undefined,
+                            subcategory_indirect: undefined
+                          });
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar categoría" />
@@ -392,6 +410,46 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                         </SelectContent>
                       </Select>
                     </div>
+                    {expenseForm.category === 'costos_directos' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="subcategory_direct">Subcategoría *</Label>
+                        <Select
+                          value={expenseForm.subcategory_direct || ''}
+                          onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_direct: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar subcategoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DIRECT_COST_SUBCATEGORIES.map((subcategory, index) => (
+                              <SelectItem key={`add-direct-${index}-${subcategory.value}`} value={subcategory.value}>
+                                {subcategory.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {expenseForm.category === 'costos_indirectos' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="subcategory_indirect">Subcategoría *</Label>
+                        <Select
+                          value={expenseForm.subcategory_indirect || ''}
+                          onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_indirect: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar subcategoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INDIRECT_COST_SUBCATEGORIES.map((subcategory, index) => (
+                              <SelectItem key={`add-indirect-${index}-${subcategory.value}`} value={subcategory.value}>
+                                {subcategory.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label htmlFor="date">Fecha *</Label>
                       <Input
@@ -641,7 +699,7 @@ Equivalent in dollars
                       <td className="py-3">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          {new Date(expense.date).toLocaleDateString('es-CR')}
+                          {new Date(expense.expense_date).toLocaleDateString('es-CR')}
                         </div>
                       </td>
                       <td className="py-3">
@@ -653,7 +711,19 @@ Equivalent in dollars
                         </div>
                       </td>
                       <td className="py-3">
-                        <Badge variant="outline">{expense.category}</Badge>
+                        <div className="space-y-1">
+                          <Badge variant="outline">{expense.category}</Badge>
+                          {expense.subcategory_direct && (
+                            <div className="text-xs text-gray-600">
+                              {expense.subcategory_direct}
+                            </div>
+                          )}
+                          {expense.subcategory_indirect && (
+                            <div className="text-xs text-gray-600">
+                              {expense.subcategory_indirect}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 text-right">
                         <div className="font-medium">
@@ -721,7 +791,14 @@ Equivalent in dollars
                 <Label htmlFor="edit-category">Categoría *</Label>
                 <Select
                   value={expenseForm.category}
-                  onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value })}
+                  onValueChange={(value: any) => {
+                    setExpenseForm({ 
+                      ...expenseForm, 
+                      category: value,
+                      subcategory_direct: undefined,
+                      subcategory_indirect: undefined
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar categoría" />
@@ -735,6 +812,46 @@ Equivalent in dollars
                   </SelectContent>
                 </Select>
               </div>
+              {expenseForm.category === 'costos_directos' && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-subcategory_direct">Subcategoría *</Label>
+                  <Select
+                    value={expenseForm.subcategory_direct || ''}
+                    onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_direct: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar subcategoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIRECT_COST_SUBCATEGORIES.map((subcategory, index) => (
+                        <SelectItem key={`edit-direct-${index}-${subcategory.value}`} value={subcategory.value}>
+                          {subcategory.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {expenseForm.category === 'costos_indirectos' && (
+                <div className="space-y-2">
+                  <Label htmlFor="edit-subcategory_indirect">Subcategoría *</Label>
+                  <Select
+                    value={expenseForm.subcategory_indirect || ''}
+                    onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_indirect: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar subcategoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INDIRECT_COST_SUBCATEGORIES.map((subcategory, index) => (
+                        <SelectItem key={`edit-indirect-${index}-${subcategory.value}`} value={subcategory.value}>
+                          {subcategory.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="edit-date">Fecha *</Label>
                 <Input

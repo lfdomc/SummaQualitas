@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS incomes (
     currency VARCHAR(3) NOT NULL DEFAULT 'USD',
     category VARCHAR(50) NOT NULL CHECK (category IN ('pago_proyecto', 'anticipo', 'pago_final', 'pago_parcial', 'otros')),
     status VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (status IN ('pendiente', 'confirmado', 'cancelado')),
-    income_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    received_date DATE NOT NULL DEFAULT CURRENT_DATE,
     reference VARCHAR(100),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -334,7 +334,7 @@ CREATE INDEX IF NOT EXISTS idx_incomes_project_id ON incomes(project_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_client_id ON incomes(client_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_status ON incomes(status);
 CREATE INDEX IF NOT EXISTS idx_incomes_category ON incomes(category);
-CREATE INDEX IF NOT EXISTS idx_incomes_income_date ON incomes(income_date);
+CREATE INDEX IF NOT EXISTS idx_incomes_received_date ON incomes(received_date);
 CREATE INDEX IF NOT EXISTS idx_incomes_created_at ON incomes(created_at);
 
 -- Project summaries indexes

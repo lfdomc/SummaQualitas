@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS public.incomes (
   amount_usd DECIMAL(15,2),
   currency VARCHAR(3) DEFAULT 'CRC' CHECK (currency IN ('CRC', 'USD')),
   exchange_rate DECIMAL(10,4),
-  income_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  received_date DATE NOT NULL DEFAULT CURRENT_DATE,
   due_date DATE,
   payment_method VARCHAR(50),
   reference_number VARCHAR(100),
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.incomes (
 CREATE INDEX IF NOT EXISTS idx_incomes_project_id ON public.incomes(project_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_client_id ON public.incomes(client_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_status ON public.incomes(status);
-CREATE INDEX IF NOT EXISTS idx_incomes_income_date ON public.incomes(income_date);
+CREATE INDEX IF NOT EXISTS idx_incomes_received_date ON public.incomes(received_date);
 
 -- Trigger para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()

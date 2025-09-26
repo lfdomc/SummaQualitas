@@ -29,7 +29,7 @@ async function createIncomesTable() {
         description TEXT NOT NULL,
         amount DECIMAL(15,2) NOT NULL CHECK (amount >= 0),
         currency VARCHAR(3) DEFAULT 'MXN' NOT NULL,
-        income_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        received_date DATE NOT NULL DEFAULT CURRENT_DATE,
         due_date DATE,
         payment_method VARCHAR(50),
         category VARCHAR(100),
@@ -67,7 +67,7 @@ async function createIncomesTable() {
 CREATE INDEX IF NOT EXISTS idx_incomes_project_id ON public.incomes(project_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_client_id ON public.incomes(client_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_status ON public.incomes(status);
-CREATE INDEX IF NOT EXISTS idx_incomes_income_date ON public.incomes(income_date);
+CREATE INDEX IF NOT EXISTS idx_incomes_received_date ON public.incomes(received_date);
 
 -- Trigger para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()

@@ -29,14 +29,7 @@ export function ConditionalFooter() {
   const { user, loading } = useAuthContext();
   const pathname = usePathname();
 
-  // Debug logs
-  console.log('🔍 [ConditionalFooter] Debug:', {
-    pathname,
-    user: user ? { id: user.id, email: user.email } : null,
-    loading,
-    isPublicRoute: PUBLIC_ROUTES.has(pathname),
-    shouldShowFooter: PUBLIC_ROUTES.has(pathname)
-  });
+
 
   // Si está cargando, no mostrar footer para evitar parpadeo
   if (loading) {

@@ -150,20 +150,53 @@ export class ProjectService {
     const { data: { user } } = await this.supabase.auth.getUser();
     if (!user) throw new Error('Usuario no autenticado');
     
-    // Iniciar transacción
+    // Calcular desglose presupuestario si se proporciona presupuesto_inicial
+    let budgetBreakdown = {};
+    if (projectData.presupuesto_inicial) {
+      const DEFAULT_BUDGET_PERCENTAGES = {
+        costos_directos: 0.40,    // 40%
+        costos_indirectos: 0.05,  // 5%
+        mano_obra: 0.25,          // 25%
+        administracion: 0.10,     // 10%
+        imprevistos: 0.05,        // 5%
+        utilidad: 0.15            // 15%
+      };
+
+      budgetBreakdown = {
+        costos_directos: projectData.costos_directos || Math.round(projectData.presupuesto_inicial * DEFAULT_BUDGET_PERCENTAGES.costos_directos),
+        costos_indirectos: projectData.costos_indirectos || Math.round(projectData.presupuesto_inicial * DEFAULT_BUDGET_PERCENTAGES.costos_indirectos),
+        mano_obra: projectData.mano_obra || Math.round(projectData.presupuesto_inicial * DEFAULT_BUDGET_PERCENTAGES.mano_obra),
+        administracion: projectData.administracion || Math.round(projectData.presupuesto_inicial * DEFAULT_BUDGET_PERCENTAGES.administracion),
+        imprevistos: projectData.imprevistos || Math.round(projectData.presupuesto_inicial * DEFAULT_BUDGET_PERCENTAGES.imprevistos),
+        utilidad: projectData.utilidad || Math.round(projectData.presupuesto_inicial * DEFAULT_BUDGET_PERCENTAGES.utilidad)
+      };
+    }
+
+    // Calcular presupuesto final
+    const presupuestoFinal = projectData.presupuesto_final || projectData.presupuesto_inicial || projectData.budget;
+
+    // Preparar datos para inserción
+    const insertData = {
+      ...projectData,
+      ...budgetBreakdown,
+      budget: projectData.budget,
+      presupuesto_original: projectData.presupuesto_original || projectData.presupuesto_inicial,
+      presupuesto_final: presupuestoFinal,
+      status: projectData.status || 'planificacion',
+      created_by: user.id
+    };
+
+    // Insertar proyecto
     const { data: project, error: projectError } = await this.supabase
       .from('projects')
-      .insert({
-        ...projectData,
-        budget: projectData.budget,
-        created_by: user.id
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (projectError) throw projectError;
-
-    // Nota: El desglose presupuestario se maneja a través de los campos individuales del proyecto
+    if (projectError) {
+      console.error('Error creating project:', projectError);
+      throw new Error(`Error al crear el proyecto: ${projectError.message}`);
+    }
 
     return project;
   }

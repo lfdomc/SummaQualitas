@@ -34,14 +34,22 @@ const projectSchema = z.object({
   total_area: z.number().min(0, 'El área total debe ser mayor a 0').optional(),
   // Presupuesto
   presupuesto_inicial: z.number().min(0, 'El presupuesto debe ser mayor a 0').default(0),
-  // Campos de desglose presupuestario
-  costos_directos_materiales: z.number().min(0, 'Debe ser mayor o igual a 0').default(0),
-  costos_directos_equipos: z.number().min(0, 'Debe ser mayor o igual a 0').default(0),
-  costos_indirectos: z.number().min(0, 'Debe ser mayor o igual a 0').default(0),
-  gastos_administrativos: z.number().min(0, 'Debe ser mayor o igual a 0').default(0),
-  mano_obra_quincenal: z.number().min(0, 'Debe ser mayor o igual a 0').default(0),
-  imprevistos: z.number().min(0, 'Debe ser mayor o igual a 0').default(0),
-  utilidad_esperada: z.number().min(0, 'Debe ser mayor o igual a 0').default(0),
+  presupuesto_original: z.number().min(0, 'El presupuesto original debe ser mayor a 0').default(0),
+  presupuesto_final: z.number().min(0, 'El presupuesto final debe ser mayor a 0').default(0),
+  // Campos de desglose presupuestario (usando nombres reales de la BD)
+  costos_directos: z.number().min(0, 'Los costos directos deben ser mayor o igual a 0').default(0),
+  costos_indirectos: z.number().min(0, 'Los costos indirectos deben ser mayor o igual a 0').default(0),
+  administracion: z.number().min(0, 'Los gastos de administración deben ser mayor o igual a 0').default(0),
+  mano_obra: z.number().min(0, 'La mano de obra debe ser mayor o igual a 0').default(0),
+  imprevistos: z.number().min(0, 'Los imprevistos deben ser mayor o igual a 0').default(0),
+  utilidad: z.number().min(0, 'La utilidad debe ser mayor o igual a 0').default(0),
+  // Campos de porcentajes
+  costos_directos_porcentaje: z.number().min(0).max(100).default(0),
+  costos_indirectos_porcentaje: z.number().min(0).max(100).default(0),
+  mano_obra_porcentaje: z.number().min(0).max(100).default(0),
+  administracion_porcentaje: z.number().min(0).max(100).default(0),
+  imprevistos_porcentaje: z.number().min(0).max(100).default(0),
+  utilidad_porcentaje: z.number().min(0).max(100).default(0),
   // Fechas usando nombres de la base de datos
   estimated_start_date: z.date().optional(),
   estimated_end_date: z.date().optional(),
@@ -90,14 +98,22 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       total_area: project?.total_area || undefined,
       // Presupuesto
       presupuesto_inicial: project?.presupuesto_inicial || 0,
-      // Campos de desglose presupuestario
-      costos_directos_materiales: project?.costos_directos_materiales || 0,
-      costos_directos_equipos: project?.costos_directos_equipos || 0,
-      costos_indirectos: project?.costos_indirectos || 0,
-      gastos_administrativos: project?.gastos_administrativos || 0,
-      mano_obra_quincenal: project?.mano_obra_quincenal || 0,
-      imprevistos: project?.imprevistos || 0,
-      utilidad_esperada: project?.utilidad_esperada || 0,
+      presupuesto_original: project?.presupuesto_original || 0,
+      presupuesto_final: project?.presupuesto_final || 0,
+      // Campos de desglose presupuestario (usando nombres reales de la BD)
+      costos_directos: project?.costos_directos || 0,
+    costos_indirectos: project?.costos_indirectos || 0,
+    administracion: project?.administracion || 0,
+    mano_obra: project?.mano_obra || 0,
+    imprevistos: project?.imprevistos || 0,
+    utilidad: project?.utilidad || 0,
+      // Campos de porcentajes
+      costos_directos_porcentaje: project?.costos_directos_porcentaje || 0,
+      costos_indirectos_porcentaje: project?.costos_indirectos_porcentaje || 0,
+      mano_obra_porcentaje: project?.mano_obra_porcentaje || 0,
+      administracion_porcentaje: project?.administracion_porcentaje || 0,
+      imprevistos_porcentaje: project?.imprevistos_porcentaje || 0,
+      utilidad_porcentaje: project?.utilidad_porcentaje || 0,
       // Fechas usando nombres de la base de datos
       estimated_start_date: project?.estimated_start_date ? new Date(project.estimated_start_date) : undefined,
       estimated_end_date: project?.estimated_end_date ? new Date(project.estimated_end_date) : undefined,
@@ -109,6 +125,33 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
   useEffect(() => {
     loadFormData();
   }, []);
+
+  // Initialize budget breakdown when editing an existing project
+  useEffect(() => {
+    if (project && project.presupuesto_inicial && project.presupuesto_inicial > 0) {
+      const budget = project.presupuesto_inicial;
+      
+      // Calculate percentages from absolute values
+      const initialBreakdown: BudgetBreakdownData = {
+        costos_directos_porcentaje: budget > 0 ? Math.round((project.costos_directos || 0) / budget * 100 * 100) / 100 : 0,
+        costos_indirectos_porcentaje: budget > 0 ? Math.round((project.costos_indirectos || 0) / budget * 100 * 100) / 100 : 0,
+        mano_obra_porcentaje: budget > 0 ? Math.round((project.mano_obra || 0) / budget * 100 * 100) / 100 : 0,
+        administracion_porcentaje: budget > 0 ? Math.round((project.administracion || 0) / budget * 100 * 100) / 100 : 0,
+        imprevistos_porcentaje: budget > 0 ? Math.round((project.imprevistos || 0) / budget * 100 * 100) / 100 : 0,
+        utilidad_porcentaje: budget > 0 ? Math.round((project.utilidad || 0) / budget * 100 * 100) / 100 : 0,
+        // Absolute values
+        costos_directos: project.costos_directos || 0,
+        costos_indirectos: project.costos_indirectos || 0,
+        mano_obra: project.mano_obra || 0,
+        administracion: project.administracion || 0,
+        imprevistos: project.imprevistos || 0,
+        utilidad: project.utilidad || 0,
+      };
+      
+      setBudgetBreakdown(initialBreakdown);
+      setShowBreakdown(true);
+    }
+  }, [project]);
 
   // Watch budget changes to show/hide breakdown
   const watchedBudget = form.watch('presupuesto_inicial');
@@ -146,38 +189,72 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
   };
 
   const onSubmit = async (data: ProjectFormData) => {
+    console.log('🚀 Form submitted with data:', data);
+    console.log('📊 Percentage values being submitted:', {
+      costos_directos_porcentaje: data.costos_directos_porcentaje,
+      costos_indirectos_porcentaje: data.costos_indirectos_porcentaje,
+      mano_obra_porcentaje: data.mano_obra_porcentaje,
+      administracion_porcentaje: data.administracion_porcentaje,
+      imprevistos_porcentaje: data.imprevistos_porcentaje,
+      utilidad_porcentaje: data.utilidad_porcentaje
+    });
+    
+    const projectData = {
+      ...data,
+      budget: data.presupuesto_inicial || 0,
+      estimated_start_date: data.estimated_start_date?.toISOString().split('T')[0],
+      estimated_end_date: data.estimated_end_date?.toISOString().split('T')[0],
+      actual_start_date: data.actual_start_date?.toISOString().split('T')[0],
+      actual_end_date: data.actual_end_date?.toISOString().split('T')[0],
+      // Budget is calculated automatically from breakdown fields
+    };
+
+    console.log('📝 Processed project data:', projectData);
+
     try {
       setLoading(true);
-
-      const projectData = {
-        ...data,
-        budget: data.presupuesto_inicial || 0,
-        estimated_start_date: data.estimated_start_date?.toISOString().split('T')[0],
-        estimated_end_date: data.estimated_end_date?.toISOString().split('T')[0],
-        actual_start_date: data.actual_start_date?.toISOString().split('T')[0],
-        actual_end_date: data.actual_end_date?.toISOString().split('T')[0],
-        // Budget is calculated automatically from breakdown fields
-      };
 
       let result: Project;
       
       if (isEditing && project) {
+        console.log('✏️ Editing mode - project ID:', project.id);
+        
+        // Para edición, usar la clase ProjectService
         const updateData: UpdateProjectDTO = {
           ...projectData
         };
+        
+        console.log('📤 Update data to send:', updateData);
         
         const projectServiceInstance = new ProjectService();
         result = await projectServiceInstance.updateProject(project.id, updateData);
         
         toast.success('Proyecto actualizado correctamente');
       } else {
+        // Para creación, usar la API route
         const createData: CreateProjectDTO = {
           ...projectData
         } as CreateProjectDTO;
         
-        const projectServiceInstance = new ProjectService();
-        result = await projectServiceInstance.createProject(createData);
-        
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(createData),
+        });
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.error || 'Error al crear el proyecto');
+        }
+
+        if (!responseData.success) {
+          throw new Error(responseData.error || 'Error al crear el proyecto');
+        }
+
+        result = responseData.data;
         toast.success('Proyecto creado correctamente');
       }
 
@@ -252,7 +329,15 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(
+            (data) => {
+              console.log('✅ Form validation passed, calling onSubmit');
+              onSubmit(data);
+            },
+            (errors) => {
+              console.log('❌ Form validation failed:', errors);
+            }
+          )} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Project Name */}
               <FormField
@@ -737,13 +822,25 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
                   totalArea={form.watch('total_area') || 0}
                   onBreakdownChange={(breakdown) => {
                     // Actualizar los campos del formulario con los valores calculados
+                    // Mapear los campos del breakdown a los campos reales de la base de datos
                     const budget = form.watch('presupuesto_inicial');
-                    form.setValue('costos_directos_materiales', Math.round((budget * breakdown.costosDirectos) / 100));
-                    form.setValue('mano_obra_quincenal', Math.round((budget * breakdown.manoObra) / 100));
-                    form.setValue('costos_indirectos', Math.round((budget * breakdown.costosIndirectos) / 100));
-                    form.setValue('utilidad_esperada', Math.round((budget * breakdown.utilidad) / 100));
-                    form.setValue('gastos_administrativos', Math.round((budget * breakdown.gastosAdministrativos) / 100));
-                    form.setValue('imprevistos', Math.round((budget * breakdown.imprevistos) / 100));
+                    
+                    // Guardar los montos calculados (usando nombres de columnas correctos de la BD)
+                    form.setValue('costos_directos', Math.round((budget * breakdown.costos_directos_porcentaje) / 100));
+                    form.setValue('costos_indirectos', Math.round((budget * breakdown.costos_indirectos_porcentaje) / 100));
+                    form.setValue('administracion', Math.round((budget * breakdown.administracion_porcentaje) / 100));
+                    form.setValue('mano_obra', Math.round((budget * breakdown.mano_obra_porcentaje) / 100));
+                    form.setValue('imprevistos', Math.round((budget * breakdown.imprevistos_porcentaje) / 100));
+                    form.setValue('utilidad', Math.round((budget * breakdown.utilidad_porcentaje) / 100));
+                    
+                    // Guardar los porcentajes
+                    form.setValue('costos_directos_porcentaje', breakdown.costos_directos_porcentaje);
+                    form.setValue('costos_indirectos_porcentaje', breakdown.costos_indirectos_porcentaje);
+                    form.setValue('mano_obra_porcentaje', breakdown.mano_obra_porcentaje);
+                    form.setValue('administracion_porcentaje', breakdown.administracion_porcentaje);
+                    form.setValue('imprevistos_porcentaje', breakdown.imprevistos_porcentaje);
+                    form.setValue('utilidad_porcentaje', breakdown.utilidad_porcentaje);
+                    
                     setBudgetBreakdown(breakdown);
                   }}
                   initialBreakdown={budgetBreakdown || undefined}
@@ -762,7 +859,11 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button 
+                type="submit" 
+                disabled={loading}
+                onClick={() => console.log('🔘 Submit button clicked')}
+              >
                 {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 <Save className="h-4 w-4 mr-2" />
                 {isEditing ? 'Actualizar' : 'Crear'} Proyecto

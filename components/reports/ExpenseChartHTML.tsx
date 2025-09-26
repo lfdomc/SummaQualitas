@@ -40,14 +40,14 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
     <div className="component-container w-full">
       <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-lg">
         <h2 className="text-xl font-semibold text-center mb-2 text-gray-800">
-          Análisis de Gastos por Categoría
+          Expense Analysis by Category
         </h2>
         
         {/* Gráfico de barras verticales usando HTML/CSS */}
         <div className="mb-8">
           {/* Título del gráfico */}
           <h3 className="text-lg font-semibold mb-28 text-center text-gray-700">
-            Distribución de Gastos (USD)
+            Expense Distribution (USD)
           </h3>
           
           {/* Contenedor del gráfico vertical */}
@@ -82,6 +82,21 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                       
                       return (
                         <div key={item.title} className="flex flex-col items-center space-y-2">
+                          {/* Etiqueta de categoría arriba */}
+                          <div className="text-center mb-1">
+                            <div className="flex items-center justify-center space-x-1 mb-1">
+                              <div 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: colorSet.main }}
+                              ></div>
+                            </div>
+                            <span className="text-xs font-medium text-gray-800 leading-tight block max-w-32">
+                              {item.shortTitle.split(' ').map((word, i) => (
+                                <span key={i} className="block">{word}</span>
+                              ))}
+                            </span>
+                          </div>
+                          
                           {/* Valor encima de la barra */}
                           <div className="text-xs font-semibold text-gray-700 text-center mb-1">
                             {formatCurrency(item.amount, 'USD')}
@@ -105,21 +120,6 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                               ></div>
                             </div>
                           </div>
-                          
-                          {/* Etiqueta de categoría */}
-                          <div className="text-center mt-2">
-                            <div className="flex items-center justify-center space-x-1 mb-1">
-                              <div 
-                                className="w-2 h-2 rounded-full" 
-                                style={{ backgroundColor: colorSet.main }}
-                              ></div>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800 leading-tight block max-w-32">
-                              {item.shortTitle.split(' ').map((word, i) => (
-                                <span key={i} className="block">{word}</span>
-                              ))}
-                            </span>
-                          </div>
                         </div>
                       );
                     })}
@@ -129,7 +129,7 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
               
               {/* Etiqueta del eje X */}
               <div className="text-center mt-4">
-                <span className="text-sm font-medium text-gray-600">Categorías de Gastos</span>
+                <span className="text-sm font-medium text-gray-600">Expense Categories</span>
               </div>
             </div>
           </div>
@@ -138,13 +138,13 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
         {/* Tabla de resumen */}
         <div className="mt-6 flex justify-center">
           <div className="w-full max-w-2xl">
-            <h3 className="text-base font-semibold mb-4 text-center text-gray-700">Resumen Financiero</h3>
+            <h3 className="text-base font-semibold mb-4 text-center text-gray-700">Financial Summary</h3>
             <div className="overflow-x-auto rounded-lg border">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Categoría</th>
-                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Monto (USD)</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-700">Category</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Amount (USD)</th>
                     <th className="px-3 py-2 text-right font-semibold text-gray-700">%</th>
                   </tr>
                 </thead>

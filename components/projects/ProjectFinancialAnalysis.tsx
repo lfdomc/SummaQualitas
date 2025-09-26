@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, LabelList } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle, Clock, Target } from 'lucide-react';
 import { incomeService } from '@/lib/supabase/database';
 import type { ProjectIncomesSummary } from '@/types/database';
@@ -18,8 +18,10 @@ interface ProjectFinancialAnalysisProps {
     byCategory: {
       costos_directos: number;
       costos_indirectos: number;
-      gastos_administrativos: number;
+      administracion: number;
       mano_obra: number;
+      imprevistos: number;
+      utilidad: number;
     };
   };
 }
@@ -103,23 +105,33 @@ export default function ProjectFinancialAnalysis({
     const categories = [
       {
         category: 'Costos Directos',
-        income: totalIncome * 0.6, // Asumiendo distribución proporcional
+        income: totalIncome * 0.30, // Asumiendo distribución proporcional
         expenses: projectExpenses.byCategory.costos_directos || 0
       },
       {
         category: 'Costos Indirectos',
-        income: totalIncome * 0.2,
+        income: totalIncome * 0.15,
         expenses: projectExpenses.byCategory.costos_indirectos || 0
       },
       {
-        category: 'Gastos Administrativos',
-        income: totalIncome * 0.1,
-        expenses: projectExpenses.byCategory.gastos_administrativos || 0
+        category: 'Administración',
+        income: totalIncome * 0.10,
+        expenses: projectExpenses.byCategory.administracion || 0
       },
       {
         category: 'Mano de Obra',
-        income: totalIncome * 0.1,
+        income: totalIncome * 0.25,
         expenses: projectExpenses.byCategory.mano_obra || 0
+      },
+      {
+        category: 'Imprevistos',
+        income: totalIncome * 0.10,
+        expenses: projectExpenses.byCategory.imprevistos || 0
+      },
+      {
+        category: 'Utilidad',
+        income: totalIncome * 0.10,
+        expenses: projectExpenses.byCategory.utilidad || 0
       }
     ];
 
@@ -285,11 +297,30 @@ export default function ProjectFinancialAnalysis({
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category" />
-                  <YAxis tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`} />
+                  <YAxis 
+                    domain={[0, 'dataMax']} 
+                    tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`} 
+                  />
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
                   <Legend />
-                  <Bar dataKey="ingresos" fill="#10B981" name="Ingresos Estimados" />
-                  <Bar dataKey="gastos" fill="#EF4444" name="Gastos Reales" />
+                  <Bar dataKey="ingresos" fill="#10B981" name="Ingresos Estimados">
+                    <LabelList 
+                      dataKey="ingresos" 
+                      position="center" 
+                      fill="white" 
+                      fontSize={11}
+                      formatter={(value: number) => `$${(value / 1000000).toFixed(1)}M`}
+                    />
+                  </Bar>
+                  <Bar dataKey="gastos" fill="#EF4444" name="Gastos Reales">
+                    <LabelList 
+                      dataKey="gastos" 
+                      position="center" 
+                      fill="white" 
+                      fontSize={11}
+                      formatter={(value: number) => `$${(value / 1000000).toFixed(1)}M`}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

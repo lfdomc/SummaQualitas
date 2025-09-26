@@ -14,7 +14,7 @@ import { Plus, Edit, Trash2, DollarSign, TrendingUp, Calendar, Filter, Search } 
 import { incomeService } from '@/lib/supabase/database';
 import { projectService } from '@/lib/supabase/database';
 import type { Income, CreateIncomeData, UpdateIncomeData, Project, Client } from '@/types/database';
-import { INCOME_STATUSES, INCOME_CATEGORIES } from '@/types/database';
+import { INCOME_STATUSES, INCOME_CATEGORIES, mapIncomeCategory, mapIncomeStatus, reverseMapIncomeCategory, reverseMapIncomeStatus } from '@/types/database';
 import { toast } from 'sonner';
 import { FileUpload } from '@/components/ui/file-upload';
 import { fileService } from '@/lib/services/fileService';
@@ -39,15 +39,12 @@ export default function IncomesPage() {
     description: '',
     amount: 0,
     currency: 'CRC', // Siempre se guardará en CRC
-    income_date: new Date().toISOString().split('T')[0],
+    received_date: new Date().toISOString().split('T')[0],
     category: 'payment', // Usar valores en inglés que acepta la BD
     status: 'pending',   // Usar valores en inglés que acepta la BD
     reference: '',
     notes: '',
-    attachment_url: undefined,
-    attachment_name: undefined,
-    attachment_type: undefined,
-    attachment_size: undefined
+    receipt_url: undefined
   });
 
   // Estado para el monto en USD que ingresa el usuario
@@ -116,14 +113,30 @@ export default function IncomesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Iniciando carga de datos...');
+      
       const [incomesData, projectsData] = await Promise.all([
         incomeService.getIncomes(),
         projectService.getAllProjects()
       ]);
-      setIncomes(incomesData);
+      
+      console.log('📊 Datos cargados:', {
+        incomesCount: incomesData?.length || 0,
+        projectsCount: projectsData?.length || 0,
+        projects: projectsData
+      });
+      
+      // Convertir categorías y status de español (BD) a inglés (frontend)
+      const mappedIncomes = incomesData.map(income => ({
+        ...income,
+        category: reverseMapIncomeCategory(income.category),
+        status: reverseMapIncomeStatus(income.status)
+      }));
+      
+      setIncomes(mappedIncomes);
       setProjects(projectsData);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error loading data:', error);
       toast.error(`Error al cargar los datos: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
@@ -151,12 +164,9 @@ export default function IncomesPage() {
         client_id: selectedProject.client_id,
         amount: Number(amountInCRC), // Guardar en colones
         currency: 'CRC', // Siempre guardar en CRC
-        category: incomeForm.category || 'payment', // Asegurar valores en inglés
-        status: incomeForm.status || 'pending',     // Asegurar valores en inglés
-        attachment_url: incomeForm.attachment_url,
-        attachment_name: incomeForm.attachment_name,
-        attachment_type: incomeForm.attachment_type,
-        attachment_size: incomeForm.attachment_size
+        category: mapIncomeCategory(incomeForm.category || 'payment'), // Convertir a español para BD
+        status: mapIncomeStatus(incomeForm.status || 'pending'),       // Convertir a español para BD
+        receipt_url: incomeForm.receipt_url
       };
 
 
@@ -183,15 +193,12 @@ export default function IncomesPage() {
         description: incomeForm.description,
         amount: Number(incomeForm.amount),
         currency: incomeForm.currency,
-        income_date: incomeForm.income_date,
-        category: incomeForm.category,
-        status: incomeForm.status,
+        received_date: incomeForm.received_date,
+        category: mapIncomeCategory(incomeForm.category),
+        status: mapIncomeStatus(incomeForm.status),
         reference: incomeForm.reference,
         notes: incomeForm.notes,
-        attachment_url: incomeForm.attachment_url,
-        attachment_name: incomeForm.attachment_name,
-        attachment_type: incomeForm.attachment_type,
-        attachment_size: incomeForm.attachment_size
+        receipt_url: incomeForm.receipt_url
       };
 
       await incomeService.updateIncome(selectedIncome.id, updateData);
@@ -258,15 +265,12 @@ export default function IncomesPage() {
       description: income.description,
       amount: income.amount,
       currency: income.currency,
-      income_date: income.income_date,
+      received_date: income.received_date,
       category: income.category,
       status: income.status,
       reference: income.reference || '',
       notes: income.notes || '',
-      attachment_url: income.attachment_url,
-      attachment_name: income.attachment_name,
-      attachment_type: income.attachment_type,
-      attachment_size: income.attachment_size
+      receipt_url: income.receipt_url
     });
     setIsEditDialogOpen(true);
   };
@@ -278,15 +282,12 @@ export default function IncomesPage() {
       description: '',
       amount: 0,
       currency: 'CRC',
-      income_date: new Date().toISOString().split('T')[0],
+      received_date: new Date().toISOString().split('T')[0],
       category: 'payment',
       status: 'pending',
       reference: '',
       notes: '',
-      attachment_url: undefined,
-      attachment_name: undefined,
-      attachment_type: undefined,
-      attachment_size: undefined
+      receipt_url: undefined
     });
     setAmountInUSD(0);
     setEquivalentAmount(0);
@@ -298,10 +299,7 @@ export default function IncomesPage() {
       const result = await fileService.uploadFile(file, 'income-attachments');
       setIncomeForm({
         ...incomeForm,
-        attachment_url: result.url,
-        attachment_name: result.name,
-        attachment_type: result.type,
-        attachment_size: result.size
+        receipt_url: result.url
       });
       return result;
     } catch (error) {
@@ -327,6 +325,17 @@ export default function IncomesPage() {
       style: 'currency',
       currency: 'CRC'
     }).format(amount);
+  };
+
+  const formatCurrencyUSD = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  const convertCRCToUSD = (amountCRC: number) => {
+    return amountCRC / exchangeRate;
   };
 
   const getStatusBadgeVariant = (status: string) => {
@@ -409,6 +418,9 @@ export default function IncomesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalIncomes)}</div>
+            <div className="text-sm text-muted-foreground font-medium">
+              {formatCurrencyUSD(convertCRCToUSD(totalIncomes))}
+            </div>
             <p className="text-xs text-muted-foreground">
               {filteredIncomes.length} ingresos registrados
             </p>
@@ -422,6 +434,9 @@ export default function IncomesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{formatCurrency(totalConfirmed)}</div>
+            <div className="text-sm text-muted-foreground font-medium">
+              {formatCurrencyUSD(convertCRCToUSD(totalConfirmed))}
+            </div>
             <p className="text-xs text-muted-foreground">
               {confirmedIncomes.length} ingresos confirmados
             </p>
@@ -435,6 +450,9 @@ export default function IncomesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{formatCurrency(totalPending)}</div>
+            <div className="text-sm text-muted-foreground font-medium">
+              {formatCurrencyUSD(convertCRCToUSD(totalPending))}
+            </div>
             <p className="text-xs text-muted-foreground">
               {pendingIncomes.length} ingresos pendientes
             </p>
@@ -581,7 +599,7 @@ Clear Filters
                 {filteredIncomes.map((income) => (
                   <TableRow key={income.id}>
                     <TableCell>
-                      {new Date(income.income_date).toLocaleDateString('es-ES')}
+                      {new Date(income.received_date).toLocaleDateString('es-ES')}
                     </TableCell>
                     <TableCell className="font-medium">
                       {income.project?.name || 'N/A'}
@@ -602,8 +620,16 @@ Clear Filters
                         {getCategoryLabel(income.category)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-green-600">
-                      {formatCurrency(income.amount, income.currency)}
+                    <TableCell className="text-right">
+                      <div className="font-semibold text-green-600">
+                        {formatCurrency(income.amount, income.currency)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {income.currency === 'USD' 
+                          ? formatCurrency(income.amount * exchangeRate, 'CRC')
+                          : formatCurrencyUSD(convertCRCToUSD(income.amount))
+                        }
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(income.status)}>
@@ -655,11 +681,14 @@ Clear Filters
                   <SelectValue placeholder="Seleccionar proyecto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    console.log('🎯 Renderizando proyectos en select:', projects);
+                    return projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>
@@ -768,12 +797,12 @@ Clear Filters
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="income_date">Fecha de Ingreso</Label>
+              <Label htmlFor="received_date">Fecha de Ingreso</Label>
               <Input
-                id="income_date"
+                id="received_date"
                 type="date"
-                value={incomeForm.income_date}
-                onChange={(e) => setIncomeForm({ ...incomeForm, income_date: e.target.value })}
+                value={incomeForm.received_date}
+                onChange={(e) => setIncomeForm({ ...incomeForm, received_date: e.target.value })}
               />
             </div>
 
@@ -827,10 +856,7 @@ Clear Filters
                 onFileRemove={() => {
                   setIncomeForm({
                     ...incomeForm,
-                    attachment_url: undefined,
-                    attachment_name: undefined,
-                    attachment_type: undefined,
-                    attachment_size: undefined
+                    receipt_url: undefined
                   });
                 }}
               />
@@ -931,12 +957,12 @@ Clear Filters
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit_income_date">Fecha de Ingreso</Label>
+              <Label htmlFor="edit_received_date">Fecha de Ingreso</Label>
               <Input
-                id="edit_income_date"
+                id="edit_received_date"
                 type="date"
-                value={incomeForm.income_date}
-                onChange={(e) => setIncomeForm({ ...incomeForm, income_date: e.target.value })}
+                value={incomeForm.received_date}
+                onChange={(e) => setIncomeForm({ ...incomeForm, received_date: e.target.value })}
               />
             </div>
 
@@ -1006,17 +1032,14 @@ Clear Filters
                 onFileRemove={() => {
                   setIncomeForm({
                     ...incomeForm,
-                    attachment_url: undefined,
-                    attachment_name: undefined,
-                    attachment_type: undefined,
-                    attachment_size: undefined
+                    receipt_url: undefined
                   });
                 }}
-                existingFile={incomeForm.attachment_name ? {
-                  name: incomeForm.attachment_name,
-                  url: incomeForm.attachment_url || '',
-                  type: incomeForm.attachment_type || '',
-                  size: incomeForm.attachment_size || 0
+                existingFile={incomeForm.receipt_url ? {
+                  name: 'Receipt',
+                  url: incomeForm.receipt_url || '',
+                  type: 'application/pdf',
+                  size: 0
                 } : undefined}
               />
             </div>

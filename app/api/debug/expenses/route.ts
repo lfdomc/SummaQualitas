@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         suppliers (name)
       `)
       .eq('project_id', projectId)
-      .order('date', { ascending: false });
+      .order('expense_date', { ascending: false });
     
     // Verificar si el proyecto existe
     const { data: projectData, error: projectError } = await supabase

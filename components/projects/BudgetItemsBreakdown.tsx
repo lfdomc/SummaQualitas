@@ -63,27 +63,17 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
 
 
 
-  // Crear las partidas presupuestarias basadas en los datos del proyecto
+  // Crear las partidas presupuestarias basadas en los campos correctos de la tabla projects
   const budgetItems: BudgetItem[] = [
     {
       id: 'costos_directos',
-      name: 'Gastos Directos',
-      amount: project.costos_directos_materiales || 0,
-      percentage: calculatePercentage(project.costos_directos_materiales || 0, totalBudget),
+      name: 'Costos Directos',
+      amount: project.costos_directos || 0,
+      percentage: calculatePercentage(project.costos_directos || 0, totalBudget),
       icon: Building,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      description: 'Materiales, equipos y recursos directos del proyecto'
-    },
-    {
-      id: 'mano_obra',
-      name: 'Mano de Obra',
-      amount: project.mano_obra_quincenal || 0,
-      percentage: calculatePercentage(project.mano_obra_quincenal || 0, totalBudget),
-      icon: Users,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      description: 'Costos de personal y mano de obra quincenal'
+      description: 'Costos directos de materiales y construcción'
     },
     {
       id: 'costos_indirectos',
@@ -93,17 +83,27 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
       icon: Settings,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
-      description: 'Gastos generales y costos indirectos del proyecto'
+      description: 'Costos indirectos y gastos generales'
     },
     {
-      id: 'gastos_administrativos',
-      name: 'Gastos Administrativos',
-      amount: project.gastos_administrativos || 0,
-      percentage: calculatePercentage(project.gastos_administrativos || 0, totalBudget),
+      id: 'administracion',
+      name: 'Administración',
+      amount: project.administracion || 0,
+      percentage: calculatePercentage(project.administracion || 0, totalBudget),
       icon: Calculator,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
       description: 'Gastos administrativos y de gestión'
+    },
+    {
+      id: 'mano_obra',
+      name: 'Mano de Obra',
+      amount: project.mano_obra || 0,
+      percentage: calculatePercentage(project.mano_obra || 0, totalBudget),
+      icon: Users,
+      color: 'text-green-600',
+      bgColor: 'bg-green-50',
+      description: 'Costos de personal y mano de obra'
     },
     {
       id: 'imprevistos',
@@ -113,17 +113,17 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
       icon: AlertTriangle,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
-      description: 'Reserva para gastos imprevistos y contingencias'
+      description: 'Contingencias e imprevistos'
     },
     {
-      id: 'utilidad_esperada',
-      name: 'Utilidad Esperada',
-      amount: project.utilidad_esperada || 0,
-      percentage: calculatePercentage(project.utilidad_esperada || 0, totalBudget),
+      id: 'utilidad',
+      name: 'Utilidad',
+      amount: project.utilidad || 0,
+      percentage: calculatePercentage(project.utilidad || 0, totalBudget),
       icon: TrendingUp,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
-      description: 'Margen de utilidad esperado del proyecto'
+      description: 'Margen de utilidad del proyecto'
     }
   ].filter(item => item.amount > 0); // Solo mostrar partidas con valor
 

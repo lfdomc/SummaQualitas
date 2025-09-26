@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Loader2, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Building2, UserPlus } from 'lucide-react';
+import Link from 'next/link';
 
 const loginSchema = z.object({
   email: z
@@ -50,24 +51,46 @@ export function LoginForm({ onSuccess, redirectTo = '/projects' }: LoginFormProp
       setLoading(true);
       setLoginError('');
       
+      console.log('🔐 [LoginForm] Iniciando login con:', data.email);
+      
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
       
       if (error) {
+        console.error('❌ [LoginForm] Error en login:', error);
         setLoginError(error.message || 'Error al iniciar sesión');
         return;
       }
+
+      console.log('✅ [LoginForm] Login exitoso:', {
+        user: authData.user?.email,
+        session: !!authData.session,
+        accessToken: !!authData.session?.access_token
+      });
+
+      // Verificar que la sesión se estableció correctamente
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('📋 [LoginForm] Sesión después del login:', {
+        hasSession: !!sessionData.session,
+        user: sessionData.session?.user?.email
+      });
+
+      // Esperar un momento para que el hook useAuth detecte el cambio
+      console.log('⏳ [LoginForm] Esperando que useAuth detecte el cambio...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Redirect or call success callback
       if (onSuccess) {
         onSuccess();
       } else {
+        console.log('🔄 [LoginForm] Redirigiendo a:', redirectTo);
         router.push(redirectTo);
         router.refresh();
       }
     } catch (err) {
+      console.error('❌ [LoginForm] Error inesperado:', err);
       setLoginError('Error inesperado al iniciar sesión');
     } finally {
       setLoading(false);
@@ -155,30 +178,12 @@ export function LoginForm({ onSuccess, redirectTo = '/projects' }: LoginFormProp
             )}
           </Button>
 
-          {/* Información de usuario demo */}
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex items-center mb-2">
-              <Building2 className="h-4 w-4 text-blue-600 mr-2" />
-              <span className="text-sm font-medium text-blue-900">
-                Usuario de Demostración
-              </span>
-            </div>
-            <div className="text-xs text-blue-700 space-y-1">
-              <p><strong>Email:</strong> admin@summaqualitas.com</p>
-              <p><strong>Contraseña:</strong> admin123</p>
-              <p className="text-blue-600 mt-1">
-                Usuario maestro con acceso completo al sistema.
-              </p>
-            </div>
-          </div>
+
         </form>
 
-        {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Sistema de Gestión de Construcción
-          </p>
-        </div>
+
+
+
       </div>
     </div>
   );

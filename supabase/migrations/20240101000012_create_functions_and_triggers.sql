@@ -225,17 +225,37 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- CREATE TRIGGERS
 
+-- Wrapper function for expense trigger
+CREATE OR REPLACE FUNCTION trigger_calculate_project_summary_expenses()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM calculate_project_summary(COALESCE(NEW.project_id, OLD.project_id));
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Wrapper function for payment trigger
+CREATE OR REPLACE FUNCTION trigger_calculate_project_summary_payments()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM calculate_project_summary(COALESCE(NEW.project_id, OLD.project_id));
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger to recalculate project summaries when expenses change
+DROP TRIGGER IF EXISTS trigger_recalculate_summary_on_expense_change ON expenses;
 CREATE TRIGGER trigger_recalculate_summary_on_expense_change
     AFTER INSERT OR UPDATE OR DELETE ON expenses
     FOR EACH ROW
-    EXECUTE FUNCTION calculate_project_summary(COALESCE(NEW.project_id, OLD.project_id));
+    EXECUTE FUNCTION trigger_calculate_project_summary_expenses();
 
 -- Trigger to recalculate project summaries when client payments change
+DROP TRIGGER IF EXISTS trigger_recalculate_summary_on_payment_change ON client_payments;
 CREATE TRIGGER trigger_recalculate_summary_on_payment_change
     AFTER INSERT OR UPDATE OR DELETE ON client_payments
     FOR EACH ROW
-    EXECUTE FUNCTION calculate_project_summary(COALESCE(NEW.project_id, OLD.project_id));
+    EXECUTE FUNCTION trigger_calculate_project_summary_payments();
 
 -- Trigger to update equipment status based on rentals
 CREATE TRIGGER trigger_update_equipment_status

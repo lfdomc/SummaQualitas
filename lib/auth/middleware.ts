@@ -6,7 +6,7 @@ interface UserProfile {
   id: string;
   role: UserRole;
   email: string;
-  full_name: string;
+  name: string;
 }
 
 // Rutas que requieren autenticación

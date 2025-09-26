@@ -1,8 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
-import { UserProfile } from '@/lib/types/auth';
+import { createClient } from '@/lib/supabase/client';
+
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
 
 export interface AuthState {
   user: User | null;
@@ -21,6 +28,7 @@ export interface UseAuthReturn extends AuthState {
 }
 
 export function useAuth(): UseAuthReturn {
+  const supabase = createClient();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
@@ -28,61 +36,98 @@ export function useAuth(): UseAuthReturn {
     error: null,
   });
 
-  useEffect(() => {
-    let mounted = true;
+  const fetchAuthStatus = useCallback(async () => {
+    try {
+      // Usar directamente el cliente de Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    const fetchAuthStatus = async () => {
-      try {
-        console.log('🔍 [useAuth] Obteniendo estado de autenticación desde API...');
-        
-        const response = await fetch('/api/auth/status', {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      if (!session?.user) {
+        setAuthState({
+          user: null,
+          profile: null,
+          loading: false,
+          error: null,
         });
+        return;
+      }
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      // Obtener el perfil del usuario
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('id, email, name, role')
+        .eq('id', session.user.id)
+        .single();
 
-        const data = await response.json();
-        
-        console.log('🔍 [useAuth] Respuesta de API:', data);
-        
-        if (mounted) {
-          setAuthState({
-            user: data.user,
-            profile: data.profile,
-            loading: false,
-            error: data.error,
-          });
-        }
+      if (profileError) {
+        console.error('Error obteniendo perfil:', profileError);
+      }
+
+      const newState = {
+        user: session.user,
+        profile: profile || null,
+        loading: false,
+        error: null,
+      };
+
+      setAuthState(newState);
+    } catch (error) {
+      console.error('Error al obtener estado de autenticación:', error);
+      setAuthState({
+        user: null,
+        profile: null,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      });
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    // Ejecutar fetchAuthStatus de forma inmediata
+    (async () => {
+      try {
+        await fetchAuthStatus();
       } catch (error) {
-        console.error('❌ [useAuth] Error al obtener estado:', error);
-        if (mounted) {
+        console.error('Error en fetchAuthStatus:', error);
+      }
+    })();
+    
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        
+        if (session?.user) {
+          // Obtener el perfil cuando hay una sesión
+          const { data: profile } = await supabase
+            .from('users')
+            .select('id, email, name, role')
+            .eq('id', session.user.id)
+            .single();
+
+          setAuthState({
+            user: session.user,
+            profile: profile || null,
+            loading: false,
+            error: null,
+          });
+        } else {
           setAuthState({
             user: null,
             profile: null,
             loading: false,
-            error: error instanceof Error ? error.message : 'Error desconocido',
+            error: null,
           });
         }
       }
-    };
-
-    // Ejecutar inmediatamente
-    fetchAuthStatus();
-
-    // Configurar polling cada 30 segundos para mantener sincronizado
-    const interval = setInterval(fetchAuthStatus, 30000);
+    );
 
     return () => {
-      mounted = false;
-      clearInterval(interval);
+      subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchAuthStatus, supabase]);
 
   const signIn = async (email: string, password: string) => {
     // Implementación simplificada - redirigir a API
@@ -96,8 +141,6 @@ export function useAuth(): UseAuthReturn {
 
   const signOut = async () => {
     try {
-      console.log('🚪 [useAuth] Iniciando logout...');
-      
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
@@ -111,7 +154,6 @@ export function useAuth(): UseAuthReturn {
       }
 
       const data = await response.json();
-      console.log('✅ [useAuth] Logout exitoso:', data);
 
       setAuthState({
         user: null,
@@ -120,7 +162,7 @@ export function useAuth(): UseAuthReturn {
         error: null,
       });
     } catch (error) {
-      console.error('❌ [useAuth] Error al cerrar sesión:', error);
+      console.error('Error al cerrar sesión:', error);
       setAuthState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Error al cerrar sesión',

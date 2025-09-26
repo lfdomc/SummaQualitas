@@ -81,12 +81,11 @@ function ProjectDetailPage() {
   };
 
   const statusConfig = {
-    planning: { label: 'Planificación', variant: 'secondary' as const, icon: Clock },
-    active: { label: 'Activo', variant: 'success' as const, icon: TrendingUp },
-    paused: { label: 'Pausado', variant: 'outline' as const, icon: AlertTriangle },
-    on_hold: { label: 'En Pausa', variant: 'outline' as const, icon: AlertTriangle },
-    completed: { label: 'Completado', variant: 'default' as const, icon: CheckCircle },
-    cancelled: { label: 'Cancelado', variant: 'destructive' as const, icon: AlertTriangle }
+    planificacion: { label: 'Planificación', variant: 'secondary' as const, icon: Clock },
+    en_progreso: { label: 'En Progreso', variant: 'success' as const, icon: TrendingUp },
+    pausado: { label: 'Pausado', variant: 'outline' as const, icon: AlertTriangle },
+    completado: { label: 'Completado', variant: 'default' as const, icon: CheckCircle },
+    cancelado: { label: 'Cancelado', variant: 'destructive' as const, icon: AlertTriangle }
   };
 
   const canEdit = profile && ['gerencia', 'administrativo'].includes(profile.role);
@@ -130,6 +129,39 @@ function ProjectDetailPage() {
     }).format(amount);
   };
 
+  // Porcentajes por defecto para el desglose presupuestario
+  const DEFAULT_BUDGET_PERCENTAGES = {
+    costos_directos: 0.40,               // 40%
+    costos_indirectos: 0.20,             // 20%
+    administracion: 0.08,                // 8%
+    mano_obra: 0.25,                     // 25%
+    imprevistos: 0.05,                   // 5%
+    utilidad: 0.02                       // 2%
+  };
+
+  // Función para calcular el desglose automático del presupuesto
+  const calculateBudgetBreakdown = (totalBudget: number) => {
+    return {
+      costos_directos: Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_directos),
+      costos_indirectos: Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_indirectos),
+      administracion: Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.administracion),
+      mano_obra: Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.mano_obra),
+      imprevistos: Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.imprevistos),
+      utilidad: Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.utilidad)
+    };
+  };
+
+  // Obtener el presupuesto total del proyecto
+  const totalBudget = project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0;
+  
+  // Calcular el desglose automático si los campos están vacíos
+  const budgetBreakdown = calculateBudgetBreakdown(totalBudget);
+  
+  // Función para obtener el valor del campo (solo valores reales de la base de datos)
+  const getBudgetValue = (fieldValue: number | null | undefined, calculatedValue: number): number => {
+    return fieldValue || 0;
+  };
+
   const calculateUSDAmount = (amount: number): number => {
     const exchangeRate = project?.exchange_rate_usd || 500;
     return exchangeRate > 0 ? amount / exchangeRate : 0;
@@ -167,7 +199,7 @@ function ProjectDetailPage() {
 
   // Función para calcular costo por quincena
   const calculateCostPerFortnight = (): number => {
-    if (!project?.mano_obra_quincenal) return 0;
+    if (!project?.mano_obra) return 0;
     
     const fortnights = calculateFortnights(
       project.estimated_start_date || '',
@@ -177,7 +209,7 @@ function ProjectDetailPage() {
     if (fortnights === 0) return 0;
     
     // El costo total de mano de obra dividido entre el número de quincenas
-    return project.mano_obra_quincenal / fortnights;
+    return project.mano_obra / fortnights;
   };
 
   // Función para calcular meses entre dos fechas
@@ -195,7 +227,7 @@ function ProjectDetailPage() {
   };
 
   const StatusIcon = statusConfig[project.status]?.icon || Clock;
-  const statusInfo = statusConfig[project.status] || statusConfig.planning;
+  const statusInfo = statusConfig[project.status] || statusConfig.planificacion;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -270,11 +302,13 @@ function ProjectDetailPage() {
                   <div>
                     <p className="text-sm text-gray-600 font-medium">Presupuesto Inicial</p>
                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
-                      {project.presupuesto_original ? formatCurrency(project.presupuesto_original) : 'No definido'}
+                      {(project.presupuesto_original || project.presupuesto_inicial || project.budget) ? 
+                        formatCurrency(project.presupuesto_original || project.presupuesto_inicial || project.budget || 0) : 
+                        'No definido'}
                     </div>
-                    {project.presupuesto_original && (
+                    {(project.presupuesto_original || project.presupuesto_inicial || project.budget) && (
                       <p className="text-sm text-gray-500">
-                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_original))}
+                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_original || project.presupuesto_inicial || project.budget || 0))}
                       </p>
                     )}
                   </div>
@@ -283,26 +317,32 @@ function ProjectDetailPage() {
                   <div>
                     <p className="text-sm text-gray-600 font-medium">Presupuesto Final</p>
                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">
-                      {project.presupuesto_final ? formatCurrency(project.presupuesto_final) : 'No definido'}
+                      {(project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget) ? 
+                        formatCurrency(project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) : 
+                        'No definido'}
                     </div>
-                    {project.presupuesto_final && (
+                    {(project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget) && (
                       <p className="text-sm text-gray-500">
-                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_final))}
+                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0))}
                       </p>
                     )}
                   </div>
                   
                   {/* Diferencia */}
-                  {project.presupuesto_original && project.presupuesto_final && (
+                  {(project.presupuesto_original || project.presupuesto_inicial || project.budget) && 
+                   (project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget) && (
                     <div className="pt-2 border-t">
                       <p className="text-sm text-gray-600 font-medium">Variación por Órdenes de Cambio</p>
                       <div className={`text-lg font-bold ${
-                        (project.presupuesto_final - project.presupuesto_original) >= 0 
+                        ((project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) - 
+                         (project.presupuesto_original || project.presupuesto_inicial || project.budget || 0)) >= 0 
                           ? 'text-red-600' 
                           : 'text-green-600'
                       }`}>
-                        {(project.presupuesto_final - project.presupuesto_original) >= 0 ? '+' : ''}
-                        {formatCurrency(project.presupuesto_final - project.presupuesto_original)}
+                        {((project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) - 
+                          (project.presupuesto_original || project.presupuesto_inicial || project.budget || 0)) >= 0 ? '+' : ''}
+                        {formatCurrency((project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) - 
+                                       (project.presupuesto_original || project.presupuesto_inicial || project.budget || 0))}
                       </div>
                     </div>
                   )}
@@ -442,10 +482,10 @@ function ProjectDetailPage() {
                           <span className="text-sm font-medium">Costos Directos - Totales</span>
                         </div>
                         <p className="text-lg font-semibold">
-                          {project.costos_directos_materiales ? formatCurrency(project.costos_directos_materiales) : 'S/ 0.00'}
+                          {formatCurrency(getBudgetValue(project.costos_directos, budgetBreakdown.costos_directos))}
                         </p>
                         <p className="text-sm text-blue-600 font-medium">
-                          {calculatePercentage(project.costos_directos_materiales || 0)}
+                          {calculatePercentage(getBudgetValue(project.costos_directos, budgetBreakdown.costos_directos))}
                         </p>
                       </div>
 
@@ -455,10 +495,10 @@ function ProjectDetailPage() {
                           <span className="text-sm font-medium">Costos Indirectos</span>
                         </div>
                         <p className="text-lg font-semibold">
-                          {project.costos_indirectos ? formatCurrency(project.costos_indirectos) : 'S/ 0.00'}
+                          {formatCurrency(getBudgetValue(project.costos_indirectos, budgetBreakdown.costos_indirectos))}
                         </p>
                         <p className="text-sm text-yellow-600 font-medium">
-                          {calculatePercentage(project.costos_indirectos || 0)}
+                          {calculatePercentage(getBudgetValue(project.costos_indirectos, budgetBreakdown.costos_indirectos))}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -467,22 +507,22 @@ function ProjectDetailPage() {
                           <span className="text-sm font-medium">Gastos Administrativos</span>
                         </div>
                         <p className="text-lg font-semibold">
-                          {project.gastos_administrativos ? formatCurrency(project.gastos_administrativos) : 'S/ 0.00'}
+                          {formatCurrency(getBudgetValue(project.administracion, budgetBreakdown.administracion))}
                         </p>
                         <p className="text-sm text-purple-600 font-medium">
-                          {calculatePercentage(project.gastos_administrativos || 0)}
+                          {calculatePercentage(getBudgetValue(project.administracion, budgetBreakdown.administracion))}
                         </p>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <span className="text-sm font-medium">Mano de Obra Quincenal</span>
+                          <span className="text-sm font-medium">Mano de Obra</span>
                         </div>
                         <p className="text-lg font-semibold">
-                          {project.mano_obra_quincenal ? formatCurrency(project.mano_obra_quincenal) : 'S/ 0.00'}
+                          {formatCurrency(getBudgetValue(project.mano_obra, budgetBreakdown.mano_obra))}
                         </p>
                         <p className="text-sm text-red-600 font-medium">
-                          {calculatePercentage(project.mano_obra_quincenal || 0)}
+                          {calculatePercentage(getBudgetValue(project.mano_obra, budgetBreakdown.mano_obra))}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -491,22 +531,22 @@ function ProjectDetailPage() {
                           <span className="text-sm font-medium">Imprevistos</span>
                         </div>
                         <p className="text-lg font-semibold">
-                          {project.imprevistos ? formatCurrency(project.imprevistos) : 'S/ 0.00'}
+                          {formatCurrency(getBudgetValue(project.imprevistos, budgetBreakdown.imprevistos))}
                         </p>
                         <p className="text-sm text-orange-600 font-medium">
-                          {calculatePercentage(project.imprevistos || 0)}
+                          {calculatePercentage(getBudgetValue(project.imprevistos, budgetBreakdown.imprevistos))}
                         </p>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                          <span className="text-sm font-medium">Utilidad Esperada</span>
+                          <span className="text-sm font-medium">Utilidad</span>
                         </div>
                         <p className="text-lg font-semibold">
-                          {project.utilidad_esperada ? formatCurrency(project.utilidad_esperada) : 'S/ 0.00'}
+                          {formatCurrency(getBudgetValue(project.utilidad, budgetBreakdown.utilidad))}
                         </p>
                         <p className="text-sm text-emerald-600 font-medium">
-                          {calculatePercentage(project.utilidad_esperada || 0)}
+                          {calculatePercentage(getBudgetValue(project.utilidad, budgetBreakdown.utilidad))}
                         </p>
                       </div>
                     </>

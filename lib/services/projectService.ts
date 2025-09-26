@@ -1,6 +1,8 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import { Project, CreateProjectData, UpdateProjectData, Client } from '@/types/database';
+import { Project, CreateProjectData, Client } from '@/types/database';
+import { UpdateProjectDTO } from '@/lib/types';
+import { normalizeBudgetFields, migrateProjectBudgetFields } from '@/lib/utils/budget-migration';
 
 // Función para obtener cliente Supabase para el navegador
 const getSupabaseClient = () => {
@@ -18,12 +20,12 @@ const getSupabaseClient = () => {
 
 // Configuración de porcentajes por defecto para el desglose presupuestario
 export const DEFAULT_BUDGET_PERCENTAGES = {
-  costos_directos_materiales: 0.40, // 40%
-  costos_directos_equipos: 0.15,    // 15%
-  mano_obra_quincenal: 0.25,        // 25%
-  gastos_administrativos: 0.08,     // 8%
-  costos_indirectos: 0.07,          // 7%
-  imprevistos: 0.05                 // 5%
+  costos_directos: 0.40,    // 40%
+  costos_indirectos: 0.20,  // 20%
+  mano_obra: 0.25,          // 25%
+  administracion: 0.08,     // 8%
+  imprevistos: 0.05,        // 5%
+  utilidad: 0.02            // 2%
 };
 
 /**
@@ -31,12 +33,12 @@ export const DEFAULT_BUDGET_PERCENTAGES = {
  */
 export function calculateBudgetBreakdown(presupuestoInicial: number) {
   return {
-    costos_directos_materiales: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.costos_directos_materiales),
-    costos_directos_equipos: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.costos_directos_equipos),
-    mano_obra_quincenal: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.mano_obra_quincenal),
-    gastos_administrativos: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.gastos_administrativos),
+    costos_directos: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.costos_directos),
     costos_indirectos: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.costos_indirectos),
-    imprevistos: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.imprevistos)
+    mano_obra: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.mano_obra),
+    administracion: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.administracion),
+    imprevistos: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.imprevistos),
+    utilidad: Math.round(presupuestoInicial * DEFAULT_BUDGET_PERCENTAGES.utilidad)
   };
 }
 
@@ -108,7 +110,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
 }
 
 /**
- * Crea un nuevo proyecto con desglose automático del presupuesto
+ * Crea un nuevo proyecto con todos los campos del formulario
  */
 export async function createProject(projectData: CreateProjectData): Promise<Project> {
   try {
@@ -117,47 +119,43 @@ export async function createProject(projectData: CreateProjectData): Promise<Pro
     
     console.log('📝 Datos recibidos para crear proyecto:', projectData);
     
-    // Calcular desglose automático si se proporciona presupuesto inicial
-    let budgetBreakdown = {};
-    if (projectData.presupuesto_inicial && projectData.presupuesto_inicial > 0) {
-      budgetBreakdown = calculateBudgetBreakdown(projectData.presupuesto_inicial);
-      console.log('💰 Desglose presupuestario calculado:', budgetBreakdown);
-    }
-
-    // Calcular total del presupuesto
-    const totalBudget = Object.values(budgetBreakdown).reduce((sum: number, value: unknown) => sum + (Number(value) || 0), 0);
-
-    // Obtener el usuario actual para created_by usando el cliente regular
+    // Obtener el cliente de Supabase
     const supabase = getSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    let createdBy = user?.id;
-    
-    // Si no hay usuario autenticado, usar UUID dummy
-    if (!createdBy) {
-      createdBy = '00000000-0000-0000-0000-000000000000';
-    }
 
-    // Calcular presupuesto basado en el desglose si está disponible
-    const calculatedBudget: number = totalBudget > 0 ? totalBudget : 0;
-    const finalBudget = calculatedBudget || projectData.presupuesto_inicial || 0;
-
+    // Crear objeto con todos los campos del formulario
     const projectToCreate = {
-      ...projectData,
-      ...budgetBreakdown,
-      budget: finalBudget,
-      // Establecer presupuesto_original: usar el presupuesto calculado, inicial o 0
-      presupuesto_original: calculatedBudget > 0 
-        ? calculatedBudget 
-        : (projectData.presupuesto_inicial || 0),
-      // Establecer presupuesto_final: usar el valor especificado, calculado, inicial o 0
-      presupuesto_final: projectData.presupuesto_final 
-        ? projectData.presupuesto_final
-        : (calculatedBudget > 0 
-          ? calculatedBudget 
-          : (projectData.presupuesto_inicial || 0)),
+      // Campos básicos
+      name: projectData.name,
+      description: projectData.description || '',
+      client_id: projectData.client_id || null,
+      manager_id: projectData.manager_id || null,
       status: projectData.status || 'planificacion',
-      created_by: createdBy
+      location: projectData.location || '',
+      
+      // Campos de área y tipo de cambio
+      total_area: projectData.total_area || null,
+      exchange_rate_usd: projectData.exchange_rate_usd || 520,
+      
+      // Campos de presupuesto principal
+      presupuesto_inicial: projectData.presupuesto_inicial || 0,
+      budget: projectData.budget || projectData.presupuesto_inicial || 0,
+      
+      // Campos de desglose presupuestario
+      costos_directos: projectData.costos_directos || 0,
+      costos_indirectos: projectData.costos_indirectos || 0,
+      mano_obra: projectData.mano_obra || 0,
+      administracion: projectData.administracion || 0,
+      imprevistos: projectData.imprevistos || 0,
+      utilidad: projectData.utilidad || 0,
+      
+      // Fechas
+      estimated_start_date: projectData.estimated_start_date || null,
+      estimated_end_date: projectData.estimated_end_date || null,
+      actual_start_date: projectData.actual_start_date || null,
+      actual_end_date: projectData.actual_end_date || null
     };
+
+    console.log('📝 Proyecto a crear (todos los campos):', projectToCreate);
 
     // Usar cliente regular de Supabase
     const { data, error } = await supabase
@@ -165,7 +163,7 @@ export async function createProject(projectData: CreateProjectData): Promise<Pro
       .insert([projectToCreate])
       .select(`
         *,
-        client:clients(*)
+        client:clients(id, name, email, phone)
       `)
       .single();
 
@@ -186,7 +184,7 @@ export async function createProject(projectData: CreateProjectData): Promise<Pro
       } else if (error.code === '23503') {
         userFriendlyMessage = 'El cliente seleccionado no existe';
       } else if (error.code === '42703') {
-        userFriendlyMessage = 'Error en la estructura de la base de datos. Algunas columnas no existen.';
+        userFriendlyMessage = 'Error en la estructura de la base de datos. Algunas columnas no existen. Por favor, ejecuta el script SQL en Supabase primero.';
       } else if (error.code === '42501') {
         userFriendlyMessage = 'No tienes permisos para crear proyectos';
       } else if (error.message) {
@@ -196,6 +194,7 @@ export async function createProject(projectData: CreateProjectData): Promise<Pro
       throw new Error(userFriendlyMessage);
     }
 
+    console.log('✅ Proyecto creado exitosamente:', data);
     return data;
   } catch (error) {
     console.error('❌ Error general en createProject:', error);
@@ -213,7 +212,7 @@ export async function createProject(projectData: CreateProjectData): Promise<Pro
 /**
  * Actualiza un proyecto existente
  */
-export async function updateProject(id: string, projectData: UpdateProjectData): Promise<Project> {
+export async function updateProject(id: string, projectData: UpdateProjectDTO): Promise<Project> {
   try {
     // Obtener el proyecto actual para preservar presupuesto_original si no se está actualizando
     const currentProject = await getProjectById(id);
@@ -326,7 +325,7 @@ export async function getProjectStats() {
     const supabase = getSupabaseClient();
     const { data: projects, error } = await supabase
       .from('projects')
-      .select('status, budget, presupuesto_inicial');
+      .select('status, budget');
 
     if (error) {
       console.error('Error fetching project stats:', error);
@@ -338,8 +337,8 @@ export async function getProjectStats() {
       active: projects?.filter(p => p.status === 'en_progreso').length || 0,
       completed: projects?.filter(p => p.status === 'completado').length || 0,
       cancelled: projects?.filter(p => p.status === 'cancelado').length || 0,
-      total_budget: projects?.reduce((sum: number, p: { budget?: number; presupuesto_inicial?: number }) => {
-        const budget = Number(p.budget || p.presupuesto_inicial || 0);
+      total_budget: projects?.reduce((sum: number, p: { budget?: number }) => {
+        const budget = Number(p.budget || 0);
         return sum + budget;
       }, 0) || 0
     };

@@ -250,7 +250,7 @@ export class PDFGenerator {
         project.expenses.forEach(expense => {
           this.checkPageBreak(15);
           
-          const expenseText = `• ${expense.description} - $${expense.amount.toLocaleString('es-ES')} (${new Date(expense.date).toLocaleDateString('es-ES')})`;
+          const expenseText = `• ${expense.description} - $${expense.amount.toLocaleString('es-ES')} (${new Date(expense.expense_date).toLocaleDateString('es-ES')})`;
           const lines = this.doc.splitTextToSize(expenseText, this.pageWidth - 2 * this.margin - 10);
           
           this.doc.text(lines, this.margin + 5, this.currentY);

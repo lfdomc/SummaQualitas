@@ -251,13 +251,12 @@ export class ProjectService {
     
     // Calcular el presupuesto total basado en el desglose
     const totalBudget = (
-      (projectData.costos_directos_materiales || 0) +
-      (projectData.costos_directos_equipos || 0) +
+      (projectData.costos_directos || 0) +
       (projectData.costos_indirectos || 0) +
-      (projectData.gastos_administrativos || 0) +
-      (projectData.mano_obra_quincenal || 0) +
+      (projectData.administracion || 0) +
+      (projectData.mano_obra || 0) +
       (projectData.imprevistos || 0) +
-      (projectData.utilidad_esperada || 0)
+      (projectData.utilidad || 0)
     );
 
     // Determinar el presupuesto a usar (calculado, presupuesto_inicial o budget)
@@ -288,16 +287,19 @@ export class ProjectService {
 
   // Actualizar un proyecto
   async updateProject(id: string, updates: UpdateProjectDTO): Promise<Project> {
+    console.log('🔄 ProjectService.updateProject called with:', { id, updates });
+    
     // Calcular el presupuesto total si se están actualizando campos del desglose
     const hasbudgetFields = [
-      'costos_directos_materiales',
-      'costos_directos_equipos', 
+      'costos_directos',
       'costos_indirectos',
-      'gastos_administrativos',
-      'mano_obra_quincenal',
+      'administracion',
+      'mano_obra',
       'imprevistos',
-      'utilidad_esperada'
+      'utilidad'
     ].some(field => field in updates);
+
+    console.log('📊 Has budget fields:', hasbudgetFields);
 
     let updatesToApply = { ...updates };
 
@@ -307,14 +309,13 @@ export class ProjectService {
         .from('projects')
         .select(`
           id,
-          costos_directos_materiales,
-          costos_directos_equipos,
+          costos_directos,
           costos_indirectos,
-          gastos_administrativos,
-          mano_obra_quincenal,
+          administracion,
+          mano_obra,
           imprevistos,
-          utilidad_esperada,
-          budget
+          utilidad,
+          presupuesto_inicial
         `)
         .eq('id', id)
         .single();
@@ -328,20 +329,21 @@ export class ProjectService {
 
       // Calcular el nuevo presupuesto total
       const totalBudget = (
-        (combinedData.costos_directos_materiales || 0) +
-        (combinedData.costos_directos_equipos || 0) +
+        (combinedData.costos_directos || 0) +
         (combinedData.costos_indirectos || 0) +
-        (combinedData.gastos_administrativos || 0) +
-        (combinedData.mano_obra_quincenal || 0) +
+        (combinedData.administracion || 0) +
+        (combinedData.mano_obra || 0) +
         (combinedData.imprevistos || 0) +
-        (combinedData.utilidad_esperada || 0)
+        (combinedData.utilidad || 0)
       );
 
       // Actualizar el presupuesto si hay un total calculado
       if (totalBudget > 0) {
-        updatesToApply.budget = totalBudget;
+        updatesToApply.presupuesto_inicial = totalBudget;
       }
     }
+
+    console.log('💾 Applying updates to database:', updatesToApply);
 
     const { data, error } = await this.supabase
       .from('projects')
@@ -351,9 +353,11 @@ export class ProjectService {
       .single();
 
     if (error) {
+      console.error('❌ Database update error:', error);
       throw error;
     }
 
+    console.log('✅ Project updated successfully:', data);
     return data;
   }
 
@@ -367,54 +371,206 @@ export class ProjectService {
     if (error) throw error;
   }
 
-  // Obtener partidas presupuestarias de un proyecto
+  // Obtener partidas presupuestarias de un proyecto basadas en los campos de costos
   async getBudgetItems(projectId: string): Promise<BudgetItem[]> {
-    const { data, error } = await this.supabase
-      .from('project_budgets')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('category');
+    try {
+      const { data: project, error } = await this.supabase
+        .from('projects')
+        .select(`
+          id,
+          costos_directos,
+          costos_indirectos,
+          administracion,
+          mano_obra,
+          imprevistos,
+          utilidad
+        `)
+        .eq('id', projectId)
+        .single();
 
-    if (error) throw error;
-    return data || [];
+      if (error) throw error;
+      if (!project) return [];
+
+      // Convertir los campos de costos del proyecto en BudgetItems
+      const budgetItems: BudgetItem[] = [
+        {
+          id: `${projectId}-costos-directos`,
+          project_id: projectId,
+          category: 'costos_directos',
+          description: 'Costos Directos',
+          estimated_cost: project.costos_directos || 0,
+          actual_cost: project.costos_directos || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: `${projectId}-costos-indirectos`,
+          project_id: projectId,
+          category: 'costos_indirectos',
+          description: 'Costos Indirectos',
+          estimated_cost: project.costos_indirectos || 0,
+          actual_cost: project.costos_indirectos || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: `${projectId}-administracion`,
+          project_id: projectId,
+          category: 'administracion',
+          description: 'Administración',
+          estimated_cost: project.administracion || 0,
+          actual_cost: project.administracion || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: `${projectId}-mano-obra`,
+          project_id: projectId,
+          category: 'mano_obra',
+          description: 'Mano de Obra',
+          estimated_cost: project.mano_obra || 0,
+          actual_cost: project.mano_obra || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: `${projectId}-imprevistos`,
+          project_id: projectId,
+          category: 'imprevistos',
+          description: 'Imprevistos',
+          estimated_cost: project.imprevistos || 0,
+          actual_cost: project.imprevistos || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: `${projectId}-utilidad`,
+          project_id: projectId,
+          category: 'utilidad',
+          description: 'Utilidad',
+          estimated_cost: project.utilidad || 0,
+          actual_cost: project.utilidad || 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ].filter(item => item.estimated_cost > 0); // Solo incluir items con costo > 0
+
+      return budgetItems;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  // Crear una nueva partida presupuestaria
+  // Actualizar costos del proyecto (reemplaza createBudgetItem y updateBudgetItem)
+  async updateProjectCosts(projectId: string, costs: {
+    costos_directos?: number;
+    costos_indirectos?: number;
+    administracion?: number;
+    mano_obra?: number;
+    imprevistos?: number;
+    utilidad?: number;
+  }): Promise<Project> {
+    try {
+      const { data, error } = await this.supabase
+        .from('projects')
+        .update(costs)
+        .eq('id', projectId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Método legacy para compatibilidad - ahora actualiza los campos del proyecto
   async createBudgetItem(projectId: string, budgetData: Omit<BudgetItem, 'id' | 'project_id' | 'created_at' | 'updated_at'>): Promise<BudgetItem> {
-    const { data, error } = await this.supabase
-      .from('project_budgets')
-      .insert({
-        ...budgetData,
-        project_id: projectId
-      })
-      .select()
-      .single();
+    // Mapear la categoría del BudgetItem al campo correspondiente del proyecto
+    const costField = budgetData.category as keyof typeof costMapping;
+    const costMapping = {
+      'costos_directos': 'costos_directos',
+      'costos_indirectos': 'costos_indirectos',
+      'administracion': 'administracion',
+      'mano_obra': 'mano_obra',
+      'imprevistos': 'imprevistos',
+      'utilidad': 'utilidad'
+    };
 
-    if (error) throw error;
-    return data;
+    if (costMapping[costField]) {
+      await this.updateProjectCosts(projectId, {
+        [costMapping[costField]]: budgetData.estimated_cost
+      });
+    }
+
+    // Retornar el BudgetItem creado virtualmente
+    return {
+      id: `${projectId}-${budgetData.category}`,
+      project_id: projectId,
+      category: budgetData.category,
+      description: budgetData.description,
+      estimated_cost: budgetData.estimated_cost,
+      actual_cost: budgetData.estimated_cost,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
   }
 
-  // Actualizar una partida presupuestaria
+  // Método legacy para compatibilidad - ahora actualiza los campos del proyecto
   async updateBudgetItem(itemId: string, updates: Partial<Omit<BudgetItem, 'id' | 'project_id' | 'created_at' | 'updated_at'>>): Promise<BudgetItem> {
-    const { data, error } = await this.supabase
-      .from('project_budgets')
-      .update(updates)
-      .eq('id', itemId)
-      .select()
-      .single();
+    // Extraer projectId del itemId (formato: projectId-category)
+    const projectId = itemId.split('-').slice(0, -2).join('-');
+    const category = itemId.split('-').slice(-2).join('_');
 
-    if (error) throw error;
-    return data;
+    const costMapping = {
+      'costos_directos': 'costos_directos',
+      'costos_indirectos': 'costos_indirectos',
+      'administracion': 'administracion',
+      'mano_obra': 'mano_obra',
+      'imprevistos': 'imprevistos',
+      'utilidad': 'utilidad'
+    };
+
+    if (updates.estimated_cost !== undefined && costMapping[category as keyof typeof costMapping]) {
+      await this.updateProjectCosts(projectId, {
+        [costMapping[category as keyof typeof costMapping]]: updates.estimated_cost
+      });
+    }
+
+    // Retornar el BudgetItem actualizado virtualmente
+    return {
+      id: itemId,
+      project_id: projectId,
+      category: category,
+      description: updates.description || '',
+      estimated_cost: updates.estimated_cost || 0,
+      actual_cost: updates.estimated_cost || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
   }
 
-  // Eliminar una partida presupuestaria
+  // Método legacy para compatibilidad - ahora resetea el campo correspondiente del proyecto
   async deleteBudgetItem(itemId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('budget_items')
-      .delete()
-      .eq('id', itemId);
+    // Extraer projectId del itemId (formato: projectId-category)
+    const projectId = itemId.split('-').slice(0, -2).join('-');
+    const category = itemId.split('-').slice(-2).join('_');
 
-    if (error) throw error;
+    const costMapping = {
+      'costos_directos': 'costos_directos',
+      'costos_indirectos': 'costos_indirectos',
+      'administracion': 'administracion',
+      'mano_obra': 'mano_obra',
+      'imprevistos': 'imprevistos',
+      'utilidad': 'utilidad'
+    };
+
+    if (costMapping[category as keyof typeof costMapping]) {
+      await this.updateProjectCosts(projectId, {
+        [costMapping[category as keyof typeof costMapping]]: 0
+      });
+    }
   }
 
   async getProjectFinancialSummary(projectId: string): Promise<ProjectFinancialSummary | null> {
@@ -817,7 +973,7 @@ export class IncomeService {
         project:projects(id, name, status, client_id),
         client:clients(id, name, email)
       `)
-      .order('income_date', { ascending: false });
+      .order('received_date', { ascending: false });
 
     if (filters?.project_id) {
       query = query.eq('project_id', filters.project_id);
@@ -836,11 +992,11 @@ export class IncomeService {
     }
 
     if (filters?.date_from) {
-      query = query.gte('income_date', filters.date_from);
+      query = query.gte('received_date', filters.date_from);
     }
 
     if (filters?.date_to) {
-      query = query.lte('income_date', filters.date_to);
+      query = query.lte('received_date', filters.date_to);
     }
 
     const { data, error } = await query;
@@ -868,7 +1024,7 @@ export class IncomeService {
       .from('incomes')
       .select('*')
       .eq('project_id', projectId)
-      .order('income_date', { ascending: false });
+      .order('received_date', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -945,7 +1101,7 @@ export class IncomeService {
       .from('incomes')
       .select('*')
       .eq('client_id', clientId)
-      .order('income_date', { ascending: false });
+      .order('received_date', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -958,9 +1114,9 @@ export class IncomeService {
     const { data, error } = await this.supabase
       .from('incomes')
       .select('*')
-      .gte('income_date', startDate)
-      .lte('income_date', endDate)
-      .order('income_date', { ascending: false });
+      .gte('received_date', startDate)
+      .lte('received_date', endDate)
+      .order('received_date', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -978,8 +1134,11 @@ export class ExpenseService {
   async getExpenses(): Promise<Expense[]> {
     const { data, error } = await this.supabase
       .from('expenses')
-      .select('*')
-      .order('date', { ascending: false });
+      .select(`
+        *,
+        supplier:suppliers(id, name, email, phone)
+      `)
+      .order('expense_date', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -988,7 +1147,10 @@ export class ExpenseService {
   async getExpenseById(id: string): Promise<Expense | null> {
     const { data, error } = await this.supabase
       .from('expenses')
-      .select('*')
+      .select(`
+        *,
+        supplier:suppliers(id, name, email, phone)
+      `)
       .eq('id', id)
       .single();
 
@@ -997,20 +1159,20 @@ export class ExpenseService {
   }
 
   async getProjectExpenses(projectId: string): Promise<Expense[]> {
-    // Obtener gastos y datos del proyecto en una sola consulta optimizada
+    // Obtener gastos incluyendo la información del proveedor
     const { data, error } = await this.supabase
       .from('expenses')
       .select(`
         *,
-        project:projects!inner(exchange_rate_usd)
+        supplier:suppliers(id, name, email, phone)
       `)
       .eq('project_id', projectId)
-      .order('date', { ascending: false });
+      .order('expense_date', { ascending: false });
 
     if (error) throw error;
     
-    // Obtener el tipo de cambio del proyecto desde la primera fila (todos tendrán el mismo)
-    const exchangeRate = data?.[0]?.project?.exchange_rate_usd || 520;
+    // Usar un tipo de cambio por defecto hasta que se agregue la columna
+    const exchangeRate = 520;
     
     // Convertir gastos en USD a CRC y limpiar la referencia del proyecto
     const expensesInCRC = (data || []).map(expense => {
@@ -1070,7 +1232,7 @@ export class ExpenseService {
       .from('expenses')
       .select('*')
       .eq('category', category)
-      .order('date', { ascending: false });
+      .order('expense_date', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -1083,9 +1245,9 @@ export class ExpenseService {
     const { data, error } = await this.supabase
       .from('expenses')
       .select('*')
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: false });
+      .gte('expense_date', startDate)
+      .lte('expense_date', endDate)
+      .order('expense_date', { ascending: false });
 
     if (error) throw error;
     return data || [];

@@ -10,10 +10,25 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ArrowLeft, Edit, CheckCircle, Trash2, FileText, Calendar, DollarSign, Clock, User, AlertTriangle, Check } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 import type { ChangeOrder } from '@/types/database';
 
 interface ChangeOrderWithProject extends ChangeOrder {
+  // Propiedades opcionales que pueden no existir en la base de datos
+  designer?: string;
+  cost_impact_crc?: number;
+  schedule_impact_days?: number;
+  exchange_rate?: number;
+  cost_impact_level?: 'bajo' | 'medio' | 'alto';
+  quality_impact_level?: 'bajo' | 'medio' | 'alto';
+  schedule_impact_level?: 'bajo' | 'medio' | 'alto';
+  risk_impact_level?: 'bajo' | 'medio' | 'alto';
+  cost_comments?: string;
+  quality_comments?: string;
+  schedule_comments?: string;
+  risk_comments?: string;
+  general_comments?: string;
+  
   projects?: {
     id: string;
     name: string;
@@ -27,7 +42,7 @@ interface ChangeOrderWithProject extends ChangeOrder {
 export default function ChangeOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [changeOrder, setChangeOrder] = useState<ChangeOrderWithProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [implementing, setImplementing] = useState(false);
@@ -145,16 +160,18 @@ export default function ChangeOrderDetailPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | null | undefined) => {
+    const value = amount ?? 0;
     return new Intl.NumberFormat('es-CR', {
       style: 'currency',
       currency: 'CRC',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(value);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('es-CR', {
       year: 'numeric',
       month: 'long',
@@ -162,15 +179,31 @@ export default function ChangeOrderDetailPage() {
     });
   };
 
+  // Helper function to safely get field values with defaults
+  const getFieldValue = (value: any, defaultValue: string = 'N/A') => {
+    if (value === null || value === undefined || value === '') {
+      return defaultValue;
+    }
+    return value;
+  };
+
+  // Helper function to safely get numeric values
+  const getNumericValue = (value: any, defaultValue: number = 0) => {
+    if (value === null || value === undefined || isNaN(Number(value))) {
+      return defaultValue;
+    }
+    return Number(value);
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'secondary' as const },
-      approved: { label: 'Aprobada', variant: 'default' as const },
-      rejected: { label: 'Rechazada', variant: 'destructive' as const },
-      implemented: { label: 'Implementada', variant: 'success' as const },
+      pendiente: { label: 'Pendiente', variant: 'secondary' as const },
+      aprobado: { label: 'Aprobada', variant: 'default' as const },
+      rechazado: { label: 'Rechazada', variant: 'destructive' as const },
+      implementado: { label: 'Implementada', variant: 'success' as const },
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pendiente;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -249,7 +282,7 @@ export default function ChangeOrderDetailPage() {
         
         <div className="flex items-center gap-2">
           {getStatusBadge(changeOrder.status)}
-          {changeOrder.status !== 'implemented' && changeOrder.status !== 'rejected' && (
+          {changeOrder.status !== 'implementado' && changeOrder.status !== 'rechazado' && (
             <Link href={`/change-orders/${orderId}/edit`}>
               <Button variant="outline" size="sm">
                 <Edit className="mr-2 h-4 w-4" />
@@ -257,7 +290,7 @@ export default function ChangeOrderDetailPage() {
               </Button>
             </Link>
           )}
-          {changeOrder.status === 'pending_approval' && (
+          {changeOrder.status === 'pendiente' && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" disabled={approving} className="bg-green-600 hover:bg-green-700">
@@ -307,7 +340,7 @@ export default function ChangeOrderDetailPage() {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          {changeOrder.status !== 'implemented' && (
+          {changeOrder.status !== 'implementado' && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm" disabled={deleting}>
@@ -357,7 +390,7 @@ export default function ChangeOrderDetailPage() {
                   <label className="text-sm font-medium text-muted-foreground">Diseñador</label>
                   <div className="mt-1 flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{changeOrder.designer || 'N/A'}</span>
+                    <span>{getFieldValue(changeOrder.designer)}</span>
                   </div>
                 </div>
               </div>
@@ -389,25 +422,51 @@ export default function ChangeOrderDetailPage() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Impacto en Costo</label>
                   <div className="mt-1">
-                    {getImpactBadge(changeOrder.cost_impact_level || 'medio')}
+                    {getImpactBadge(getFieldValue(changeOrder.cost_impact_level, 'medio'))}
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Impacto en Calidad</label>
                   <div className="mt-1">
-                    {getImpactBadge(changeOrder.quality_impact_level || 'medio')}
+                    {getImpactBadge(getFieldValue(changeOrder.quality_impact_level, 'medio'))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Impacto en Cronograma</label>
+                  <div className="mt-1">
+                    {getImpactBadge(getFieldValue(changeOrder.schedule_impact_level, 'medio'))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Impacto en Riesgo</label>
+                  <div className="mt-1">
+                    {getImpactBadge(getFieldValue(changeOrder.risk_impact_level, 'medio'))}
                   </div>
                 </div>
               </div>
               
-              {changeOrder.schedule_comments && (
+              {getFieldValue(changeOrder.cost_comments) !== 'N/A' && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Comentarios de Costo</label>
+                  <p className="mt-1 text-sm">{changeOrder.cost_comments}</p>
+                </div>
+              )}
+              
+              {getFieldValue(changeOrder.quality_comments) !== 'N/A' && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Comentarios de Calidad</label>
+                  <p className="mt-1 text-sm">{changeOrder.quality_comments}</p>
+                </div>
+              )}
+              
+              {getFieldValue(changeOrder.schedule_comments) !== 'N/A' && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Comentarios de Cronograma</label>
                   <p className="mt-1 text-sm">{changeOrder.schedule_comments}</p>
                 </div>
               )}
               
-              {changeOrder.risk_comments && (
+              {getFieldValue(changeOrder.risk_comments) !== 'N/A' && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Comentarios de Riesgo</label>
                   <p className="mt-1 text-sm">{changeOrder.risk_comments}</p>
@@ -430,14 +489,19 @@ export default function ChangeOrderDetailPage() {
             <CardContent>
               <div className="text-center">
                 <div className={`text-2xl font-bold ${
-                  (changeOrder.cost_impact_crc || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  getNumericValue(changeOrder.cost_impact_crc) >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {(changeOrder.cost_impact_crc || 0) >= 0 ? '+' : ''}
-                  {formatCurrency(changeOrder.cost_impact_crc || 0)}
+                  {getNumericValue(changeOrder.cost_impact_crc) >= 0 ? '+' : ''}
+                  {formatCurrency(changeOrder.cost_impact_crc)}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {(changeOrder.cost_impact_crc || 0) >= 0 ? 'Incremento' : 'Reducción'} del presupuesto
+                  {getNumericValue(changeOrder.cost_impact_crc) >= 0 ? 'Incremento' : 'Reducción'} del presupuesto
                 </p>
+                {getNumericValue(changeOrder.cost_impact_crc) === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    * Valor pendiente de configuración
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -453,14 +517,19 @@ export default function ChangeOrderDetailPage() {
             <CardContent>
               <div className="text-center">
                 <div className={`text-2xl font-bold ${
-                  (changeOrder.schedule_impact_days || 0) >= 0 ? 'text-red-600' : 'text-green-600'
+                  getNumericValue(changeOrder.schedule_impact_days) >= 0 ? 'text-red-600' : 'text-green-600'
                 }`}>
-                  {(changeOrder.schedule_impact_days || 0) >= 0 ? '+' : ''}
-                  {changeOrder.schedule_impact_days || 0} días
+                  {getNumericValue(changeOrder.schedule_impact_days) >= 0 ? '+' : ''}
+                  {getNumericValue(changeOrder.schedule_impact_days)} días
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {(changeOrder.schedule_impact_days || 0) >= 0 ? 'Retraso' : 'Adelanto'} en cronograma
+                  {getNumericValue(changeOrder.schedule_impact_days) >= 0 ? 'Retraso' : 'Adelanto'} en cronograma
                 </p>
+                {getNumericValue(changeOrder.schedule_impact_days) === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    * Valor pendiente de configuración
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -513,7 +582,7 @@ export default function ChangeOrderDetailPage() {
                 {changeOrder.projects.presupuesto_original && (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Presupuesto Final</label>
-                    <p className="text-sm">{formatCurrency((changeOrder.projects.presupuesto_original || 0) + (changeOrder.cost_impact_crc || 0))}</p>
+                    <p className="text-sm">{formatCurrency(getNumericValue(changeOrder.projects.presupuesto_original) + getNumericValue(changeOrder.cost_impact_crc))}</p>
                   </div>
                 )}
                 <Link href={`/projects/${changeOrder.projects.id}`}>

@@ -126,13 +126,13 @@ export default function ProjectChangeOrders({ projectId, projectName }: ProjectC
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'secondary' as const },
-      approved: { label: 'Aprobada', variant: 'default' as const },
-      rejected: { label: 'Rechazada', variant: 'destructive' as const },
-      implemented: { label: 'Implementada', variant: 'success' as const },
+      pendiente: { label: 'Pendiente', variant: 'secondary' as const },
+      aprobado: { label: 'Aprobada', variant: 'default' as const },
+      rechazado: { label: 'Rechazada', variant: 'destructive' as const },
+      implementado: { label: 'Implementada', variant: 'success' as const },
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pendiente;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 

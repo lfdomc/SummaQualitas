@@ -238,13 +238,13 @@ export class AlertService {
       // Buscar ingresos pendientes (no hay fechas de vencimiento en el tipo Income actual)
       const overdueIncomes = incomes.filter(income => {
         // Solo considerar ingresos pendientes como "vencidos" si han pasado más de 30 días
-        const incomeDate = new Date(income.income_date);
+        const incomeDate = new Date(income.received_date);
         const daysSinceIncome = Math.ceil((today.getTime() - incomeDate.getTime()) / (1000 * 3600 * 24));
         return income.status === 'pending' && daysSinceIncome > 30;
       });
 
       for (const income of overdueIncomes) {
-        const incomeDate = new Date(income.income_date);
+        const incomeDate = new Date(income.received_date);
         const timeDiff = today.getTime() - incomeDate.getTime();
         const daysOverdue = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
@@ -268,7 +268,7 @@ export class AlertService {
           metadata: JSON.stringify({
             income_id: income.id,
             amount: income.amount,
-            income_date: incomeDate.toISOString(),
+            received_date: incomeDate.toISOString(),
             days_overdue: daysOverdue,
             description: income.description
           })

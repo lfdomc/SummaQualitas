@@ -15,15 +15,14 @@ const supabase = createClient();
 export function normalizeBudgetFields(project: Project): Project {
   const normalizedProject = { ...project };
   
-  // Si presupuesto_original no existe, usar presupuesto_inicial o budget
+  // Si presupuesto_original no existe, usar budget
   if (!normalizedProject.presupuesto_original && normalizedProject.presupuesto_original !== 0) {
-    normalizedProject.presupuesto_original = normalizedProject.presupuesto_inicial || normalizedProject.budget || 0;
+    normalizedProject.presupuesto_original = normalizedProject.budget || 0;
   }
   
-  // Si presupuesto_final no existe, usar presupuesto_inicial, presupuesto_original o budget
+  // Si presupuesto_final no existe, usar presupuesto_original o budget
   if (!normalizedProject.presupuesto_final && normalizedProject.presupuesto_final !== 0) {
     normalizedProject.presupuesto_final = 
-      normalizedProject.presupuesto_inicial || 
       normalizedProject.presupuesto_original || 
       normalizedProject.budget || 0;
   }
@@ -59,10 +58,10 @@ export async function migrateProjectBudgetFields(projectId: string): Promise<Pro
     
     // Calcular valores de migración
     const presupuesto_original = project.presupuesto_original ?? 
-      (project.presupuesto_inicial || project.budget || 0);
+      (project.budget || 0);
     
     const presupuesto_final = project.presupuesto_final ?? 
-      (project.presupuesto_inicial || presupuesto_original || project.budget || 0);
+      (presupuesto_original || project.budget || 0);
     
     // Actualizar en la base de datos
     const { data: updatedProject, error: updateError } = await supabase
@@ -101,7 +100,7 @@ export async function migrateAllProjectsBudgetFields(): Promise<void> {
     // Obtener proyectos que necesitan migración
     const { data: projects, error } = await supabase
       .from('projects')
-      .select('id, presupuesto_inicial, presupuesto_original, presupuesto_final, budget')
+      .select('id, presupuesto_original, presupuesto_final, budget')
       .or('presupuesto_original.is.null,presupuesto_final.is.null');
     
     if (error) {

@@ -6,12 +6,41 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Create custom types
-CREATE TYPE user_role AS ENUM ('gerencia', 'administrativo', 'operativo', 'cliente');
-CREATE TYPE project_status AS ENUM ('planificacion', 'en_progreso', 'pausado', 'completado', 'cancelado');
-CREATE TYPE equipment_status AS ENUM ('disponible', 'en_uso', 'mantenimiento', 'fuera_de_servicio');
-CREATE TYPE payment_status AS ENUM ('pendiente', 'pagado', 'vencido', 'cancelado');
-CREATE TYPE supplier_type AS ENUM ('MATERIALES', 'SERVICIOS', 'EQUIPOS', 'SUBCONTRATISTA');
-CREATE TYPE expense_category AS ENUM ('materiales', 'mano_obra', 'equipos', 'servicios', 'transporte', 'otros');
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('gerencia', 'administrativo', 'operativo', 'cliente');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE project_status AS ENUM ('planificacion', 'en_progreso', 'pausado', 'completado', 'cancelado');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE equipment_status AS ENUM ('disponible', 'en_uso', 'mantenimiento', 'fuera_de_servicio');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payment_status AS ENUM ('pendiente', 'pagado', 'vencido', 'cancelado');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE supplier_type AS ENUM ('MATERIALES', 'SERVICIOS', 'EQUIPOS', 'SUBCONTRATISTA');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE expense_category AS ENUM ('direct_cost', 'mano_obra', 'equipos', 'servicios', 'transporte', 'otros');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -275,15 +304,36 @@ CREATE INDEX IF NOT EXISTS idx_change_orders_project_id ON change_orders(project
 CREATE INDEX IF NOT EXISTS idx_change_orders_status ON change_orders(status);
 CREATE INDEX IF NOT EXISTS idx_change_orders_request_date ON change_orders(request_date);
 
--- CREATE TRIGGERS FOR UPDATED_AT
+-- CREATE TRIGGERS FOR UPDATED_AT (Drop if exists first)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_clients_updated_at ON clients;
 CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_suppliers_updated_at ON suppliers;
 CREATE TRIGGER update_suppliers_updated_at BEFORE UPDATE ON suppliers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_equipment_updated_at ON equipment;
 CREATE TRIGGER update_equipment_updated_at BEFORE UPDATE ON equipment FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_equipment_rentals_updated_at ON equipment_rentals;
 CREATE TRIGGER update_equipment_rentals_updated_at BEFORE UPDATE ON equipment_rentals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_expenses_updated_at ON expenses;
 CREATE TRIGGER update_expenses_updated_at BEFORE UPDATE ON expenses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_client_payments_updated_at ON client_payments;
 CREATE TRIGGER update_client_payments_updated_at BEFORE UPDATE ON client_payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_supplier_payments_updated_at ON supplier_payments;
 CREATE TRIGGER update_supplier_payments_updated_at BEFORE UPDATE ON supplier_payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_project_summaries_updated_at ON project_summaries;
 CREATE TRIGGER update_project_summaries_updated_at BEFORE UPDATE ON project_summaries FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_change_orders_updated_at ON change_orders;
 CREATE TRIGGER update_change_orders_updated_at BEFORE UPDATE ON change_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

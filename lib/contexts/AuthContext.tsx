@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth, UseAuthReturn } from '@/lib/hooks/useAuth';
+import { useAuthSimple } from '@/lib/hooks/useAuthSimple';
+import { useAuthDirect } from '@/lib/hooks/useAuthDirect';
 
 const AuthContext = createContext<UseAuthReturn | undefined>(undefined);
 
@@ -9,19 +11,13 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const authState = useAuth();
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const authDirect = useAuthDirect();
+  
 
-  console.log('🔍 [AuthContext] Estado actual:', {
-    user: authState.user ? { id: authState.user.id, email: authState.user.email } : null,
-    profile: authState.profile,
-    loading: authState.loading,
-    error: authState.error,
-    isAuthenticated: authState.isAuthenticated
-  });
 
   return (
-    <AuthContext.Provider value={authState}>
+    <AuthContext.Provider value={authDirect}>
       {children}
     </AuthContext.Provider>
   );

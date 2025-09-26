@@ -34,29 +34,23 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
 
   const totalBudget = project.presupuesto_final || project.presupuesto_inicial || project.budget || 0;
 
-  // Colores para el pie chart
-  const CHART_COLORS = {
-    costos_directos: '#3B82F6',     // blue-500
-    mano_obra: '#10B981',          // emerald-500
-    costos_indirectos: '#8B5CF6',  // violet-500
-    gastos_administrativos: '#F59E0B', // amber-500
-    imprevistos: '#EF4444',        // red-500
-    utilidad_esperada: '#06B6D4'   // cyan-500
+  // Colores para cada categoría (usando los campos correctos de la tabla projects)
+  const categoryColors = {
+    costos_directos: '#3B82F6',      // blue-500
+    costos_indirectos: '#8B5CF6',    // violet-500
+    administracion: '#F59E0B',       // amber-500
+    mano_obra: '#10B981',            // emerald-500
+    imprevistos: '#EF4444',          // red-500
+    utilidad: '#06B6D4'              // cyan-500
   };
 
-  // Crear las partidas presupuestarias basadas en los datos del proyecto
+  // Crear las partidas presupuestarias basadas en los campos correctos de la tabla projects
   const budgetItems = [
     {
       id: 'costos_directos',
-      name: 'Gastos Directos',
-      amount: project.costos_directos_materiales || 0,
-      percentage: calculatePercentage(project.costos_directos_materiales || 0, totalBudget)
-    },
-    {
-      id: 'mano_obra',
-      name: 'Mano de Obra',
-      amount: project.mano_obra_quincenal || 0,
-      percentage: calculatePercentage(project.mano_obra_quincenal || 0, totalBudget)
+      name: 'Costos Directos',
+      amount: project.costos_directos || 0,
+      percentage: calculatePercentage(project.costos_directos || 0, totalBudget)
     },
     {
       id: 'costos_indirectos',
@@ -65,10 +59,16 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
       percentage: calculatePercentage(project.costos_indirectos || 0, totalBudget)
     },
     {
-      id: 'gastos_administrativos',
-      name: 'Gastos Administrativos',
-      amount: project.gastos_administrativos || 0,
-      percentage: calculatePercentage(project.gastos_administrativos || 0, totalBudget)
+      id: 'administracion',
+      name: 'Administración',
+      amount: project.administracion || 0,
+      percentage: calculatePercentage(project.administracion || 0, totalBudget)
+    },
+    {
+      id: 'mano_obra',
+      name: 'Mano de Obra',
+      amount: project.mano_obra || 0,
+      percentage: calculatePercentage(project.mano_obra || 0, totalBudget)
     },
     {
       id: 'imprevistos',
@@ -77,10 +77,10 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
       percentage: calculatePercentage(project.imprevistos || 0, totalBudget)
     },
     {
-      id: 'utilidad_esperada',
-      name: 'Utilidad Esperada',
-      amount: project.utilidad_esperada || 0,
-      percentage: calculatePercentage(project.utilidad_esperada || 0, totalBudget)
+      id: 'utilidad',
+      name: 'Utilidad',
+      amount: project.utilidad || 0,
+      percentage: calculatePercentage(project.utilidad || 0, totalBudget)
     }
   ].filter(item => item.amount > 0); // Solo mostrar partidas con valor
 
@@ -89,7 +89,7 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
     name: item.name,
     value: item.percentage,
     amount: item.amount,
-    color: CHART_COLORS[item.id as keyof typeof CHART_COLORS] || '#6B7280'
+    color: categoryColors[item.id as keyof typeof categoryColors] || '#6B7280'
   }));
 
   // Componente de tooltip personalizado para el pie chart

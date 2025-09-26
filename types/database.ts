@@ -58,11 +58,11 @@ export interface UpdateUserData {
 export interface Client {
   id: string;
   name: string;
+  contact_person: string;
   email?: string;
   phone?: string;
   address?: string;
   tax_id?: string;
-  contact_person?: string;
   notes?: string;
   is_active: boolean;
   created_by?: string;
@@ -72,11 +72,11 @@ export interface Client {
 
 export interface CreateClientData {
   name: string;
+  contact_person: string;
   email?: string;
   phone?: string;
   address?: string;
   tax_id?: string;
-  contact_person?: string;
   notes?: string;
   is_active?: boolean;
 }
@@ -99,44 +99,40 @@ export interface UpdateClientData {
 export interface Supplier {
   id: string;
   name: string;
+  contact_person: string;
   email?: string;
   phone?: string;
   address?: string;
   tax_id?: string;
-  contact_person?: string;
-  category?: string; // materiales, equipos, servicios, etc.
-  payment_terms?: number; // días de crédito
+  supplier_type: 'MATERIALES' | 'SERVICIOS' | 'EQUIPOS' | 'SUBCONTRATISTA';
+  status: 'ACTIVO' | 'INACTIVO';
   notes?: string;
-  is_active: boolean;
-  created_by?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateSupplierData {
   name: string;
+  contact_person: string;
   email?: string;
   phone?: string;
   address?: string;
   tax_id?: string;
-  contact_person?: string;
-  category?: string;
-  payment_terms?: number;
+  supplier_type: 'MATERIALES' | 'SERVICIOS' | 'EQUIPOS' | 'SUBCONTRATISTA';
+  status?: 'ACTIVO' | 'INACTIVO';
   notes?: string;
-  is_active?: boolean;
 }
 
 export interface UpdateSupplierData {
   name?: string;
+  contact_person?: string;
   email?: string;
   phone?: string;
   address?: string;
   tax_id?: string;
-  contact_person?: string;
-  category?: string;
-  payment_terms?: number;
+  supplier_type?: 'MATERIALES' | 'SERVICIOS' | 'EQUIPOS' | 'SUBCONTRATISTA';
+  status?: 'ACTIVO' | 'INACTIVO';
   notes?: string;
-  is_active?: boolean;
 }
 
 // =====================================================
@@ -168,13 +164,12 @@ export interface Project {
   presupuesto_inicial: number;
   presupuesto_original: number;
   presupuesto_final: number;
-  costos_directos_materiales: number;
-  costos_directos_equipos: number;
+  costos_directos: number;
   costos_indirectos: number;
-  gastos_administrativos: number;
-  mano_obra_quincenal: number;
+  administracion: number;
+  mano_obra: number;
   imprevistos: number;
-  utilidad_esperada: number;
+  utilidad: number;
   
   // Totales calculados
   budget?: number;
@@ -209,13 +204,12 @@ export interface CreateProjectData {
   presupuesto_inicial?: number;
   presupuesto_original?: number;
   presupuesto_final?: number;
-  costos_directos_materiales?: number;
-  costos_directos_equipos?: number;
+  costos_directos?: number;
   costos_indirectos?: number;
-  gastos_administrativos?: number;
-  mano_obra_quincenal?: number;
+  administracion?: number;
+  mano_obra?: number;
   imprevistos?: number;
-  utilidad_esperada?: number;
+  utilidad?: number;
   
   // Metadatos
   created_by?: string;
@@ -243,13 +237,12 @@ export interface UpdateProjectData {
   presupuesto_inicial?: number;
   presupuesto_original?: number;
   presupuesto_final?: number;
-  costos_directos_materiales?: number;
-  costos_directos_equipos?: number;
+  costos_directos?: number;
   costos_indirectos?: number;
-  gastos_administrativos?: number;
-  mano_obra_quincenal?: number;
+  administracion?: number;
+  mano_obra?: number;
   imprevistos?: number;
-  utilidad_esperada?: number;
+  utilidad?: number;
   
   // Control financiero
   budget?: number;
@@ -665,24 +658,28 @@ export interface Expense {
   id: string;
   project_id: string;
   project?: Project;
-  category: 'costos_directos' | 'costos_indirectos' | 'gastos_administrativos' | 'mano_obra' | 'imprevistos';
-  subcategory?: string;
+  category: 'costos_directos' | 'costos_indirectos' | 'mano_obra' | 'imprevistos' | 'administracion';
+  subcategory_direct?: 'subcontratos' | 'materiales' | 'otros';
+  subcategory_indirect?: 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros';
   description: string;
   amount: number;
-  amount_usd?: number;
   currency: 'CRC' | 'USD';
-  exchange_rate?: number;
-  date: string;
+  exchange_rate_usd?: number;
+  expense_date: string;
+  date?: string; // Alias para expense_date para compatibilidad
   supplier_id?: string;
   supplier?: Supplier;
-
-  reference?: string;
-  details?: string;
+  invoice_number?: string;
+  payment_status?: 'pendiente' | 'pagado' | 'cancelado';
+  payment_date?: string;
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string; // Comprobante de factura
+  reference?: string;
+  reference_attachment_url?: string; // Comprobante de referencia
+  reference_attachment_name?: string; // Nombre del archivo de referencia
+  reference_attachment_type?: string; // Tipo MIME del archivo de referencia
+  reference_attachment_size?: number; // Tamaño del archivo de referencia en bytes
+  details?: string;
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -690,43 +687,45 @@ export interface Expense {
 
 export interface CreateExpenseData {
   project_id: string;
-  category: 'costos_directos' | 'costos_indirectos' | 'gastos_administrativos' | 'mano_obra' | 'imprevistos';
-  subcategory?: string;
+  category: 'costos_directos' | 'costos_indirectos' | 'mano_obra' | 'imprevistos' | 'administracion';
+  subcategory_direct?: 'subcontratos' | 'materiales' | 'otros';
+  subcategory_indirect?: 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros';
   description: string;
   amount: number;
-  amount_usd?: number;
-  currency: 'CRC' | 'USD';
+  currency?: 'CRC' | 'USD';
   exchange_rate?: number;
-  date: string;
+  exchange_rate_usd?: number;
+  expense_date?: string;
   supplier_id?: string;
-
-  reference?: string;
-  details?: string;
+  invoice_number?: string;
+  payment_status?: 'pendiente' | 'pagado' | 'cancelado';
+  payment_date?: string;
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string; // Comprobante de factura
+  reference?: string;
+  reference_attachment_url?: string; // Comprobante de referencia
+  reference_attachment_name?: string; // Nombre del archivo de referencia
+  reference_attachment_type?: string; // Tipo MIME del archivo de referencia
+  reference_attachment_size?: number; // Tamaño del archivo de referencia en bytes
 }
 
 export interface UpdateExpenseData {
-  category?: 'costos_directos' | 'costos_indirectos' | 'gastos_administrativos' | 'mano_obra' | 'imprevistos';
-  subcategory?: string;
+  category?: 'costos_directos' | 'costos_indirectos' | 'mano_obra' | 'imprevistos' | 'administracion';
+  subcategory_direct?: 'subcontratos' | 'materiales' | 'otros';
+  subcategory_indirect?: 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros';
   description?: string;
   amount?: number;
-  amount_usd?: number;
   currency?: 'CRC' | 'USD';
   exchange_rate?: number;
-  date?: string;
+  exchange_rate_usd?: number;
+  expense_date?: string;
   supplier_id?: string;
-
-  reference?: string;
-  details?: string;
+  invoice_number?: string;
+  payment_status?: 'pendiente' | 'pagado' | 'cancelado';
+  payment_date?: string;
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
+  reference?: string;
 }
 
 // =====================================================
@@ -742,16 +741,13 @@ export interface Income {
   description: string;
   amount: number;
   currency: string;
-  income_date: string;
+  received_date: string;
   payment_method?: string;
   reference?: string;
   category: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -762,32 +758,26 @@ export interface CreateIncomeData {
   description: string;
   amount: number;
   currency: string;
-  income_date: string;
+  received_date: string;
   payment_method?: string;
   reference?: string;
   category: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado';
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
 }
 
 export interface UpdateIncomeData {
   description?: string;
   amount?: number;
   currency?: string;
-  income_date?: string;
+  received_date?: string;
   payment_method?: string;
   reference?: string;
   category?: string;
-  status?: 'pending' | 'confirmed' | 'cancelled';
+  status?: 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado';
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
 }
 
 export interface ProjectIncomesSummary {
@@ -802,16 +792,16 @@ export interface ProjectIncomesSummary {
   total_pending_amount: number;
   total_confirmed_usd: number;
   total_confirmed_crc: number;
-  first_income_date?: string;
-  last_income_date?: string;
+  first_received_date?: string;
+  last_received_date?: string;
 }
 
 export interface IncomeFilters {
   status?: string[];
   project_id?: string;
   client_id?: string;
-  income_date_from?: string;
-  income_date_to?: string;
+  received_date_from?: string;
+  received_date_to?: string;
   amount_min?: number;
   amount_max?: number;
   payment_method?: string;
@@ -823,12 +813,35 @@ export interface IncomeFilters {
 // 10. CONSTANTES Y ENUMS
 // =====================================================
 
+// Categorías principales de gastos
 export const EXPENSE_CATEGORIES = [
-  { value: 'costos_directos', label: 'Direct Costs' },
-  { value: 'costos_indirectos', label: 'Indirect Costs' },
-  { value: 'gastos_administrativos', label: 'Administrative Expenses' },
-  { value: 'mano_obra', label: 'Labor Costs' },
-  { value: 'imprevistos', label: 'Contingencies' }
+  { value: 'costos_directos', label: 'Costos Directos' },
+  { value: 'costos_indirectos', label: 'Costos Indirectos' },
+  { value: 'mano_obra', label: 'Mano de Obra' },
+  { value: 'imprevistos', label: 'Imprevistos' },
+  { value: 'administracion', label: 'Administración' }
+] as const;
+
+// Subcategorías para Costos Directos
+export const DIRECT_COST_SUBCATEGORIES = [
+  { value: 'subcontratos', label: 'Subcontratos' },
+  { value: 'materiales', label: 'Materiales' },
+  { value: 'otros', label: 'Otros' }
+] as const;
+
+// Subcategorías para Costos Indirectos
+export const INDIRECT_COST_SUBCATEGORIES = [
+  { value: 'cargas_sociales', label: 'Cargas Sociales' },
+  { value: 'alquiler', label: 'Alquiler' },
+  { value: 'control_calidad', label: 'Control de Calidad' },
+  { value: 'servicios_basicos', label: 'Servicios Básicos' },
+  { value: 'transporte', label: 'Transporte' },
+  { value: 'polizas', label: 'Pólizas' },
+  { value: 'inspeccion_ingenieros', label: 'Inspección de Ingenieros' },
+  { value: 'viaticos', label: 'Viáticos' },
+  { value: 'garantias', label: 'Garantías' },
+  { value: 'equipos', label: 'Equipos' },
+  { value: 'otros', label: 'Otros' }
 ] as const;
 
 export const PROJECT_STATUSES = [
@@ -928,6 +941,54 @@ export const INCOME_SUBCATEGORIES = [
   { value: 'pago_extraordinario', label: 'Extraordinary Payment' }
 ] as const;
 
+// Mapeo de categorías: inglés (frontend) -> español (base de datos)
+export const INCOME_CATEGORY_MAP: Record<string, string> = {
+  'payment': 'pago_proyecto',
+  'advance': 'anticipo',
+  'bonus': 'pago_final',
+  'refund': 'pago_parcial',
+  'other': 'otros'
+};
+
+// Mapeo de status: inglés (frontend) -> español (base de datos)
+export const INCOME_STATUS_MAP: Record<string, string> = {
+  'pending': 'pendiente',
+  'confirmed': 'confirmado',
+  'cancelled': 'cancelado'
+};
+
+// Mapeo inverso: español (base de datos) -> inglés (frontend)
+export const INCOME_CATEGORY_REVERSE_MAP: Record<string, string> = {
+  'pago_proyecto': 'payment',
+  'anticipo': 'advance',
+  'pago_final': 'bonus',
+  'pago_parcial': 'refund',
+  'otros': 'other'
+};
+
+export const INCOME_STATUS_REVERSE_MAP: Record<string, string> = {
+  'pendiente': 'pending',
+  'confirmado': 'confirmed',
+  'cancelado': 'cancelled'
+};
+
+// Funciones de utilidad para conversión
+export const mapIncomeCategory = (category: string): string => {
+  return INCOME_CATEGORY_MAP[category] || category;
+};
+
+export const mapIncomeStatus = (status: string): string => {
+  return INCOME_STATUS_MAP[status] || status;
+};
+
+export const reverseMapIncomeCategory = (category: string): string => {
+  return INCOME_CATEGORY_REVERSE_MAP[category] || category;
+};
+
+export const reverseMapIncomeStatus = (status: string): string => {
+  return INCOME_STATUS_REVERSE_MAP[status] || status;
+};
+
 // =====================================================
 // 12. ÓRDENES DE CAMBIO
 // =====================================================
@@ -970,7 +1031,7 @@ export interface ChangeOrder {
   general_comments?: string;
   
   // Estado y aprobación
-  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'implemented';
+  status: 'pendiente' | 'aprobado' | 'rechazado' | 'implementado';
   approved_by?: string;
   approved_at?: string;
   rejection_reason?: string;
@@ -988,35 +1049,16 @@ export interface ChangeOrder {
 export interface CreateChangeOrderData {
   project_id: string;
   title: string;
-  description: string;
-  designer?: string;
-  change_type: 'accion_correctiva' | 'accion_preventiva' | 'extras';
-  impact_type: 'positivo' | 'negativo';
-  cost_impact: number;
-  currency: 'CRC' | 'USD';
-  exchange_rate?: number; // Tipo de cambio USD a CRC
-  cost_impact_crc?: number; // Monto calculado en colones
-  schedule_impact_days?: number;
-  
-  // Campos de detalles adicionales
-  cost_impact_details?: string;
-  quality_impact?: string;
-  schedule_details?: string;
-  risk_assessment?: string;
-  additional_comments?: string;
-  
-  // Campos de niveles de impacto
-  cost_impact_level?: 'bajo' | 'medio' | 'alto';
-  quality_impact_level?: 'bajo' | 'medio' | 'alto';
-  schedule_impact_level?: 'bajo' | 'medio' | 'alto';
-  risk_impact_level?: 'bajo' | 'medio' | 'alto';
-  
-  // Campos de comentarios
-  cost_comments?: string;
-  quality_comments?: string;
-  schedule_comments?: string;
-  risk_comments?: string;
-  general_comments?: string;
+  description?: string;
+  amount: number;
+  currency?: string;
+  status?: string;
+  requested_by?: string;
+  approved_by?: string;
+  request_date?: string;
+  approval_date?: string;
+  implementation_date?: string;
+  notes?: string;
   
   // Fechas
   requested_date?: string;
@@ -1024,6 +1066,7 @@ export interface CreateChangeOrderData {
 }
 
 export interface UpdateChangeOrderData {
+  project_id?: string;
   title?: string;
   description?: string;
   designer?: string;

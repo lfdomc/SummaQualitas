@@ -30,14 +30,7 @@ export function ConditionalHeader() {
   const { user, loading } = useAuthContext();
   const pathname = usePathname();
 
-  // Debug logs
-  console.log('🔍 [ConditionalHeader] Debug:', {
-    pathname,
-    user: user ? { id: user.id, email: user.email } : null,
-    loading,
-    isPublicRoute: PUBLIC_ROUTES.has(pathname),
-    shouldShowHeader: true // Siempre mostrar header
-  });
+
 
   // Si está cargando, no mostrar nada para evitar parpadeo
   if (loading) {

@@ -1,11 +1,8 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  // Simplificado para compatibilidad con Edge Runtime en Vercel
-  const response = NextResponse.next();
-  
-  // Permitir todas las rutas por ahora para evitar problemas de 404
-  return response;
+  return await updateSession(request);
 }
 
 export const config = {

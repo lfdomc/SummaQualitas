@@ -17,6 +17,7 @@ import type { Client } from '@/lib/types';
 // Schema de validación para el formulario de cliente
 const clientSchema = z.object({
   name: z.string().min(2, "El nombre del cliente debe tener al menos 2 caracteres"),
+  contact_person: z.string().min(2, "La persona de contacto debe tener al menos 2 caracteres"),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -44,6 +45,7 @@ export default function ClientForm({ isOpen, onClose, onClientCreated }: ClientF
     resolver: zodResolver(clientSchema),
     defaultValues: {
       name: '',
+      contact_person: '',
       email: '',
       phone: '',
       address: '',
@@ -105,7 +107,18 @@ export default function ClientForm({ isOpen, onClose, onClientCreated }: ClientF
             )}
           </div>
 
-
+          <div>
+            <Label htmlFor="contact_person">Persona de Contacto *</Label>
+            <Input
+              id="contact_person"
+              {...register('contact_person')}
+              placeholder="Ej: Juan Pérez"
+              className={errors.contact_person ? 'border-red-500' : ''}
+            />
+            {errors.contact_person && (
+              <p className="text-sm text-red-500 mt-1">{errors.contact_person.message}</p>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>

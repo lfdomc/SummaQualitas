@@ -44,7 +44,7 @@ import {
   X,
   Menu,
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
@@ -187,7 +187,7 @@ interface GlobalSidebarProps {
 }
 
 export function GlobalSidebar({ children }: GlobalSidebarProps) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading } = useAuthContext();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const pathname = usePathname();

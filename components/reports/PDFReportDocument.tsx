@@ -8,6 +8,7 @@ import {
   Link,
   Font
 } from '@react-pdf/renderer';
+import { translateCategory } from '@/lib/utils';
 // Helper function to format dates safely
 const formatDate = (dateString: string, formatStr: string = 'dd/MM/yyyy'): string => {
   try {
@@ -42,11 +43,8 @@ interface Income {
   description: string;
   amount: number;
   currency: 'CRC' | 'USD';
-  income_date: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  received_date: string;
+  receipt_url?: string;
 }
 
 interface Expense {
@@ -58,10 +56,11 @@ interface Expense {
   category: string;
   supplier?: { name: string };
   reference?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  receipt_url?: string;
+  reference_attachment_url?: string;
+  reference_attachment_name?: string;
+  reference_attachment_type?: string;
+  reference_attachment_size?: number;
 }
 
 interface ReportData {
@@ -279,11 +278,12 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
 
   // Group expenses by category
   const expenseCategories = [
-    { title: 'DIRECT COSTS', expenses: expenses.filter(e => e.category === 'costos_directos') },
-    { title: 'LABOR COSTS', expenses: expenses.filter(e => e.category === 'mano_obra') },
-    { title: 'INDIRECT COSTS', expenses: expenses.filter(e => e.category === 'costos_indirectos') },
-    { title: 'ADMINISTRATIVE COSTS', expenses: expenses.filter(e => e.category === 'gastos_administrativos') },
-    { title: 'CONTINGENCIES', expenses: expenses.filter(e => e.category === 'imprevistos') }
+    { title: 'DIRECT COST', expenses: expenses.filter(e => e.category === 'direct_cost') },
+    { title: 'MANO DE OBRA', expenses: expenses.filter(e => e.category === 'mano_obra') },
+    { title: 'EQUIPOS', expenses: expenses.filter(e => e.category === 'equipos') },
+    { title: 'SERVICIOS', expenses: expenses.filter(e => e.category === 'servicios') },
+    { title: 'TRANSPORTE', expenses: expenses.filter(e => e.category === 'transporte') },
+    { title: 'OTROS', expenses: expenses.filter(e => e.category === 'otros') }
   ];
 
   return (
@@ -319,7 +319,7 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
                 <Text style={styles.tableCell}>{index + 1}</Text>
               </View>
               <View style={styles.tableCol}>
-                <Text style={styles.tableCell}>{income.income_date ? formatDate(income.income_date) : 'N/A'}</Text>
+                <Text style={styles.tableCell}>{income.received_date ? formatDate(income.received_date) : 'N/A'}</Text>
               </View>
               <View style={styles.tableCol}>
                 <Text style={styles.tableCell}>
@@ -411,7 +411,7 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
                   </View>
                   {(category.title === 'DIRECT COSTS' || category.title === 'INDIRECT COSTS') && (
                     <View style={styles.tableCol}>
-                      <Text style={styles.tableCell}>{expense.reference || '-'}</Text>
+                      <Text style={styles.tableCell}>{expense.reference || expense.invoice_number || '-'}</Text>
                     </View>
                   )}
                   <View style={styles.tableCol}>
@@ -546,7 +546,7 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
         <Text style={styles.sectionTitle}>ANNEXES - ATTACHED FILES</Text>
         
         {/* Income Attachments */}
-        {incomes.some(income => income.attachment_url) && (
+        {incomes.some(income => income.receipt_url) && (
           <View>
             <Text style={[styles.summaryTitle, { marginTop: 10 }]}>INCOME ATTACHMENTS</Text>
             
@@ -570,7 +570,7 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
               </View>
               
               {incomes
-                .filter(income => income.attachment_url)
+                .filter(income => income.receipt_url)
                 .map((income, index) => (
                   <View key={income.id} style={[styles.tableRow, index % 2 === 0 ? styles.tableRowEven : {}]}>
                     <View style={styles.tableCol}>
@@ -582,19 +582,19 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
                       </Text>
                     </View>
                     <View style={styles.tableCol}>
-                      <Text style={styles.tableCell}>{income.income_date ? formatDate(income.income_date) : 'N/A'}</Text>
+                      <Text style={styles.tableCell}>{income.received_date ? formatDate(income.received_date) : 'N/A'}</Text>
                     </View>
                     <View style={styles.tableCol}>
-                      {income.attachment_url ? (
-                        <Link src={income.attachment_url} style={styles.link}>
-                          {income.attachment_name || 'Attached file'}
+                      {income.receipt_url ? (
+                        <Link src={income.receipt_url} style={styles.link}>
+                          Receipt
                         </Link>
                       ) : (
-                        <Text style={styles.tableCell}>{income.attachment_name || 'Attached file'}</Text>
+                        <Text style={styles.tableCell}>Receipt</Text>
                       )}
                     </View>
                     <View style={styles.tableCol}>
-                      <Text style={styles.tableCell}>{income.attachment_type?.toUpperCase() || 'N/A'}</Text>
+                      <Text style={styles.tableCell}>PDF</Text>
                     </View>
                   </View>
                 ))
@@ -604,56 +604,68 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
         )}
         
         {/* Expense Attachments */}
-        {expenses.some(expense => expense.attachment_url) && (
+        {expenses.some(expense => expense.receipt_url || expense.reference_attachment_url) && (
           <View>
             <Text style={[styles.summaryTitle, { marginTop: 15 }]}>EXPENSE ATTACHMENTS</Text>
             
             <View style={styles.table}>
               <View style={styles.tableRow}>
-                <View style={styles.tableColHeader}>
+                <View style={[styles.tableColHeader, { width: '8%' }]}>
                   <Text style={styles.tableCellHeader}>#</Text>
                 </View>
-                <View style={styles.tableColHeader}>
+                <View style={[styles.tableColHeader, { width: '25%' }]}>
                   <Text style={styles.tableCellHeader}>Description</Text>
                 </View>
-                <View style={styles.tableColHeader}>
+                <View style={[styles.tableColHeader, { width: '20%' }]}>
                   <Text style={styles.tableCellHeader}>Category</Text>
                 </View>
-                <View style={styles.tableColHeader}>
+                <View style={[styles.tableColHeader, { width: '12%' }]}>
                   <Text style={styles.tableCellHeader}>Date</Text>
                 </View>
-                <View style={styles.tableColHeader}>
-                  <Text style={styles.tableCellHeader}>Attached File</Text>
+                <View style={[styles.tableColHeader, { width: '17.5%' }]}>
+                  <Text style={styles.tableCellHeader}>Invoice Receipt</Text>
+                </View>
+                <View style={[styles.tableColHeader, { width: '17.5%' }]}>
+                  <Text style={styles.tableCellHeader}>Reference Attachment</Text>
                 </View>
               </View>
               
               {expenses
-                .filter(expense => expense.attachment_url)
+                .filter(expense => expense.receipt_url || expense.reference_attachment_url)
                 .map((expense, index) => (
                   <View key={expense.id} style={[styles.tableRow, index % 2 === 0 ? styles.tableRowEven : {}]}>
-                    <View style={styles.tableCol}>
+                    <View style={[styles.tableCol, { width: '8%' }]}>
                       <Text style={styles.tableCell}>{index + 1}</Text>
                     </View>
-                    <View style={styles.tableCol}>
+                    <View style={[styles.tableCol, { width: '25%' }]}>
                       <Text style={styles.tableCell}>
                         {expense.description.length > 15 ? expense.description.substring(0, 12) + '...' : expense.description}
                       </Text>
                     </View>
-                    <View style={styles.tableCol}>
+                    <View style={[styles.tableCol, { width: '20%' }]}>
                       <Text style={styles.tableCell}>
-                        {expense.category?.replace('_', ' ').toUpperCase() || 'N/A'}
+                        {translateCategory(expense.category || '')}
                       </Text>
                     </View>
-                    <View style={styles.tableCol}>
+                    <View style={[styles.tableCol, { width: '12%' }]}>
                       <Text style={styles.tableCell}>{expense.expense_date ? formatDate(expense.expense_date) : 'N/A'}</Text>
                     </View>
-                    <View style={styles.tableCol}>
-                      {expense.attachment_url ? (
-                        <Link src={expense.attachment_url} style={styles.link}>
-                          {expense.attachment_name || 'Attached file'}
+                    <View style={[styles.tableCol, { width: '17.5%' }]}>
+                      {expense.receipt_url ? (
+                        <Link src={expense.receipt_url} style={styles.link}>
+                          Invoice
                         </Link>
                       ) : (
-                        <Text style={styles.tableCell}>{expense.attachment_name || 'Attached file'}</Text>
+                        <Text style={styles.tableCell}>-</Text>
+                      )}
+                    </View>
+                    <View style={[styles.tableCol, { width: '17.5%' }]}>
+                      {expense.reference_attachment_url ? (
+                        <Link src={expense.reference_attachment_url} style={styles.link}>
+                          {expense.reference_attachment_name || 'Reference'}
+                        </Link>
+                      ) : (
+                        <Text style={styles.tableCell}>-</Text>
                       )}
                     </View>
                   </View>

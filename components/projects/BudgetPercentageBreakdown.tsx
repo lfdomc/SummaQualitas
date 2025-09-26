@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,21 +16,37 @@ interface BudgetPercentageBreakdownProps {
 }
 
 export interface BudgetBreakdownData {
-  costosDirectos: number;
-  manoObra: number;
-  costosIndirectos: number;
-  utilidad: number;
-  gastosAdministrativos: number;
+  // Porcentajes
+  costos_directos_porcentaje: number;
+  costos_indirectos_porcentaje: number;
+  mano_obra_porcentaje: number;
+  administracion_porcentaje: number;
+  imprevistos_porcentaje: number;
+  utilidad_porcentaje: number;
+  // Montos calculados
+  costos_directos: number;
+  costos_indirectos: number;
+  mano_obra: number;
+  administracion: number;
   imprevistos: number;
+  utilidad: number;
 }
 
 const defaultBreakdown: BudgetBreakdownData = {
-  costosDirectos: 40,
-  manoObra: 25,
-  costosIndirectos: 15,
-  utilidad: 10,
-  gastosAdministrativos: 5,
-  imprevistos: 5,
+  // Porcentajes por defecto
+  costos_directos_porcentaje: 40,
+  costos_indirectos_porcentaje: 20,
+  mano_obra_porcentaje: 25,
+  administracion_porcentaje: 8,
+  imprevistos_porcentaje: 5,
+  utilidad_porcentaje: 2,
+  // Montos se calcularán dinámicamente
+  costos_directos: 0,
+  costos_indirectos: 0,
+  mano_obra: 0,
+  administracion: 0,
+  imprevistos: 0,
+  utilidad: 0,
 };
 
 export function BudgetPercentageBreakdown({
@@ -41,26 +57,40 @@ export function BudgetPercentageBreakdown({
   initialBreakdown = defaultBreakdown
 }: BudgetPercentageBreakdownProps) {
   const [breakdown, setBreakdown] = useState<BudgetBreakdownData>(initialBreakdown);
-  const [totalPercentage, setTotalPercentage] = useState(100);
 
+  // Calcular el total de porcentajes usando useMemo
+  const totalPercentage = useMemo(() => {
+    return breakdown.costos_directos_porcentaje + breakdown.costos_indirectos_porcentaje + breakdown.mano_obra_porcentaje + 
+           breakdown.administracion_porcentaje + breakdown.imprevistos_porcentaje + breakdown.utilidad_porcentaje;
+  }, [breakdown.costos_directos_porcentaje, breakdown.costos_indirectos_porcentaje, breakdown.mano_obra_porcentaje, 
+      breakdown.administracion_porcentaje, breakdown.imprevistos_porcentaje, breakdown.utilidad_porcentaje]);
+
+  // Calcular el breakdown completo con montos usando useMemo
+  const calculatedBreakdown = useMemo(() => {
+    return {
+      ...breakdown,
+      costos_directos: (budget * breakdown.costos_directos_porcentaje) / 100,
+      costos_indirectos: (budget * breakdown.costos_indirectos_porcentaje) / 100,
+      mano_obra: (budget * breakdown.mano_obra_porcentaje) / 100,
+      administracion: (budget * breakdown.administracion_porcentaje) / 100,
+      imprevistos: (budget * breakdown.imprevistos_porcentaje) / 100,
+      utilidad: (budget * breakdown.utilidad_porcentaje) / 100,
+    };
+  }, [breakdown, budget]);
+
+  // Notificar cambios al componente padre solo cuando sea necesario
   useEffect(() => {
-    const total = Object.values(breakdown).reduce((sum, value) => {
-      const numValue = typeof value === 'number' ? value : 0;
-      return sum + numValue;
-    }, 0);
-    setTotalPercentage(total);
-    onBreakdownChange(breakdown);
-  }, [breakdown, onBreakdownChange]);
+    onBreakdownChange(calculatedBreakdown);
+  }, [calculatedBreakdown, onBreakdownChange]);
 
-  const handlePercentageChange = (field: keyof BudgetBreakdownData, value: string) => {
+  const handlePercentageChange = (field: string, value: string) => {
     const numValue = parseFloat(value) || 0;
-    setBreakdown(prev => ({
-      ...prev,
-      [field]: numValue
-    }));
+    const percentageField = `${field}_porcentaje` as keyof BudgetBreakdownData;
+    const newBreakdown = { ...breakdown, [percentageField]: numValue };
+    setBreakdown(newBreakdown);
   };
 
-  const handleFocus = (field: keyof BudgetBreakdownData) => {
+  const handleFocus = (field: string) => {
     // No modificamos el valor en focus para evitar problemas de tipo
     // El input manejará la visualización del valor vacío
   };
@@ -100,115 +130,92 @@ export function BudgetPercentageBreakdown({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Costos Directos */}
           <div className="space-y-2">
-            <Label htmlFor="costosDirectos">Costos Directos (%)</Label>
+            <Label htmlFor="costos_directos">Costos Directos (%)</Label>
             <Input
-              id="costosDirectos"
+              id="costos_directos"
               type="number"
               step="0.1"
               min="0"
               max="100"
-              value={breakdown.costosDirectos === 0 ? '' : breakdown.costosDirectos}
-              onChange={(e) => handlePercentageChange('costosDirectos', e.target.value)}
-              onFocus={() => handleFocus('costosDirectos')}
+              value={breakdown.costos_directos_porcentaje === 0 ? '' : breakdown.costos_directos_porcentaje}
+              onChange={(e) => handlePercentageChange('costos_directos', e.target.value)}
+              onFocus={() => handleFocus('costos_directos')}
               className={!isValidTotal ? 'border-red-500' : ''}
             />
             <div className="text-sm text-gray-600">
-              <div>₡{calculateAmount(breakdown.costosDirectos).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
-              <div>${calculateUSDAmount(calculateAmount(breakdown.costosDirectos)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              <div>₡{calculateAmount(breakdown.costos_directos_porcentaje).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
+              <div>${calculateUSDAmount(calculateAmount(breakdown.costos_directos_porcentaje)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
               {totalArea > 0 && (
-                <div>₡{calculateCostPerM2(calculateAmount(breakdown.costosDirectos)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
-              )}
-            </div>
-          </div>
-
-          {/* Mano de Obra */}
-          <div className="space-y-2">
-            <Label htmlFor="manoObra">Mano de Obra (%)</Label>
-            <Input
-              id="manoObra"
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              value={breakdown.manoObra === 0 ? '' : breakdown.manoObra}
-              onChange={(e) => handlePercentageChange('manoObra', e.target.value)}
-              onFocus={() => handleFocus('manoObra')}
-              className={!isValidTotal ? 'border-red-500' : ''}
-            />
-            <div className="text-sm text-gray-600">
-              <div>₡{calculateAmount(breakdown.manoObra).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
-              <div>${calculateUSDAmount(calculateAmount(breakdown.manoObra)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-              {totalArea > 0 && (
-                <div>₡{calculateCostPerM2(calculateAmount(breakdown.manoObra)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
+                <div>₡{calculateCostPerM2(calculateAmount(breakdown.costos_directos_porcentaje)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
               )}
             </div>
           </div>
 
           {/* Costos Indirectos */}
           <div className="space-y-2">
-            <Label htmlFor="costosIndirectos">Costos Indirectos (%)</Label>
+            <Label htmlFor="costos_indirectos">Costos Indirectos (%)</Label>
             <Input
-              id="costosIndirectos"
+              id="costos_indirectos"
               type="number"
               step="0.1"
               min="0"
               max="100"
-              value={breakdown.costosIndirectos === 0 ? '' : breakdown.costosIndirectos}
-              onChange={(e) => handlePercentageChange('costosIndirectos', e.target.value)}
-              onFocus={() => handleFocus('costosIndirectos')}
+              value={breakdown.costos_indirectos_porcentaje === 0 ? '' : breakdown.costos_indirectos_porcentaje}
+              onChange={(e) => handlePercentageChange('costos_indirectos', e.target.value)}
+              onFocus={() => handleFocus('costos_indirectos')}
               className={!isValidTotal ? 'border-red-500' : ''}
             />
             <div className="text-sm text-gray-600">
-              <div>₡{calculateAmount(breakdown.costosIndirectos).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
-              <div>${calculateUSDAmount(calculateAmount(breakdown.costosIndirectos)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              <div>₡{calculateAmount(breakdown.costos_indirectos_porcentaje).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
+              <div>${calculateUSDAmount(calculateAmount(breakdown.costos_indirectos_porcentaje)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
               {totalArea > 0 && (
-                <div>₡{calculateCostPerM2(calculateAmount(breakdown.costosIndirectos)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
+                <div>₡{calculateCostPerM2(calculateAmount(breakdown.costos_indirectos_porcentaje)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
               )}
             </div>
           </div>
 
-          {/* Utilidad */}
+          {/* Mano de Obra */}
           <div className="space-y-2">
-            <Label htmlFor="utilidad">Utilidad (%)</Label>
+            <Label htmlFor="mano_obra">Mano de Obra (%)</Label>
             <Input
-              id="utilidad"
+              id="mano_obra"
               type="number"
               step="0.1"
               min="0"
               max="100"
-              value={breakdown.utilidad === 0 ? '' : breakdown.utilidad}
-              onChange={(e) => handlePercentageChange('utilidad', e.target.value)}
-              onFocus={() => handleFocus('utilidad')}
+              value={breakdown.mano_obra_porcentaje === 0 ? '' : breakdown.mano_obra_porcentaje}
+              onChange={(e) => handlePercentageChange('mano_obra', e.target.value)}
+              onFocus={() => handleFocus('mano_obra')}
               className={!isValidTotal ? 'border-red-500' : ''}
             />
             <div className="text-sm text-gray-600">
-              <div>₡{calculateAmount(breakdown.utilidad).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
-              <div>${calculateUSDAmount(calculateAmount(breakdown.utilidad)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              <div>₡{calculateAmount(breakdown.mano_obra_porcentaje).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
+              <div>${calculateUSDAmount(calculateAmount(breakdown.mano_obra_porcentaje)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
               {totalArea > 0 && (
-                <div>₡{calculateCostPerM2(calculateAmount(breakdown.utilidad)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
+                <div>₡{calculateCostPerM2(calculateAmount(breakdown.mano_obra_porcentaje)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
               )}
             </div>
           </div>
 
-          {/* Gastos Administrativos */}
+          {/* Administración */}
           <div className="space-y-2">
-            <Label htmlFor="gastosAdministrativos">Gastos Administrativos (%)</Label>
+            <Label htmlFor="administracion">Administración (%)</Label>
             <Input
-              id="gastosAdministrativos"
+              id="administracion"
               type="number"
               step="0.1"
               min="0"
               max="100"
-              value={breakdown.gastosAdministrativos === 0 ? '' : breakdown.gastosAdministrativos}
-              onChange={(e) => handlePercentageChange('gastosAdministrativos', e.target.value)}
-              onFocus={() => handleFocus('gastosAdministrativos')}
+              value={breakdown.administracion_porcentaje === 0 ? '' : breakdown.administracion_porcentaje}
+              onChange={(e) => handlePercentageChange('administracion', e.target.value)}
+              onFocus={() => handleFocus('administracion')}
               className={!isValidTotal ? 'border-red-500' : ''}
             />
             <div className="text-sm text-gray-600">
-              <div>₡{calculateAmount(breakdown.gastosAdministrativos).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
-              <div>${calculateUSDAmount(calculateAmount(breakdown.gastosAdministrativos)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              <div>₡{calculateAmount(breakdown.administracion_porcentaje).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
+              <div>${calculateUSDAmount(calculateAmount(breakdown.administracion_porcentaje)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
               {totalArea > 0 && (
-                <div>₡{calculateCostPerM2(calculateAmount(breakdown.gastosAdministrativos)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
+                <div>₡{calculateCostPerM2(calculateAmount(breakdown.administracion_porcentaje)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
               )}
             </div>
           </div>
@@ -222,16 +229,39 @@ export function BudgetPercentageBreakdown({
               step="0.1"
               min="0"
               max="100"
-              value={breakdown.imprevistos === 0 ? '' : breakdown.imprevistos}
+              value={breakdown.imprevistos_porcentaje === 0 ? '' : breakdown.imprevistos_porcentaje}
               onChange={(e) => handlePercentageChange('imprevistos', e.target.value)}
               onFocus={() => handleFocus('imprevistos')}
               className={!isValidTotal ? 'border-red-500' : ''}
             />
             <div className="text-sm text-gray-600">
-              <div>₡{calculateAmount(breakdown.imprevistos).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
-              <div>${calculateUSDAmount(calculateAmount(breakdown.imprevistos)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              <div>₡{calculateAmount(breakdown.imprevistos_porcentaje).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
+              <div>${calculateUSDAmount(calculateAmount(breakdown.imprevistos_porcentaje)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
               {totalArea > 0 && (
-                <div>₡{calculateCostPerM2(calculateAmount(breakdown.imprevistos)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
+                <div>₡{calculateCostPerM2(calculateAmount(breakdown.imprevistos_porcentaje)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
+              )}
+            </div>
+          </div>
+
+          {/* Utilidad */}
+          <div className="space-y-2">
+            <Label htmlFor="utilidad">Utilidad (%)</Label>
+            <Input
+              id="utilidad"
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={breakdown.utilidad_porcentaje === 0 ? '' : breakdown.utilidad_porcentaje}
+              onChange={(e) => handlePercentageChange('utilidad', e.target.value)}
+              onFocus={() => handleFocus('utilidad')}
+              className={!isValidTotal ? 'border-red-500' : ''}
+            />
+            <div className="text-sm text-gray-600">
+              <div>₡{calculateAmount(breakdown.utilidad_porcentaje).toLocaleString('es-CR', { minimumFractionDigits: 2 })}</div>
+              <div>${calculateUSDAmount(calculateAmount(breakdown.utilidad_porcentaje)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+              {totalArea > 0 && (
+                <div>₡{calculateCostPerM2(calculateAmount(breakdown.utilidad_porcentaje)).toLocaleString('es-CR', { minimumFractionDigits: 2 })}/m²</div>
               )}
             </div>
           </div>

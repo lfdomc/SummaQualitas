@@ -17,3 +17,24 @@ export function formatCurrency(amount: number, currency: string = 'CRC'): string
     maximumFractionDigits: 0
   }).format(amount);
 }
+
+// Función para traducir categorías de español a inglés
+export function translateCategory(category: string): string {
+  const translations: Record<string, string> = {
+    'costos_directos': 'DIRECT COSTS',
+    'costos_indirectos': 'INDIRECT COSTS', 
+    'mano_obra': 'LABOR',
+    'imprevistos': 'CONTINGENCIES',
+    'administracion': 'ADMINISTRATION',
+    'gastos_administrativos': 'ADMINISTRATIVE EXPENSES',
+    'utilidad': 'PROFIT'
+  };
+
+  // Si la categoría existe en las traducciones, devolverla traducida
+  if (translations[category]) {
+    return translations[category];
+  }
+
+  // Si no existe traducción, formatear el texto (reemplazar _ con espacios y convertir a mayúsculas)
+  return category?.replace('_', ' ').toUpperCase() || 'N/A';
+}
