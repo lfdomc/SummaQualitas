@@ -3,9 +3,11 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
+import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
 import { GlobalSidebar } from "@/components/GlobalSidebar";
 import { ConditionalHeader } from "@/components/ConditionalHeader";
 import { ConditionalFooter } from "@/components/ConditionalFooter";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -69,6 +71,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+            <SessionTimeoutProvider
+              timeoutMinutes={20}
+              warningMinutes={5}
+              enabled={true}
+            >
               <div className="flex min-h-screen bg-background safe-area-inset">
                 <GlobalSidebar>
                   <div className="flex flex-col flex-1 min-w-0 w-full lg:w-auto">
@@ -84,7 +91,9 @@ export default function RootLayout({
               </div>
               
               <ConditionalFooter />
+            </SessionTimeoutProvider>
           </AuthProvider>
+          <Toaster />
         </ThemeProvider>
         
         {/* Performance and accessibility improvements */}
