@@ -66,6 +66,7 @@ export interface Project {
   area?: number;
   budget: number;
   total_expenses?: number;
+  actualExpenses?: number;
   progress?: number;
   // Nuevos campos para desglose por porcentajes
   exchange_rate_usd?: number;

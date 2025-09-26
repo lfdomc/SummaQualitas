@@ -347,7 +347,7 @@ export default function ExpensesPage() {
       description: expense.description,
       amount: expense.amount.toString(),
       currency: expense.currency || 'CRC',
-      exchange_rate: expense.exchange_rate?.toString() || '',
+      exchange_rate: expense.exchange_rate_usd?.toString() || '',
       date: expense.expense_date || expense.date || new Date().toISOString().split('T')[0],
       supplier_id: expense.supplier_id || 'none',
       invoice_number: expense.invoice_number || '',
@@ -555,7 +555,7 @@ export default function ExpensesPage() {
     const projectExpenses = filteredExpenses.filter(expense => expense.project_id === project.id);
     const total = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     const totalUSD = Math.round(projectExpenses.reduce((sum, expense) => {
-      return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate || 600));
+      return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 600));
     }, 0) * 100) / 100;
     
     // Calcular porcentaje respecto al presupuesto del proyecto
@@ -574,7 +574,7 @@ export default function ExpensesPage() {
 
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const totalExpensesUSD = Math.round(filteredExpenses.reduce((sum, expense) => {
-    return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate || 600));
+    return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 600));
   }, 0) * 100) / 100;
 
   // Función optimizada para calcular totales por categoría
@@ -1601,14 +1601,14 @@ export default function ExpensesPage() {
                             <>
                               <div className="text-green-600">${expense.amount.toLocaleString()}</div>
                               <div className="text-sm text-gray-500">
-                                ₡{(expense.amount * (expense.exchange_rate || 600)).toLocaleString()}
+                                ₡{(expense.amount * (expense.exchange_rate_usd || 600)).toLocaleString()}
                               </div>
                             </>
                           ) : (
                             <>
                               <div>₡{expense.amount.toLocaleString()}</div>
                               <div className="text-sm text-green-600">
-                                ${(expense.amount / (expense.exchange_rate || 600)).toLocaleString()}
+                                ${(expense.amount / (expense.exchange_rate_usd || 600)).toLocaleString()}
                               </div>
                             </>
                           )}

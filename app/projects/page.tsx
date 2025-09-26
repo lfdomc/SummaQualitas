@@ -359,7 +359,7 @@ export default function ProjectsPage() {
                 <TableBody>
                   {filteredProjects.map((project) => {
                     const client = project.clients || clients.find(c => c.id === project.client_id);
-                    const totalExpenses = projectExpenses[project.id] || 0;
+                    const totalExpenses = project.actualExpenses || 0;
                     const progressPercentage = totalExpenses && (project.presupuesto_final || project.presupuesto_inicial || project.budget)
           ? Math.min((totalExpenses / (project.presupuesto_final || project.presupuesto_inicial || project.budget)) * 100, 100)
           : 0;

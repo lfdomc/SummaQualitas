@@ -1057,7 +1057,7 @@ export interface CreateChangeOrderData {
   approved_by?: string;
   request_date?: string;
   approval_date?: string;
-  implementation_date?: string;
+// Remove duplicate implementation_date since it's already declared below
   notes?: string;
   
   // Fechas

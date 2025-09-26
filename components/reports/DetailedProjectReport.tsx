@@ -2543,7 +2543,7 @@ function SummaryReportSection({ reportData, convertCurrency, formatCurrency }: S
   }, 0);
 
   // Calcular totales por categoría de gastos
-  const categories = ['direct_cost', 'mano_obra', 'equipos', 'servicios', 'transporte', 'otros'];
+  const categories = ['costos_directos', 'costos_indirectos', 'mano_obra', 'imprevistos', 'administracion'];
   const categoryTotals = categories.map(category => {
     const categoryExpenses = reportData.expenses.filter(e => e.category === category);
     const totalCRC = categoryExpenses.reduce((sum, expense) => {
@@ -2556,12 +2556,11 @@ function SummaryReportSection({ reportData, convertCurrency, formatCurrency }: S
     return {
       category,
       name: {
-          direct_cost: 'Direct Cost',
+          costos_directos: 'Costos Directos',
+          costos_indirectos: 'Costos Indirectos',
           mano_obra: 'Mano de Obra',
-          equipos: 'Equipos',
-          servicios: 'Servicios',
-          transporte: 'Transporte',
-          otros: 'Otros'
+          imprevistos: 'Imprevistos',
+          administracion: 'Administración'
         }[category],
       totalCRC,
       totalUSD

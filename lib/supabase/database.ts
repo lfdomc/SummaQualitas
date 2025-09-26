@@ -54,7 +54,7 @@ export class ProjectService {
         .select(`
           *,
           client:clients(*),
-          total_expenses:expenses(amount, currency)
+          expenses(amount, currency)
         `, { count: 'exact' });
         
       // Ordenar por fecha de creación (más recientes primero)
@@ -97,8 +97,8 @@ export class ProjectService {
     const processedProjects = (projects || []).map(project => {
       let totalExpenses = 0;
       
-      if (project.total_expenses && Array.isArray(project.total_expenses)) {
-        totalExpenses = project.total_expenses.reduce((sum: number, expense: any) => {
+      if (project.expenses && Array.isArray(project.expenses)) {
+        totalExpenses = project.expenses.reduce((sum: number, expense: any) => {
           let amountInCRC = expense.amount || 0;
           // Convertir USD a CRC si es necesario
           if (expense.currency === 'USD') {
