@@ -77,17 +77,14 @@ export function LoginForm({ onSuccess, redirectTo = '/projects' }: LoginFormProp
         user: sessionData.session?.user?.email
       });
 
-      // Esperar un momento para que el hook useAuth detecte el cambio
-      console.log('⏳ [LoginForm] Esperando que useAuth detecte el cambio...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+      // El listener de autenticación se encargará de actualizar el contexto automáticamente
       // Redirect or call success callback
       if (onSuccess) {
         onSuccess();
       } else {
         console.log('🔄 [LoginForm] Redirigiendo a:', redirectTo);
         router.push(redirectTo);
-        router.refresh();
+        // No necesitamos router.refresh() ya que el listener manejará la actualización del estado
       }
     } catch (err) {
       console.error('❌ [LoginForm] Error inesperado:', err);

@@ -217,7 +217,7 @@ export default function ExpensesPage() {
     try {
       // Por ahora usamos un valor fijo ya que la API del BCCR requiere configuración especial
       // En producción se debería implementar una API proxy o usar un servicio de tipos de cambio
-      const defaultRate = 520; // Tipo de cambio aproximado CRC/USD
+      const defaultRate = 500; // Tipo de cambio aproximado CRC/USD
       
       // Simulamos una pequeña variación basada en la fecha para hacer más realista
       const dateObj = new Date(date);
@@ -227,7 +227,7 @@ export default function ExpensesPage() {
       return defaultRate + variation;
     } catch (error) {
       console.error('Error calculating exchange rate:', error);
-      return 520; // Valor por defecto
+      return 500; // Valor por defecto
     }
   };
 

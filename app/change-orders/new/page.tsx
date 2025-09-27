@@ -45,7 +45,7 @@ export default function NewChangeOrderPage() {
     designer: '',
     cost_impact: 0,
     currency: 'CRC',
-    exchange_rate: 520.00,
+    exchange_rate: 500.00,
     cost_impact_crc: 0,
     schedule_impact_days: 0,
     cost_impact_details: '',
@@ -92,7 +92,7 @@ export default function NewChangeOrderPage() {
         const exchangeRate = field === 'exchange_rate' ? value : updated.exchange_rate;
         
         if (currency === 'USD') {
-          updated.cost_impact_crc = costImpact * (exchangeRate || 520);
+          updated.cost_impact_crc = costImpact * (exchangeRate || 500);
         } else {
           updated.cost_impact_crc = costImpact;
         }
@@ -340,9 +340,9 @@ export default function NewChangeOrderPage() {
                     id="exchange_rate"
                     type="number"
                     step="0.01"
-                    placeholder="520.00"
+                    placeholder="500.00"
                     value={formData.exchange_rate}
-                    onChange={(e) => handleInputChange('exchange_rate', parseFloat(e.target.value) || 520)}
+                    onChange={(e) => handleInputChange('exchange_rate', parseFloat(e.target.value) || 500)}
                     onFocus={() => handleNumberFocus('exchange_rate')}
                     className="pl-10"
                     required
@@ -379,7 +379,7 @@ export default function NewChangeOrderPage() {
                 )}
                 {formData.currency === 'CRC' && formData.cost_impact > 0 && (
                   <p className="text-sm text-blue-600 mt-1">
-                    Equivalente: ${new Intl.NumberFormat('en-US').format((formData.cost_impact / (formData.exchange_rate || 520)) || 0)}
+                    Equivalente: ${new Intl.NumberFormat('en-US').format((formData.cost_impact / (formData.exchange_rate || 500)) || 0)}
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground mt-1">

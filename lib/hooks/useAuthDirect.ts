@@ -109,12 +109,28 @@ export function useAuthDirect(): UseAuthReturn {
     }
   };
 
-  // Ejecutar verificación inicial con useEffect
+  // Ejecutar verificación inicial y configurar listener
   useEffect(() => {
     if (!initialized.current) {
       initialized.current = true;
       refreshAuth();
     }
+
+    // Configurar listener para cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 [useAuthDirect] Auth state changed:', event, session?.user?.email);
+        
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          await refreshAuth();
+        }
+      }
+    );
+
+    // Cleanup function
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []); // Solo ejecutar una vez al montar el componente
 
   const signIn = async (email: string, password: string) => {

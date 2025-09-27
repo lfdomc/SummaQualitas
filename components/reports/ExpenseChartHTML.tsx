@@ -154,7 +154,7 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                     const colorSet = colorSets[index % colorSets.length];
                     
                     return (
-                      <tr key={index} className="hover:bg-gray-50" style={{ backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white' }}>
+                      <tr key={item.title} className="hover:bg-gray-50" style={{ backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white' }}>
                         <td className="px-3 py-2 border-b border-gray-200">
                           <div className="flex items-center space-x-2">
                             <div 

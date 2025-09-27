@@ -30,7 +30,7 @@ const projectSchema = z.object({
   manager_id: z.string().uuid('Selecciona un gerente válido').optional(),
   status: z.enum(['planificacion', 'en_progreso', 'pausado', 'completado', 'cancelado']),
   location: z.string().optional(),
-  exchange_rate_usd: z.number().min(0, 'El tipo de cambio debe ser mayor a 0').default(520),
+  exchange_rate_usd: z.number().min(0, 'El tipo de cambio debe ser mayor a 0').default(500),
   total_area: z.number().min(0, 'El área total debe ser mayor a 0').optional(),
   // Presupuesto
   presupuesto_inicial: z.number().min(0, 'El presupuesto debe ser mayor a 0').default(0),
@@ -94,7 +94,7 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       manager_id: project?.manager_id || undefined,
       status: project?.status || 'planificacion',
       location: project?.location || '',
-      exchange_rate_usd: project?.exchange_rate_usd || 520,
+      exchange_rate_usd: project?.exchange_rate_usd || 500,
       total_area: project?.total_area || undefined,
       // Presupuesto
       presupuesto_inicial: project?.presupuesto_inicial || 0,
@@ -446,7 +446,7 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
                         type="number"
                         step="0.01"
                         min="0"
-                        placeholder="520"
+                        placeholder="500"
                         value={field.value === 0 ? '' : field.value}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         onFocus={() => {

@@ -198,8 +198,8 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
   const [currentSection, setCurrentSection] = useState<ReportSection>('incomes');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
-  const [exchangeRate, setExchangeRate] = useState<number>(520); // Tipo de cambio por defecto
-  const [tempExchangeRate, setTempExchangeRate] = useState<string>('520'); // Estado temporal para el input
+  const [exchangeRate, setExchangeRate] = useState<number>(500); // Tipo de cambio por defecto
+  const [tempExchangeRate, setTempExchangeRate] = useState<string>('500'); // Estado temporal para el input
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [dataCache, setDataCache] = useState<Map<string, { data: ReportData; timestamp: number }>>(new Map());
@@ -292,27 +292,6 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         fetch(`/api/change-orders?project_id=${selectedProjectId}`)
       ]);
       
-      // Log temporal para debuggear campos reference e invoice_number
-      console.log('Debug - Primeros 3 gastos:', expenses.slice(0, 3).map(expense => ({
-        id: expense.id,
-        description: expense.description,
-        reference: expense.reference,
-        invoice_number: expense.invoice_number,
-        supplier: expense.supplier?.name,
-        category: expense.category
-      })));
-      
-      // Log adicional para verificar categorías de todos los gastos
-      console.log('Debug - Categorías de gastos:', expenses.map(expense => expense.category));
-      console.log('Debug - Total de gastos:', expenses.length);
-      
-      // Log para verificar filtrado por categorías específicas
-      const directCosts = expenses.filter(e => e.category === 'costos_directos');
-      const indirectCosts = expenses.filter(e => e.category === 'costos_indirectos');
-      console.log('Debug - Costos directos encontrados:', directCosts.length);
-      console.log('Debug - Costos indirectos encontrados:', indirectCosts.length);
-      
-
 
       // Intentar obtener datos del proyecto
       let project = projects.find(p => p.id === selectedProjectId);
@@ -1473,7 +1452,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                   </thead>
                   <tbody>
                     {changeOrders.map((changeOrder, index) => (
-                      <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
+                      <tr key={changeOrder.id} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
                         <td className="p-2" style={{ color: '#000000' }}>{index + 1}</td>
                         <td className="p-2" style={{ color: '#000000' }}>{changeOrder.document_number}</td>
                         <td className="p-2" style={{ color: '#000000' }}>{changeOrder.title.length > 20 ? changeOrder.title.substring(0, 17) + '...' : changeOrder.title}</td>
@@ -1591,7 +1570,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                 </thead>
                 <tbody>
                   {incomes.map((income, index) => (
-                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
+                    <tr key={income.id} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
                       <td className="p-2" style={{ color: '#000000' }}>{index + 1}</td>
                       <td className="p-2" style={{ color: '#000000' }}>{format(new Date(income.received_date), 'dd/MM/yyyy')}</td>
                       <td className="p-2" style={{ color: '#000000' }}>{income.description.length > 25 ? income.description.substring(0, 22) + '...' : income.description}</td>
@@ -1653,7 +1632,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                     </thead>
                     <tbody>
                       {section.expenses.map((expense, index) => (
-                        <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
+                        <tr key={expense.id} style={{ backgroundColor: index % 2 === 0 ? '#ecf0f1' : 'white' }}>
                           <td className="p-2" style={{ color: '#000000' }}>{index + 1}</td>
                           <td className="p-2" style={{ color: '#000000' }}>{format(new Date(expense.expense_date), 'dd/MM/yyyy')}</td>
                           {section.title === 'DIRECT COSTS' && (
@@ -2079,7 +2058,7 @@ function ExpenseChart({ costSections, convertCurrency, formatCurrency, incomes, 
                    const colorSet = colorSets[index % colorSets.length];
                    
                    return (
-                     <tr key={index} className="hover:bg-gray-50" style={{ backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white' }}>
+                     <tr key={item.title} className="hover:bg-gray-50" style={{ backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white' }}>
                        <td className="px-3 py-2 border-b border-gray-200">
                          <div className="flex items-center space-x-2">
                            <div 
@@ -2406,8 +2385,8 @@ function IncomeReportSection({ reportData, convertCurrency, formatCurrency }: In
     </Card>
   );
 }
-
-// Componente para las secciones de costos
+  
+  // Componente para las secciones de costos
 interface CostReportSectionProps {
   title: string;
   expenses: Expense[];

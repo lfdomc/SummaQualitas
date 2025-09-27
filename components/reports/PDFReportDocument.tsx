@@ -355,8 +355,8 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
       </Page>
 
       {/* Pages 2-3: Expenses by category */}
-      {expenseCategories.map((category, categoryIndex) => (
-        category.expenses.length > 0 && (
+      {expenseCategories.map((category, categoryIndex) => 
+        category.expenses.length > 0 ? (
           <Page key={category.title} size="LETTER" style={styles.page}>
             <PageHeader projectName={project.name} pageNumber={categoryIndex + 2} totalPages={4} />
             
@@ -453,8 +453,8 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
             
             <PageFooter />
           </Page>
-        )
-      ))}
+        ) : null
+      )}
 
       {/* Página final: Resumen y Anexos */}
       <Page size="LETTER" style={styles.page}>

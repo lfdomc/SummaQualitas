@@ -51,7 +51,7 @@ export default function IncomesPage() {
   const [amountInUSD, setAmountInUSD] = useState<number>(0);
 
   // Estados para conversión de moneda
-  const [exchangeRate, setExchangeRate] = useState<number>(520); // Tipo de cambio CRC/USD
+  const [exchangeRate, setExchangeRate] = useState<number>(500); // Tipo de cambio CRC/USD
   const [equivalentAmount, setEquivalentAmount] = useState<number>(0);
   const [isCalculatingExchange, setIsCalculatingExchange] = useState(false);
   const [isLoadingExchangeRate, setIsLoadingExchangeRate] = useState(false);
@@ -291,7 +291,7 @@ export default function IncomesPage() {
     });
     setAmountInUSD(0);
     setEquivalentAmount(0);
-    setExchangeRate(520);
+    setExchangeRate(500);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -752,7 +752,7 @@ Clear Filters
                 value={exchangeRate}
                 onChange={handleExchangeRateChange}
                 onFocus={(e) => e.target.select()}
-                placeholder="520.00"
+                placeholder="500.00"
                 disabled={isLoadingExchangeRate}
               />
               <p className="text-xs text-gray-500">
@@ -917,7 +917,7 @@ Clear Filters
                 step="0.01"
                 value={exchangeRate}
                 onChange={handleExchangeRateChange}
-                placeholder="520.00"
+                placeholder="500.00"
               />
               <p className="text-xs text-gray-500">
                 Ingresa el tipo de cambio del día (cuántos colones por 1 dólar)
