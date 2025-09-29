@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoginState } from '@/lib/contexts/LoginStateContext';
 
 interface UseSessionTimeoutOptions {
   timeoutMinutes?: number;
@@ -21,6 +22,7 @@ export function useSessionTimeout({
 }: UseSessionTimeoutOptions = {}) {
   const router = useRouter();
   const supabase = createClient();
+  const { isLoginInProgress } = useLoginState();
   
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,12 +42,12 @@ export function useSessionTimeout({
         onTimeout();
       }
       
-      // Redirigir al login
-      router.push('/login?reason=session_timeout');
+      // Redirigir a la página home en lugar del login
+      router.push('/?reason=session_timeout');
     } catch (error) {
       console.error('Error al cerrar sesión por timeout:', error);
       // Forzar redirección incluso si hay error
-      router.push('/login?reason=session_timeout');
+      router.push('/?reason=session_timeout');
     }
   }, [supabase, router, onTimeout]);
 
@@ -93,12 +95,18 @@ export function useSessionTimeout({
 
   // Función para verificar si la sesión está activa
   const checkSession = useCallback(async () => {
+    // No verificar sesión si hay un login en progreso
+    if (isLoginInProgress()) {
+      console.log('🔐 [useSessionTimeout] Saltando verificación de sesión - login en progreso');
+      return true;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // No hay sesión, redirigir al login
-        router.push('/login?reason=no_session');
+        // No hay sesión, redirigir a la página home
+        router.push('/?reason=no_session');
         return false;
       }
 
@@ -113,7 +121,7 @@ export function useSessionTimeout({
         
         if (error || !newSession) {
           console.warn('No se pudo renovar la sesión:', error);
-          router.push('/login?reason=session_expired');
+          router.push('/?reason=session_expired');
           return false;
         }
       }
@@ -123,7 +131,7 @@ export function useSessionTimeout({
       console.error('Error verificando sesión:', error);
       return false;
     }
-  }, [supabase, router]);
+  }, [supabase, router, isLoginInProgress]);
 
   // Eventos que reinician el timeout
   const activityEvents = [
@@ -151,8 +159,15 @@ export function useSessionTimeout({
   useEffect(() => {
     if (!enabled) return;
 
-    // Verificar sesión inicial
-    checkSession();
+    // No verificar sesión inmediatamente en páginas de autenticación
+    const isAuthPage = typeof window !== 'undefined' && 
+      (window.location.pathname === '/login' || 
+       window.location.pathname.startsWith('/auth'));
+
+    // Verificar sesión inicial solo si no estamos en una página de autenticación
+    if (!isAuthPage) {
+      checkSession();
+    }
 
     // Configurar timeout inicial
     resetTimeout();

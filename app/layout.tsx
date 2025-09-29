@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
+import { LoginStateProvider } from "@/lib/contexts/LoginStateContext";
 import { GlobalSidebar } from "@/components/GlobalSidebar";
 import { ConditionalHeader } from "@/components/ConditionalHeader";
 import { ConditionalFooter } from "@/components/ConditionalFooter";
@@ -70,12 +71,13 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <SessionTimeoutProvider
-              timeoutMinutes={20}
-              warningMinutes={5}
-              enabled={true}
-            >
+          <LoginStateProvider>
+            <AuthProvider>
+              <SessionTimeoutProvider
+                timeoutMinutes={20}
+                warningMinutes={5}
+                enabled={true}
+              >
               <div className="flex min-h-screen bg-background safe-area-inset">
                 <GlobalSidebar>
                   <div className="flex flex-col flex-1 min-w-0 w-full lg:w-auto">
@@ -91,8 +93,9 @@ export default function RootLayout({
               </div>
               
               <ConditionalFooter />
-            </SessionTimeoutProvider>
-          </AuthProvider>
+                </SessionTimeoutProvider>
+              </AuthProvider>
+            </LoginStateProvider>
           <Toaster />
         </ThemeProvider>
         

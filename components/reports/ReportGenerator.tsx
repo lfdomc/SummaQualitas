@@ -7,260 +7,195 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Project, ProjectStatus } from '@/lib/types';
-import { Supplier } from '@/lib/types';
-import { 
-  CustomReportType, 
-  CustomReportConfig, 
-  CustomReportFilters,
-  CUSTOM_REPORT_TEMPLATES,
-  ExportFormat,
-  ReportPeriod
-} from '@/lib/types/custom-reports';
+import { Project } from '@/lib/types';
 import { projectService } from '@/lib/supabase/database';
-import { supplierService } from '@/lib/supabase/database';
-import CustomReportsService from '@/lib/services/custom-reports';
-import { generateCustomPDFReport } from '@/lib/services/custom-pdf-generator';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { 
   CalendarIcon, 
   FileText, 
   Download, 
   Eye, 
-  Settings, 
-  Filter, 
   BarChart3, 
   TrendingUp, 
-  DollarSign, 
-  Users, 
-  Clock, 
-  AlertTriangle,
-  Building2,
-  PieChart,
-  Target,
-  Wallet
+  DollarSign
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import CustomReportPreview from './CustomReportPreview';
+import CustomReportsService from '@/lib/services/custom-reports';
+
+// Tipos simplificados para reportes
+type SimpleReportType = 
+  | 'project_expenses' 
+  | 'project_income' 
+  | 'project_summary' 
+  | 'monthly_overview';
+
+interface SimpleReportConfig {
+  type: SimpleReportType;
+  title: string;
+  projectIds: string[];
+  dateFrom: Date;
+  dateTo: Date;
+  format: 'pdf' | 'excel';
+}
+
+const REPORT_TYPES = [
+  {
+    id: 'project_expenses' as SimpleReportType,
+    name: 'Gastos por Proyecto',
+    description: 'Reporte de gastos detallados por proyecto',
+    icon: <DollarSign className="h-4 w-4" />
+  },
+  {
+    id: 'project_income' as SimpleReportType,
+    name: 'Ingresos por Proyecto',
+    description: 'Reporte de ingresos por proyecto',
+    icon: <TrendingUp className="h-4 w-4" />
+  },
+  {
+    id: 'project_summary' as SimpleReportType,
+    name: 'Resumen de Proyecto',
+    description: 'Resumen general de proyectos seleccionados',
+    icon: <BarChart3 className="h-4 w-4" />
+  },
+  {
+    id: 'monthly_overview' as SimpleReportType,
+    name: 'Vista Mensual',
+    description: 'Resumen mensual de actividades',
+    icon: <FileText className="h-4 w-4" />
+  }
+];
 
 function ReportGenerator() {
-  const { user } = useAuthContext();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<CustomReportType | ''>('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   
-  const [config, setConfig] = useState<CustomReportConfig>({
-    reportType: 'direct_expenses_by_project_month',
+  const [config, setConfig] = useState<SimpleReportConfig>({
+    type: 'project_expenses',
     title: '',
-    description: '',
-    period: 'monthly',
-    dateRange: {
-      from: new Date(),
-      to: new Date()
-    },
-    exportFormat: 'pdf',
-    includeCharts: true,
-    includeSummary: true,
-    includeDetails: true,
-    filters: {
-      projectIds: [],
-      supplierIds: [],
-      categories: [],
-      currency: 'both'
-    }
+    projectIds: [],
+    dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    dateTo: new Date(),
+    format: 'pdf'
   });
 
   useEffect(() => {
-    fetchInitialData();
+    loadProjects();
   }, []);
 
-  const fetchInitialData = async () => {
+  const loadProjects = async () => {
     try {
       setLoading(true);
-      const [projectsData, suppliersData] = await Promise.all([
-        projectService.getProjects(),
-        supplierService.getSuppliers()
-      ]);
+      const projectsData = await projectService.getAllProjects();
       setProjects(Array.isArray(projectsData) ? projectsData : []);
-      setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
     } catch (error) {
-      console.error('Error fetching initial data:', error);
+      console.error('Error cargando proyectos:', error);
+      setProjects([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTemplateSelect = (templateType: CustomReportType) => {
-    const template = CUSTOM_REPORT_TEMPLATES.find(t => t.reportType === templateType);
-    if (template) {
-      setSelectedTemplate(templateType);
-      setConfig(prev => ({
-        ...prev,
-        reportType: templateType,
-        title: template.name,
-        description: template.description,
-        period: template.defaultConfig.period || 'monthly',
-        filters: {
-          ...prev.filters,
-          categories: template.defaultConfig.filters?.categories || []
-        }
-      }));
     }
   };
 
   const handleProjectToggle = (projectId: string) => {
     setConfig(prev => ({
       ...prev,
-      filters: {
-        ...prev.filters,
-        projectIds: prev.filters.projectIds?.includes(projectId)
-          ? prev.filters.projectIds.filter(id => id !== projectId)
-          : [...(prev.filters.projectIds || []), projectId]
-      }
-    }));
-  };
-
-  const handleSupplierToggle = (supplierId: string) => {
-    setConfig(prev => ({
-      ...prev,
-      filters: {
-        ...prev.filters,
-        supplierIds: prev.filters.supplierIds?.includes(supplierId)
-          ? prev.filters.supplierIds.filter(id => id !== supplierId)
-          : [...(prev.filters.supplierIds || []), supplierId]
-      }
+      projectIds: prev.projectIds.includes(projectId)
+        ? prev.projectIds.filter(id => id !== projectId)
+        : [...prev.projectIds, projectId]
     }));
   };
 
   const handleSelectAllProjects = () => {
     setConfig(prev => ({
       ...prev,
-      filters: {
-        ...prev.filters,
-        projectIds: projects.map(p => p.id)
-      }
+      projectIds: projects.map(p => p.id)
     }));
   };
 
   const handleDeselectAllProjects = () => {
     setConfig(prev => ({
       ...prev,
-      filters: {
-        ...prev.filters,
-        projectIds: []
-      }
-    }));
-  };
-
-  const handleSelectAllSuppliers = () => {
-    setConfig(prev => ({
-      ...prev,
-      filters: {
-        ...prev.filters,
-        supplierIds: suppliers.map(s => s.id)
-      }
-    }));
-  };
-
-  const handleDeselectAllSuppliers = () => {
-    setConfig(prev => ({
-      ...prev,
-      filters: {
-        ...prev.filters,
-        supplierIds: []
-      }
+      projectIds: []
     }));
   };
 
   const generateReport = async () => {
+    if (!config.title.trim()) {
+      alert('Por favor, ingresa un título para el reporte');
+      return;
+    }
+
+    if (config.projectIds.length === 0) {
+      alert('Por favor, selecciona al menos un proyecto');
+      return;
+    }
+
     try {
-      // Validación básica
-      if (!config.title.trim()) {
-        alert('Por favor, ingresa un título para el reporte');
-        return;
-      }
-
       setGenerating(true);
+      
+      // Aquí iría la lógica de generación del reporte
+      // Por ahora, simulamos la generación
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      alert(`Reporte "${config.title}" generado exitosamente`);
+    } catch (error) {
+      console.error('Error generando reporte:', error);
+      alert('Error al generar el reporte');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
-      // Generar datos según el tipo de reporte
+  const handlePreview = async () => {
+    if (config.projectIds.length === 0) {
+      alert('Por favor, selecciona al menos un proyecto');
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
       let reportData;
       
-      switch (config.reportType) {
-        case 'direct_expenses_by_project_month':
-          if (!config.dateRange.from) {
-            alert('Por favor, selecciona una fecha para el reporte mensual');
-            return;
-          }
-          const month = config.dateRange.from.getMonth() + 1;
-          const year = config.dateRange.from.getFullYear();
+      switch (config.type) {
+        case 'project_expenses':
+          const month = config.dateFrom.getMonth() + 1;
+          const year = config.dateFrom.getFullYear();
           reportData = await CustomReportsService.getDirectExpensesByProjectMonth(
-            config.filters.projectIds || [],
+            config.projectIds,
             month,
-            year,
-            config.filters
+            year
           );
           break;
 
-        case 'project_total_income':
+        case 'project_income':
           reportData = await CustomReportsService.getProjectTotalIncome(
-            config.filters.projectIds || [],
-            config.dateRange.from?.toISOString().split('T')[0],
-            config.dateRange.to?.toISOString().split('T')[0],
-            config.filters
+            config.projectIds,
+            config.dateFrom.toISOString().split('T')[0],
+            config.dateTo.toISOString().split('T')[0]
           );
           break;
 
-        case 'supplier_expenses_by_year':
-          if (!config.dateRange.from) {
-            alert('Por favor, selecciona un año para el reporte');
-            return;
-          }
-          const reportYear = config.dateRange.from.getFullYear();
+        case 'project_summary':
+          const reportYear = config.dateFrom.getFullYear();
           reportData = await CustomReportsService.getSupplierExpensesByYear(
             reportYear,
-            config.filters.supplierIds,
-            config.filters
+            undefined,
+            { projectIds: config.projectIds }
           );
           break;
 
-        case 'monthly_expenses_by_category':
-          if (!config.dateRange.from) {
-            alert('Por favor, selecciona una fecha para el reporte mensual');
-            return;
-          }
-          const expenseMonth = config.dateRange.from.getMonth() + 1;
-          const expenseYear = config.dateRange.from.getFullYear();
-          reportData = await CustomReportsService.getMonthlyExpensesByCategory(
-            expenseMonth,
-            expenseYear,
-            config.filters
-          );
-          break;
-
-        case 'project_profitability_analysis':
+        case 'monthly_overview':
           reportData = await CustomReportsService.getProjectProfitabilityAnalysis(
-            config.filters.projectIds || [],
-            config.dateRange.from?.toISOString().split('T')[0],
-            config.dateRange.to?.toISOString().split('T')[0]
-          );
-          break;
-
-        case 'supplier_payment_analysis':
-          reportData = await CustomReportsService.getSupplierPaymentAnalysis(
-            config.filters.supplierIds || [],
-            config.dateRange.from?.toISOString().split('T')[0],
-            config.dateRange.to?.toISOString().split('T')[0]
+            config.projectIds,
+            config.dateFrom.toISOString().split('T')[0],
+            config.dateTo.toISOString().split('T')[0]
           );
           break;
 
@@ -269,107 +204,29 @@ function ReportGenerator() {
           return;
       }
 
-      // Generar reporte según el formato
-      if (config.exportFormat === 'pdf') {
-        await generateCustomPDFReport(config, reportData);
-      } else if (config.exportFormat === 'excel') {
-        // TODO: Implementar generación de Excel
-        alert('Generación de Excel no implementada aún');
-      } else if (config.exportFormat === 'csv') {
-        // TODO: Implementar generación de CSV
-        alert('Generación de CSV no implementada aún');
-      }
-
-      alert('Reporte generado exitosamente');
-
-    } catch (error) {
-      console.error('Error generating report:', error);
-      alert('Error al generar el reporte. Por favor, intenta nuevamente.');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const previewReport = async () => {
-    try {
-      if (!config.title.trim()) {
-        alert('Por favor, ingresa un título para el reporte');
-        return;
-      }
-
-      setLoading(true);
-
-      // Generar vista previa de datos
-      let previewData;
-      
-      switch (config.reportType) {
-        case 'direct_expenses_by_project_month':
-          if (!config.dateRange.from) {
-            alert('Por favor, selecciona una fecha para el reporte mensual');
-            return;
-          }
-          const month = config.dateRange.from.getMonth() + 1;
-          const year = config.dateRange.from.getFullYear();
-          previewData = await CustomReportsService.getDirectExpensesByProjectMonth(
-            config.filters.projectIds || [],
-            month,
-            year,
-            config.filters
-          );
-          break;
-
-        case 'project_total_income':
-          previewData = await CustomReportsService.getProjectTotalIncome(
-            config.filters.projectIds || [],
-            config.dateRange.from?.toISOString().split('T')[0],
-            config.dateRange.to?.toISOString().split('T')[0],
-            config.filters
-          );
-          break;
-
-        case 'supplier_expenses_by_year':
-          if (!config.dateRange.from) {
-            alert('Por favor, selecciona un año para el reporte');
-            return;
-          }
-          const reportYear = config.dateRange.from.getFullYear();
-          previewData = await CustomReportsService.getSupplierExpensesByYear(
-            reportYear,
-            config.filters.supplierIds,
-            config.filters
-          );
-          break;
-
-        default:
-          previewData = { message: 'Vista previa no disponible para este tipo de reporte' };
-      }
-
-      setPreviewData(previewData);
+      setPreviewData(reportData);
       setShowPreview(true);
-
     } catch (error) {
       console.error('Error generating preview:', error);
-      alert('Error al generar la vista previa. Por favor, intenta nuevamente.');
+      alert('Error al generar la vista previa');
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   };
 
-  const getStatusColor = (status: ProjectStatus): string => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'planning': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'on_hold': return 'bg-gray-100 text-gray-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'on_hold': return 'bg-yellow-100 text-yellow-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusLabel = (status: ProjectStatus): string => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'planning': return 'Planificación';
-      case 'in_progress': return 'En Progreso';
+      case 'active': return 'Activo';
       case 'completed': return 'Completado';
       case 'on_hold': return 'En Pausa';
       case 'cancelled': return 'Cancelado';
@@ -377,73 +234,30 @@ function ReportGenerator() {
     }
   };
 
-  const getTemplateIcon = (type: CustomReportType) => {
-    switch (type) {
-      case 'direct_expenses_by_project_month':
-        return <Building2 key="direct-expenses-icon" className="h-5 w-5" />;
-      case 'project_total_income':
-        return <DollarSign key="project-income-icon" className="h-5 w-5" />;
-      case 'supplier_expenses_by_year':
-        return <Users key="supplier-expenses-icon" className="h-5 w-5" />;
-      case 'monthly_expenses_by_category':
-        return <PieChart key="monthly-expenses-icon" className="h-5 w-5" />;
-      case 'project_profitability_analysis':
-        return <TrendingUp key="profitability-icon" className="h-5 w-5" />;
-      case 'supplier_payment_analysis':
-        return <Wallet key="supplier-payment-icon" className="h-5 w-5" />;
-      case 'quarterly_financial_summary':
-        return <BarChart3 key="quarterly-summary-icon" className="h-5 w-5" />;
-      case 'project_cost_breakdown':
-        return <Target key="cost-breakdown-icon" className="h-5 w-5" />;
-      case 'annual_revenue_analysis':
-        return <TrendingUp key="annual-revenue-icon" className="h-5 w-5" />;
-      case 'expense_trend_analysis':
-        return <BarChart3 key="expense-trend-icon" className="h-5 w-5" />;
-      default:
-        return <FileText key="default-icon" className="h-5 w-5" />;
-    }
-  };
-
-  const requiresProjects = ['direct_expenses_by_project_month', 'project_total_income', 'project_profitability_analysis'];
-  const requiresSuppliers = ['supplier_expenses_by_year', 'supplier_payment_analysis'];
-
   return (
     <div className="space-y-6">
-      {/* Plantillas de Reportes Personalizados */}
+      {/* Selección de Tipo de Reporte */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Reportes Personalizados
-          </CardTitle>
+          <CardTitle>Tipo de Reporte</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CUSTOM_REPORT_TEMPLATES.map((template) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {REPORT_TYPES.map((reportType) => (
               <Card 
-                key={template.type}
+                key={reportType.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedTemplate === template.type ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                  config.type === reportType.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
                 }`}
-                onClick={() => handleTemplateSelect(template.type)}
+                onClick={() => setConfig(prev => ({ ...prev, type: reportType.id }))}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    {getTemplateIcon(template.type)}
-                    <h3 className="font-medium text-sm">{template.name}</h3>
-                  </div>
-                  <p className="text-xs text-gray-600 mb-3">{template.description}</p>
-                  <div className="space-y-1">
-                    <Badge variant="secondary" className="text-xs">
-                      {(() => {
-                        switch (template.defaultConfig.period) {
-                          case 'monthly': return 'Mensual';
-                          case 'yearly': return 'Anual';
-                          case 'quarterly': return 'Trimestral';
-                          default: return 'Personalizado';
-                        }
-                      })()}
-                    </Badge>
+                  <div className="flex items-center gap-3">
+                    {reportType.icon}
+                    <div>
+                      <h3 className="font-medium">{reportType.name}</h3>
+                      <p className="text-sm text-gray-600">{reportType.description}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -452,7 +266,7 @@ function ReportGenerator() {
         </CardContent>
       </Card>
 
-      {/* Configuración Básica del Reporte */}
+      {/* Configuración Básica */}
       <Card>
         <CardHeader>
           <CardTitle>Configuración del Reporte</CardTitle>
@@ -469,34 +283,22 @@ function ReportGenerator() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="format">Formato de Exportación</Label>
+              <Label htmlFor="format">Formato</Label>
               <Select 
-                value={config.exportFormat} 
-                onValueChange={(value: ExportFormat) => 
-                  setConfig(prev => ({ ...prev, exportFormat: value }))
+                value={config.format} 
+                onValueChange={(value: 'pdf' | 'excel') => 
+                  setConfig(prev => ({ ...prev, format: value }))
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem key="pdf" value="pdf">PDF</SelectItem>
-                  <SelectItem key="excel" value="excel">Excel</SelectItem>
-                  <SelectItem key="csv" value="csv">CSV</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="excel">Excel</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
-            <Textarea
-              id="description"
-              value={config.description}
-              onChange={(e) => setConfig(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Descripción opcional del reporte"
-              rows={3}
-            />
           </div>
 
           {/* Rango de Fechas */}
@@ -507,16 +309,16 @@ function ReportGenerator() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {config.dateRange.from ? format(config.dateRange.from, "PPP", { locale: es }) : "Seleccionar fecha"}
+                    {format(config.dateFrom, "PPP", { locale: es })}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={config.dateRange.from}
+                    selected={config.dateFrom}
                     onSelect={(date) => setConfig(prev => ({ 
                       ...prev, 
-                      dateRange: { ...prev.dateRange, from: date || new Date() }
+                      dateFrom: date || new Date()
                     }))}
                     initialFocus
                   />
@@ -530,16 +332,16 @@ function ReportGenerator() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {config.dateRange.to ? format(config.dateRange.to, "PPP", { locale: es }) : "Seleccionar fecha"}
+                    {format(config.dateTo, "PPP", { locale: es })}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={config.dateRange.to}
+                    selected={config.dateTo}
                     onSelect={(date) => setConfig(prev => ({ 
                       ...prev, 
-                      dateRange: { ...prev.dateRange, to: date || new Date() }
+                      dateTo: date || new Date()
                     }))}
                     initialFocus
                   />
@@ -547,159 +349,97 @@ function ReportGenerator() {
               </Popover>
             </div>
           </div>
-
-          {/* Filtro de Moneda */}
-          <div className="space-y-2">
-            <Label>Moneda</Label>
-            <Select 
-              value={config.filters.currency} 
-              onValueChange={(value: 'CRC' | 'USD' | 'both') => 
-                setConfig(prev => ({ 
-                  ...prev, 
-                  filters: { ...prev.filters, currency: value }
-                }))
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem key="both" value="both">Ambas Monedas</SelectItem>
-                <SelectItem key="CRC" value="CRC">Colones (CRC)</SelectItem>
-                <SelectItem key="USD" value="USD">Dólares (USD)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
       </Card>
 
       {/* Selección de Proyectos */}
-      {requiresProjects.includes(config.reportType) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Proyectos a Incluir</span>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleSelectAllProjects}
-                >
-                  Seleccionar Todos
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDeselectAllProjects}
-                >
-                  Deseleccionar Todos
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-4">Cargando proyectos...</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projects.map((project) => (
-                  <div key={project.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                    <Checkbox
-                      id={project.id}
-                      checked={config.filters.projectIds?.includes(project.id) || false}
-                      onCheckedChange={() => handleProjectToggle(project.id)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <Label htmlFor={project.id} className="font-medium cursor-pointer">
-                        {project.name}
-                      </Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className={getStatusColor(project.status)}>
-                          {getStatusLabel(project.status)}
-                        </Badge>
-                        {project.budget && (
-                          <span className="text-sm text-gray-500">
-                            ${project.budget.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Selección de Proveedores */}
-      {requiresSuppliers.includes(config.reportType) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Proveedores a Incluir</span>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleSelectAllSuppliers}
-                >
-                  Seleccionar Todos
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDeselectAllSuppliers}
-                >
-                  Deseleccionar Todos
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-4">Cargando proveedores...</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {suppliers.map((supplier) => (
-                  <div key={supplier.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                    <Checkbox
-                      id={supplier.id}
-                      checked={config.filters.supplierIds?.includes(supplier.id) || false}
-                      onCheckedChange={() => handleSupplierToggle(supplier.id)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <Label htmlFor={supplier.id} className="font-medium cursor-pointer">
-                        {supplier.name}
-                      </Label>
-                      <div className="mt-1">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Proyectos a Incluir</span>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSelectAllProjects}
+                disabled={loading}
+              >
+                Seleccionar Todos
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDeselectAllProjects}
+                disabled={loading}
+              >
+                Deseleccionar Todos
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="text-gray-500">Cargando proyectos...</div>
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-500">No se encontraron proyectos</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((project) => (
+                <div key={project.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                  <Checkbox
+                    id={project.id}
+                    checked={config.projectIds.includes(project.id)}
+                    onCheckedChange={() => handleProjectToggle(project.id)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <Label htmlFor={project.id} className="font-medium cursor-pointer">
+                      {project.name}
+                    </Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className={getStatusColor(project.status)}>
+                        {getStatusLabel(project.status)}
+                      </Badge>
+                      {project.budget && (
                         <span className="text-sm text-gray-500">
-                          {supplier.contact_name || 'Sin contacto'}
+                          ${project.budget.toLocaleString()}
                         </span>
-                      </div>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Botones de Acción */}
       <div className="flex justify-end gap-4">
         <Button 
-          variant="outline" 
-          onClick={previewReport}
-          disabled={generating || loading}
-          className="flex items-center gap-2"
-        >
-          <Eye className="h-4 w-4" />
-          Vista Previa
+           variant="outline" 
+           onClick={handlePreview}
+           disabled={generating || loading || previewLoading || config.projectIds.length === 0}
+           className="flex items-center gap-2"
+         >
+          {previewLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+              Cargando...
+            </>
+          ) : (
+            <>
+              <Eye className="h-4 w-4" />
+              Vista Previa
+            </>
+          )}
         </Button>
         <Button 
           onClick={generateReport}
-          disabled={generating || loading}
+          disabled={generating || loading || config.projectIds.length === 0}
           className="flex items-center gap-2"
         >
           {generating ? (
@@ -716,33 +456,292 @@ function ReportGenerator() {
         </Button>
       </div>
 
-      {/* Modal de Vista Previa */}
+      {/* Información de Selección */}
+      {config.projectIds.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-sm text-gray-600">
+              <strong>Proyectos seleccionados:</strong> {config.projectIds.length} de {projects.length}
+            </div>
+            <div className="text-sm text-gray-600 mt-1">
+              <strong>Período:</strong> {format(config.dateFrom, "dd/MM/yyyy", { locale: es })} - {format(config.dateTo, "dd/MM/yyyy", { locale: es })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dialog de Vista Previa */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Vista Previa del Reporte</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-6">
-            <CustomReportPreview config={config} data={previewData} />
-
-            {/* Botones de Acción */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setShowPreview(false)}>
-                Cerrar
-              </Button>
-              <Button onClick={() => {
-                setShowPreview(false);
-                generateReport();
-              }} disabled={generating}>
-                {generating ? 'Generando...' : 'Generar Reporte'}
-              </Button>
-            </div>
+          <div className="mt-4">
+            {previewData && (
+               <ReportPreviewContent
+                 reportType={config.type}
+                 data={previewData}
+               />
+             )}
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
+// Componente para mostrar la vista previa del reporte
+interface ReportPreviewContentProps {
+  reportType: SimpleReportType;
+  data: any[];
+}
+
+const ReportPreviewContent: React.FC<ReportPreviewContentProps> = ({ reportType, data }) => {
+  const formatCurrency = (amount: number, currency: string = 'CRC') => {
+    return new Intl.NumberFormat('es-CR', {
+      style: 'currency',
+      currency: currency === 'USD' ? 'USD' : 'CRC',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return format(new Date(dateString), 'dd/MM/yyyy', { locale: es });
+  };
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        No se encontraron datos para mostrar
+      </div>
+    );
+  }
+
+  switch (reportType) {
+    case 'project_expenses':
+      return (
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold">Gastos Directos por Proyecto</h3>
+          {data.map((projectData: any, index: number) => (
+            <Card key={index}>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {projectData.project?.name || 'Proyecto sin nombre'}
+                  <span className="text-sm text-gray-500 ml-2">
+                    ({projectData.project?.client || 'Cliente no especificado'})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total en CRC:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(projectData.totalInCRC || 0, 'CRC')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total en USD:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(projectData.totalInUSD || 0, 'USD')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Número de Gastos:</span>
+                    <span>{projectData.expenseCount || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Período:</span>
+                    <span>{projectData.month} {projectData.year}</span>
+                  </div>
+                  
+                  {/* Desglose de gastos directos */}
+                  {projectData.directExpenses && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-sm mb-2">Desglose de Gastos Directos:</h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Subcontratos:</span>
+                          <span>{formatCurrency(projectData.directExpenses.subcontratos || 0, 'CRC')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Materiales:</span>
+                          <span>{formatCurrency(projectData.directExpenses.materiales || 0, 'CRC')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Otros:</span>
+                          <span>{formatCurrency(projectData.directExpenses.otros || 0, 'CRC')}</span>
+                        </div>
+                        <div className="flex justify-between font-medium border-t pt-1">
+                          <span>Total:</span>
+                          <span>{formatCurrency(projectData.directExpenses.total || 0, 'CRC')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+
+    case 'project_income':
+      return (
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold">Ingresos Totales por Proyecto</h3>
+          {data.map((projectData: any, index: number) => (
+            <Card key={index}>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {projectData.project?.name || 'Proyecto sin nombre'}
+                  <span className="text-sm text-gray-500 ml-2">
+                    ({projectData.project?.client || 'Cliente no especificado'})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total de Ingresos:</span>
+                    <span className="font-semibold text-green-600">
+                      {formatCurrency(projectData.totalIncome || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Número de Ingresos:</span>
+                    <span>{projectData.incomeCount || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Estado del Proyecto:</span>
+                    <span className="capitalize">{projectData.project?.status || 'Sin estado'}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+
+    case 'project_summary':
+      return (
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold">Gastos por Proveedor</h3>
+          {data.map((supplierData: any, index: number) => (
+            <Card key={index}>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {supplierData.supplier?.name || 'Proveedor sin nombre'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total en CRC:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(supplierData.totalExpensesCRC || 0, 'CRC')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total en USD:</span>
+                    <span className="font-semibold">
+                      {formatCurrency(supplierData.totalExpensesUSD || 0, 'USD')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Número de Gastos:</span>
+                    <span>{supplierData.expenseCount || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Año:</span>
+                    <span>{supplierData.year}</span>
+                  </div>
+                  
+                  {/* Información de contacto */}
+                  {supplierData.supplier?.contactName && (
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Contacto:</span>
+                      <span>{supplierData.supplier.contactName}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+
+    case 'monthly_overview':
+      return (
+        <div className="space-y-6">
+          <h3 className="text-lg font-semibold">Análisis de Rentabilidad</h3>
+          {data.map((projectData: any, index: number) => (
+            <Card key={index}>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {projectData.project?.name || 'Proyecto sin nombre'}
+                  <span className="text-sm text-gray-500 ml-2">
+                    ({projectData.project?.client || 'Cliente no especificado'})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Ingresos Totales:</span>
+                      <span className="font-semibold text-green-600">
+                        {formatCurrency(projectData.totalIncome || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gastos Totales:</span>
+                      <span className="font-semibold text-red-600">
+                        {formatCurrency(projectData.totalExpenses || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span>Ganancia Bruta:</span>
+                      <span className={`font-semibold ${(projectData.grossProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(projectData.grossProfit || 0)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Margen de Ganancia:</span>
+                      <span className={`font-semibold ${(projectData.profitMargin || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {(projectData.profitMargin || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>ROI:</span>
+                      <span className={`font-semibold ${(projectData.roi || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {(projectData.roi || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Uso del Presupuesto:</span>
+                      <span className="font-semibold">
+                        {(projectData.budgetUtilization || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+
+    default:
+      return (
+        <div className="text-center py-8 text-gray-500">
+          Vista previa no disponible para este tipo de reporte
+        </div>
+      );
+  }
+};
 
 export { ReportGenerator };

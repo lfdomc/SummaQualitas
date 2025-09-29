@@ -112,10 +112,12 @@ SELECT
     p.status as project_status,
     c.name as client_name,
     COUNT(i.id) as total_incomes,
-    COALESCE(SUM(CASE WHEN i.status = 'confirmed' THEN i.amount ELSE 0 END), 0) as total_confirmed_amount,
-    COALESCE(SUM(CASE WHEN i.status = 'pending' THEN i.amount ELSE 0 END), 0) as total_pending_amount,
-    COALESCE(SUM(CASE WHEN i.status = 'confirmed' AND i.currency = 'USD' THEN i.amount ELSE 0 END), 0) as total_confirmed_usd,
-    COALESCE(SUM(CASE WHEN i.status = 'confirmed' AND i.currency = 'CRC' THEN i.amount ELSE 0 END), 0) as total_confirmed_crc,
+    COALESCE(SUM(i.amount), 0) as total_amount,
+    COALESCE(SUM(CASE WHEN i.status = 'confirmado' THEN i.amount ELSE 0 END), 0) as confirmed_amount,
+    COALESCE(SUM(CASE WHEN i.status = 'confirmado' THEN i.amount ELSE 0 END), 0) as total_confirmed_amount,
+    COALESCE(SUM(CASE WHEN i.status = 'pendiente' THEN i.amount ELSE 0 END), 0) as total_pending_amount,
+    COALESCE(SUM(CASE WHEN i.status = 'confirmado' AND i.currency = 'USD' THEN i.amount ELSE 0 END), 0) as total_confirmed_usd,
+    COALESCE(SUM(CASE WHEN i.status = 'confirmado' AND i.currency = 'CRC' THEN i.amount ELSE 0 END), 0) as total_confirmed_crc,
     MIN(i.received_date) as first_received_date,
     MAX(i.received_date) as last_received_date
 FROM public.projects p

@@ -245,7 +245,7 @@ const PageFooter: React.FC = () => {
   return (
     <View style={styles.footer}>
       <Text>Generated on {formattedDate}</Text>
-      <Text>Project Management System - Summa Qualitas</Text>
+      <Text>Project Management System - Summa Quálitas</Text>
     </View>
   );
 };

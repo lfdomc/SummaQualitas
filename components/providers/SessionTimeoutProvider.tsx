@@ -36,14 +36,14 @@ export function SessionTimeoutProvider({
       
       toast({
         title: "Sesión Expirada",
-        description: "Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.",
+        description: "Tu sesión ha expirado por inactividad. Serás redirigido a la página principal.",
         variant: "destructive",
       });
       
-      router.push('/login?reason=session_timeout');
+      router.push('/?reason=session_timeout');
     } catch (error) {
       console.error('Error al cerrar sesión por timeout:', error);
-      router.push('/login?reason=session_timeout');
+      router.push('/?reason=session_timeout');
     }
   }, [supabase, router]);
 
@@ -76,10 +76,10 @@ export function SessionTimeoutProvider({
         description: "Has cerrado sesión exitosamente.",
       });
       
-      router.push('/login');
+      router.push('/');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-      router.push('/login');
+      router.push('/');
     }
   }, [supabase, router]);
 

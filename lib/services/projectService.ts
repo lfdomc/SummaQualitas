@@ -93,7 +93,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
     }
 
     // Normalizar campos de presupuesto y migrar si es necesario
-    const normalizedProject = normalizeBudgetFields(data);
+    const normalizedProject = await normalizeBudgetFields(data);
     
     // Si los campos fueron normalizados (diferentes del original), migrar en la base de datos
     if (normalizedProject.presupuesto_original !== data.presupuesto_original || 

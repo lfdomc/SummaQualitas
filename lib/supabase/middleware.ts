@@ -13,6 +13,12 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Skip middleware processing for auth pages to avoid interference with auth flow
+  if (request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/auth")) {
+    console.log('🔄 [Middleware] Skipping middleware for auth page:', request.nextUrl.pathname);
+    return supabaseResponse;
+  }
+
   // With Fluid compute, don't put this client in a global environment
   // variable. Always create a new one on each request.
   const supabase = createServerClient(
@@ -44,8 +50,10 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: If you remove getClaims() and you use server-side rendering
   // with the Supabase client, your users may be randomly logged out.
+  console.log(`🔄 [Middleware] Processing ${request.nextUrl.pathname}`);
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
+  console.log(`🔄 [Middleware] User claims:`, user ? 'authenticated' : 'not authenticated');
 
   if (
     request.nextUrl.pathname !== "/" &&

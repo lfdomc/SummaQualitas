@@ -44,7 +44,7 @@ export class CustomPDFGenerator {
     // Logo/Empresa (placeholder)
     this.doc.setFontSize(18);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('SUMMA QUALITAS', this.margin, this.currentY);
+    this.doc.text('SUMMA QUÁLITAS', this.margin, this.currentY);
     
     this.currentY += 8;
     this.doc.setFontSize(12);

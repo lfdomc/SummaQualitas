@@ -48,6 +48,48 @@
 | | TypeScript | 5+ | Tipado estático |
 | | Tailwind CSS | 3.4+ | Framework CSS utility-first |
 | **Backend** | Supabase | 2.55+ | Base de datos y autenticación |
+
+## 🚀 Despliegue Rápido
+
+### Vercel (Recomendado)
+1. **Fork/Clone** este repositorio
+2. **Conecta** tu cuenta de GitHub con Vercel
+3. **Importa** el proyecto en Vercel
+4. **Configura** las variables de entorno:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
+   SUPABASE_SERVICE_ROLE_KEY=tu_clave_de_servicio
+   ```
+5. **Despliega** automáticamente
+
+### Variables de Entorno Requeridas
+```bash
+# Copia .env.example a .env.local
+cp .env.example .env.local
+
+# Edita .env.local con tus credenciales de Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_aqui
+SUPABASE_SERVICE_ROLE_KEY=tu_clave_de_servicio_aqui
+```
+
+## 🐛 Debug del Login (Problema Conocido)
+
+### Problema Actual
+- Los logs se cortan después del POST request exitoso a Supabase
+- El problema persiste tanto en desarrollo como en diferentes navegadores
+- La configuración de Supabase es correcta
+
+### Para Testing
+1. **Login Básico**: Visita `/simple-login` para testing simplificado
+2. **Logs de Debug**: Abre DevTools para ver logs detallados
+3. **Variables**: Verifica que las variables de entorno estén configuradas
+
+### Rutas de Testing
+- `/simple-login` - Componente de login simplificado para debugging
+- `/login` - Componente de login principal
+- `/dashboard` - Destino después del login exitoso
 | | PostgreSQL | - | Base de datos relacional |
 | **UI/UX** | shadcn/ui | - | Componentes UI modernos |
 | | Radix UI | - | Primitivos UI accesibles |

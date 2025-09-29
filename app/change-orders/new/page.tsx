@@ -60,18 +60,33 @@ export default function NewChangeOrderPage() {
   useEffect(() => {
     if (user) {
       fetchProjects();
+      // Establecer el diseñador por defecto como el usuario actual
+      if (user.user_metadata?.full_name || user.email) {
+        setFormData(prev => ({
+          ...prev,
+          designer: user.user_metadata?.full_name || user.email || ''
+        }));
+      }
     }
   }, [user]);
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setProjects(data || []);
+      const response = await fetch('/api/projects/admin');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // El endpoint admin devuelve una estructura paginada: { data: Project[], total: number, page: number, limit: number, total_pages: number }
+      if (result.data && Array.isArray(result.data)) {
+        setProjects(result.data);
+      } else {
+        console.error('Error loading projects:', 'Invalid data structure - expected paginated response');
+        setProjects([]);
+      }
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast.error('Error al cargar los proyectos');
@@ -87,12 +102,18 @@ export default function NewChangeOrderPage() {
       
       // Calcular automáticamente el monto en colones cuando cambie el costo o la moneda
       if (field === 'cost_impact' || field === 'currency' || field === 'exchange_rate') {
-        const costImpact = field === 'cost_impact' ? value : updated.cost_impact;
-        const currency = field === 'currency' ? value : updated.currency;
-        const exchangeRate = field === 'exchange_rate' ? value : updated.exchange_rate;
+        const costImpact = typeof (field === 'cost_impact' ? value : updated.cost_impact) === 'number' 
+          ? (field === 'cost_impact' ? value : updated.cost_impact) as number
+          : parseFloat(String(field === 'cost_impact' ? value : updated.cost_impact)) || 0;
+        
+        const currency = field === 'currency' ? value as string : updated.currency as string;
+        
+        const exchangeRate = typeof (field === 'exchange_rate' ? value : updated.exchange_rate) === 'number'
+          ? (field === 'exchange_rate' ? value : updated.exchange_rate) as number
+          : parseFloat(String(field === 'exchange_rate' ? value : updated.exchange_rate)) || 500;
         
         if (currency === 'USD') {
-          updated.cost_impact_crc = costImpact * (exchangeRate || 500);
+          updated.cost_impact_crc = costImpact * exchangeRate;
         } else {
           updated.cost_impact_crc = costImpact;
         }
@@ -113,52 +134,57 @@ export default function NewChangeOrderPage() {
   };
 
   const validateForm = () => {
+    console.log('Starting simplified form validation...');
+    console.log('Form data:', formData);
+    
+    // Validación mínima - solo campos esenciales
     if (!formData.project_id) {
+      console.log('Validation failed: project_id is missing');
       toast.error('Por favor seleccione un proyecto');
       return false;
     }
     
-    if (!formData.change_type || !formData.title || !formData.designer || !formData.currency) {
-      toast.error('Por favor complete todos los campos requeridos');
+    if (!formData.title?.trim()) {
+      console.log('Validation failed: title is missing');
+      toast.error('Por favor ingrese un título');
       return false;
     }
     
-    if (!formData.description?.trim()) {
-      toast.error('Por favor ingrese una descripción');
-      return false;
-    }
-    
-    if (!formData.exchange_rate || formData.exchange_rate <= 0) {
-      toast.error('Por favor ingrese un tipo de cambio válido');
-      return false;
-    }
-    
+    console.log('Simplified form validation passed!');
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted!');
+    console.log('Form data:', formData);
     
     if (!validateForm()) {
+      console.log('Form validation failed');
       return;
     }
     
+    console.log('Form validation passed, proceeding with submission');
+    
     try {
-      setLoading(true);
-      
-      const response = await fetch('/api/change-orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+        setLoading(true);
+        console.log('Making API request...');
+        
+        const response = await fetch('/api/change-orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        console.log('API response received:', response.status);
       
       const result = await response.json();
       
       if (result.success) {
         toast.success('Orden de cambio creada exitosamente');
-        router.push('/change-orders');
+        router.push(`/change-orders?project_id=${formData.project_id}`);
       } else {
         toast.error(result.error || 'Error al crear la orden de cambio');
       }
@@ -498,6 +524,7 @@ export default function NewChangeOrderPage() {
 
         {/* Actions */}
         <div className="flex justify-end gap-4">
+
           <Link href="/change-orders">
             <Button type="button" variant="outline">
               Cancelar

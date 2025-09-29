@@ -223,55 +223,67 @@ export class ExpenseService {
   }
 
   /**
-   * Obtiene resumen de gastos por categoría
+   * Obtiene resumen de gastos por categoría usando consulta optimizada
    */
   async getExpensesSummaryByCategory(projectId?: string): Promise<ExpenseSummary[]> {
     try {
-      let query = this.supabase
-        .from('expenses')
-        .select('category, amount, currency, exchange_rate_usd');
+      // Intentar usar función RPC optimizada primero
+      const { data: rpcData, error: rpcError } = await this.supabase.rpc('get_expenses_summary_by_category', {
+        p_project_id: projectId
+      });
 
-      if (projectId) {
-        query = query.eq('project_id', projectId);
+      if (!rpcError && rpcData) {
+        return rpcData;
       }
 
-      const { data, error } = await query;
+      // Fallback a consulta optimizada con agregación en la base de datos
+      let baseQuery = this.supabase
+        .from('expenses')
+        .select(`
+          category,
+          currency,
+          sum(amount)::decimal as total_amount,
+          count(*)::integer as expense_count,
+          avg(amount)::decimal as avg_amount
+        `)
+        .group('category, currency');
+
+      if (projectId) {
+        baseQuery = baseQuery.eq('project_id', projectId);
+      }
+
+      const { data, error } = await baseQuery;
 
       if (error) {
         console.error('Error fetching expenses summary:', error);
         throw new Error(`Error al obtener resumen de gastos: ${error.message}`);
       }
 
-      // Procesar datos para crear resumen
-      const summaryMap = new Map<string, { total: number; totalUSD: number; count: number }>();
-      let grandTotal = 0;
+      // Procesar datos agrupados para crear resumen final
+      const categoryMap = new Map<string, { total: number; totalUSD: number; count: number }>();
       let grandTotalUSD = 0;
 
-      data?.forEach(expense => {
-        const category = expense.category;
-        const amount = expense.amount || 0;
-        const exchangeRate = expense.exchange_rate_usd || 1;
+      data?.forEach(row => {
+        const category = row.category;
+        const amount = parseFloat(row.total_amount) || 0;
+        const count = parseInt(row.expense_count) || 0;
         
-        let amountUSD = amount;
-        if (expense.currency === 'CRC') {
-          amountUSD = amount / exchangeRate;
-        }
-
-        grandTotal += amount;
+        // Conversión aproximada a USD (se puede mejorar con tipo de cambio real)
+        const amountUSD = row.currency === 'USD' ? amount : amount / 600;
         grandTotalUSD += amountUSD;
 
-        if (!summaryMap.has(category)) {
-          summaryMap.set(category, { total: 0, totalUSD: 0, count: 0 });
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, { total: 0, totalUSD: 0, count: 0 });
         }
 
-        const summary = summaryMap.get(category)!;
+        const summary = categoryMap.get(category)!;
         summary.total += amount;
         summary.totalUSD += amountUSD;
-        summary.count += 1;
+        summary.count += count;
       });
 
       // Convertir a array con porcentajes
-      const result: ExpenseSummary[] = Array.from(summaryMap.entries()).map(([category, summary]) => ({
+      const result: ExpenseSummary[] = Array.from(categoryMap.entries()).map(([category, summary]) => ({
         category: category as any,
         total: summary.total,
         totalUSD: summary.totalUSD,
@@ -279,7 +291,7 @@ export class ExpenseService {
         percentage: grandTotalUSD > 0 ? (summary.totalUSD / grandTotalUSD) * 100 : 0
       }));
 
-      return result;
+      return result.sort((a, b) => b.totalUSD - a.totalUSD);
     } catch (error) {
       console.error('Error in getExpensesSummaryByCategory:', error);
       throw error;
@@ -287,27 +299,36 @@ export class ExpenseService {
   }
 
   /**
-   * Obtiene resumen de gastos por proyecto
+   * Obtiene resumen de gastos por proyecto usando consulta optimizada
    */
   async getExpensesSummaryByProject(): Promise<ProjectExpenseSummary[]> {
     try {
+      // Intentar usar función RPC optimizada primero
+      const { data: rpcData, error: rpcError } = await this.supabase.rpc('get_expenses_summary_by_project');
+
+      if (!rpcError && rpcData) {
+        return rpcData;
+      }
+
+      // Fallback a consulta optimizada con agregación en la base de datos
       const { data, error } = await this.supabase
         .from('expenses')
         .select(`
           project_id,
-          amount,
           currency,
-          exchange_rate_usd,
+          sum(amount)::decimal as total_amount,
+          count(*)::integer as expense_count,
           project:projects(name)
-        `);
+        `)
+        .group('project_id, currency, project.name');
 
       if (error) {
         console.error('Error fetching project expenses summary:', error);
         throw new Error(`Error al obtener resumen por proyecto: ${error.message}`);
       }
 
-      // Procesar datos para crear resumen por proyecto
-      const summaryMap = new Map<string, { 
+      // Procesar datos agrupados para crear resumen final
+      const projectMap = new Map<string, { 
         project_name: string; 
         total: number; 
         totalUSD: number; 
@@ -315,21 +336,18 @@ export class ExpenseService {
       }>();
       let grandTotalUSD = 0;
 
-      data?.forEach(expense => {
-        const projectId = expense.project_id;
-        const projectName = expense.project?.name || 'Proyecto sin nombre';
-        const amount = expense.amount || 0;
-        const exchangeRate = expense.exchange_rate_usd || 1;
+      data?.forEach(row => {
+        const projectId = row.project_id;
+        const projectName = row.project?.name || 'Proyecto sin nombre';
+        const amount = parseFloat(row.total_amount) || 0;
+        const count = parseInt(row.expense_count) || 0;
         
-        let amountUSD = amount;
-        if (expense.currency === 'CRC') {
-          amountUSD = amount / exchangeRate;
-        }
-
+        // Conversión aproximada a USD (se puede mejorar con tipo de cambio real)
+        const amountUSD = row.currency === 'USD' ? amount : amount / 600;
         grandTotalUSD += amountUSD;
 
-        if (!summaryMap.has(projectId)) {
-          summaryMap.set(projectId, { 
+        if (!projectMap.has(projectId)) {
+          projectMap.set(projectId, { 
             project_name: projectName, 
             total: 0, 
             totalUSD: 0, 
@@ -337,14 +355,14 @@ export class ExpenseService {
           });
         }
 
-        const summary = summaryMap.get(projectId)!;
+        const summary = projectMap.get(projectId)!;
         summary.total += amount;
         summary.totalUSD += amountUSD;
-        summary.count += 1;
+        summary.count += count;
       });
 
       // Convertir a array con porcentajes
-      const result: ProjectExpenseSummary[] = Array.from(summaryMap.entries()).map(([projectId, summary]) => ({
+      const result: ProjectExpenseSummary[] = Array.from(projectMap.entries()).map(([projectId, summary]) => ({
         project_id: projectId,
         project_name: summary.project_name,
         total: summary.total,

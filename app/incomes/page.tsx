@@ -830,7 +830,7 @@ Clear Filters
                 id="reference"
                 value={incomeForm.reference}
                 onChange={(e) => setIncomeForm({ ...incomeForm, reference: e.target.value })}
-                placeholder="Número de referencia o factura"
+                placeholder="Número de referencia o gasto"
               />
             </div>
 
@@ -934,7 +934,7 @@ Clear Filters
                 onChange={handleAmountChange}
                 onFocus={() => {
                   if (incomeForm.amount === 0) {
-                    setIncomeForm({ ...incomeForm, amount: '' as any });
+                    setIncomeForm({ ...incomeForm, amount: 0 });
                   }
                 }}
                 placeholder="0.00"
@@ -1006,7 +1006,7 @@ Clear Filters
                 id="edit_reference"
                 value={incomeForm.reference}
                 onChange={(e) => setIncomeForm({ ...incomeForm, reference: e.target.value })}
-                placeholder="Número de referencia o factura"
+                placeholder="Número de referencia o gasto"
               />
             </div>
 

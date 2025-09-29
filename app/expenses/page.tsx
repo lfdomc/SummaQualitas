@@ -271,11 +271,11 @@ export default function ExpensesPage() {
         description: expenseForm.description.trim(),
         amount: inputAmount,
         currency: expenseForm.currency,
-        exchange_rate_usd: expenseForm.exchange_rate ? parseFloat(expenseForm.exchange_rate) : undefined,
+        exchange_rate: expenseForm.exchange_rate ? parseFloat(expenseForm.exchange_rate) : undefined,
         expense_date: expenseForm.date,
         supplier_id: expenseForm.supplier_id === 'none' ? undefined : expenseForm.supplier_id,
         invoice_number: expenseForm.invoice_number?.trim() || undefined,
-        payment_status: expenseForm.payment_status as any || 'pendiente',
+        payment_status: expenseForm.payment_status || 'pendiente',
         payment_date: expenseForm.payment_date || undefined,
         notes: expenseForm.notes?.trim() || undefined,
         receipt_url: expenseForm.receipt_url || undefined,
@@ -411,7 +411,7 @@ export default function ExpensesPage() {
         expense_date: expenseForm.date,
         supplier_id: expenseForm.supplier_id === 'none' ? undefined : expenseForm.supplier_id,
         invoice_number: expenseForm.invoice_number?.trim() || undefined,
-        payment_status: expenseForm.payment_status as any || 'pendiente',
+        payment_status: expenseForm.payment_status || 'pendiente',
         payment_date: expenseForm.payment_date || undefined,
         notes: expenseForm.notes?.trim() || undefined,
         receipt_url: expenseForm.receipt_url || undefined,
@@ -1008,7 +1008,7 @@ export default function ExpensesPage() {
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Comprobante de Factura</Label>
+                <Label>Comprobante de Gasto</Label>
                 <FileUpload
                   acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
                   maxFileSize={5 * 1024 * 1024}
@@ -1018,7 +1018,7 @@ export default function ExpensesPage() {
                   }}
                   onFileRemove={handleFileRemove}
                   existingFile={expenseForm.receipt_url ? {
-                    name: expenseForm.receipt_url.split('/').pop() || 'Comprobante de Factura',
+                    name: expenseForm.receipt_url.split('/').pop() || 'Comprobante de Gasto',
                     type: 'application/pdf',
                     size: 0,
                     url: expenseForm.receipt_url
@@ -1261,7 +1261,7 @@ export default function ExpensesPage() {
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Comprobante de Factura</Label>
+                <Label>Comprobante de Gasto</Label>
                 <FileUpload
                   onFileUpload={handleFileUpload}
                   onFileRemove={handleFileRemove}
@@ -1269,7 +1269,7 @@ export default function ExpensesPage() {
                   maxFileSize={5 * 1024 * 1024}
                   existingFile={expenseForm.receipt_url ? (() => {
                     const url = expenseForm.receipt_url;
-                    const fileName = url.split('/').pop() || 'Comprobante de Factura';
+                    const fileName = url.split('/').pop() || 'Comprobante de Gasto';
                     const fileExtension = fileName.split('.').pop()?.toLowerCase();
                     let fileType = 'application/octet-stream';
                     
@@ -1562,7 +1562,7 @@ export default function ExpensesPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Supplier</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-center">Factura</TableHead>
+                  <TableHead className="text-center">Gasto</TableHead>
                   <TableHead className="text-center">Referencia</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
@@ -1622,10 +1622,10 @@ export default function ExpensesPage() {
                             onClick={() => window.open(expense.receipt_url, '_blank')}
                             className="h-8 px-3"
                           >
-                            Ver factura
+                            Ver gasto
                           </Button>
                         ) : (
-                          <span className="text-gray-400 text-sm">Sin factura</span>
+                          <span className="text-gray-400 text-sm">Sin gasto</span>
                         )}
                       </TableCell>
                       <TableCell className="text-center">

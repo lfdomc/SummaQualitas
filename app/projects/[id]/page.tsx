@@ -129,14 +129,14 @@ function ProjectDetailPage() {
     }).format(amount);
   };
 
-  // Porcentajes por defecto para el desglose presupuestario
+  // Porcentajes por defecto para el desglose presupuestario (ajustados proporcionalmente)
   const DEFAULT_BUDGET_PERCENTAGES = {
-    costos_directos: 0.40,               // 40%
-    costos_indirectos: 0.20,             // 20%
-    administracion: 0.08,                // 8%
-    mano_obra: 0.25,                     // 25%
-    imprevistos: 0.05,                   // 5%
-    utilidad: 0.02                       // 2%
+    costos_directos: 0.650,              // 65.0%
+    costos_indirectos: 0.040,            // 4.0%
+    administracion: 0.100,               // 10.0%
+    mano_obra: 0.190,                    // 19.0%
+    imprevistos: 0.020,                  // 2.0%
+    utilidad: 0.000                      // 0.0%
   };
 
   // Función para calcular el desglose automático del presupuesto
@@ -157,9 +157,9 @@ function ProjectDetailPage() {
   // Calcular el desglose automático si los campos están vacíos
   const budgetBreakdown = calculateBudgetBreakdown(totalBudget);
   
-  // Función para obtener el valor del campo (solo valores reales de la base de datos)
+  // Función para obtener el valor del campo (prioriza valores calculados)
   const getBudgetValue = (fieldValue: number | null | undefined, calculatedValue: number): number => {
-    return fieldValue || 0;
+    return calculatedValue;
   };
 
   const calculateUSDAmount = (amount: number): number => {
@@ -199,7 +199,11 @@ function ProjectDetailPage() {
 
   // Función para calcular costo por quincena
   const calculateCostPerFortnight = (): number => {
-    if (!project?.mano_obra) return 0;
+    // Calcular el valor de mano de obra basado en el presupuesto final
+    const percentage = (project.mano_obra_porcentaje || DEFAULT_BUDGET_PERCENTAGES.mano_obra) / 100;
+    const manoObraValue = totalBudget * percentage;
+    
+    if (!manoObraValue) return 0;
     
     const fortnights = calculateFortnights(
       project.estimated_start_date || '',
@@ -209,7 +213,7 @@ function ProjectDetailPage() {
     if (fortnights === 0) return 0;
     
     // El costo total de mano de obra dividido entre el número de quincenas
-    return project.mano_obra / fortnights;
+    return manoObraValue / fortnights;
   };
 
   // Función para calcular meses entre dos fechas
@@ -583,7 +587,7 @@ function ProjectDetailPage() {
           {financialSummary && (
             <BudgetBreakdown 
               projectId={project.id}
-              totalBudget={project.budget || 0}
+              totalBudget={totalBudget}
               exchangeRate={project.exchange_rate_usd || 500}
             />
           )}
@@ -613,7 +617,7 @@ function ProjectDetailPage() {
         <TabsContent value="analysis" className="space-y-6">
           <ProjectFinancialAnalysis 
             projectId={project.id}
-            projectBudget={project.budget || 0}
+            projectBudget={totalBudget}
             projectExpenses={financialSummary?.expenses ? {
               total: financialSummary.expenses.total || 0,
               byCategory: financialSummary.expenses.byCategory || {}

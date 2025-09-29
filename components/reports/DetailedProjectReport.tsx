@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Project, ChangeOrder } from '@/types/database';
 import { Income, Expense } from '@/types/database';
 import { projectService, incomeService, expenseService } from '@/lib/supabase/database';
+import { AggregatedQueryService } from '@/lib/services/aggregatedQueryService';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { translateCategory } from '@/lib/utils';
@@ -73,7 +74,7 @@ const PageHeader = ({ pageNumber, totalPages, projectName }: { pageNumber: numbe
     <div className="flex items-center">
       <img 
         src="/images/summa/logo_2b.png" 
-        alt="Summa Qualitas Logo" 
+        alt="Summa Quálitas Logo" 
         className="w-24 h-12 mr-4 object-contain"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
@@ -90,7 +91,7 @@ const PageHeader = ({ pageNumber, totalPages, projectName }: { pageNumber: numbe
       </div>
     </div>
     <div className="text-right">
-      <h1 className="text-md font-bold" style={{ color: '#2980b9' }}>SUMMA QUALITAS</h1>
+      <h1 className="text-md font-bold" style={{ color: '#2980b9' }}>SUMMA QUÁLITAS</h1>
       <p className="text-xs" style={{ color: '#2980b9' }}>Corporate ID: 3-102-849290</p>
       <p className="text-xs text-gray-500 mt-1">Page {pageNumber} of {totalPages}</p>
     </div>
@@ -197,6 +198,10 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [currentSection, setCurrentSection] = useState<ReportSection>('incomes');
   const [loading, setLoading] = useState(false);
+  
+  // Inicializar servicios
+  const supabase = createClient();
+  const aggregatedQueryService = new AggregatedQueryService(supabase);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [exchangeRate, setExchangeRate] = useState<number>(500); // Tipo de cambio por defecto
   const [tempExchangeRate, setTempExchangeRate] = useState<string>('500'); // Estado temporal para el input
@@ -232,7 +237,6 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         // Si no hay proyectos disponibles, intentar obtener project_ids desde ingresos
         try {
             // Usar cliente de Supabase directamente para obtener project_ids
-            const supabase = createClient();
             const { data: incomes } = await supabase
               .from('incomes')
               .select('project_id')
@@ -285,11 +289,43 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       }
       setLoadingMessage('Obteniendo datos del servidor...');
       
-      // Ejecutar todas las consultas en paralelo para mejorar el rendimiento
+      // Usar el servicio agregado optimizado para obtener todos los datos en una sola consulta
+      try {
+        setLoadingMessage('Obteniendo datos optimizados...');
+        const aggregatedData = await aggregatedQueryService.getProjectReportData(selectedProjectId);
+        
+        if (aggregatedData) {
+          setReportData(aggregatedData);
+          
+          // Guardar en caché
+          dataCache.set(cacheKey, {
+            data: aggregatedData,
+            timestamp: now
+          });
+          
+          setLoading(false);
+          setLoadingMessage('');
+          return;
+        }
+      } catch (aggregatedError) {
+        console.warn('Error con consulta agregada, usando fallback:', aggregatedError);
+      }
+      
+      // Fallback: Ejecutar consultas en paralelo (método anterior optimizado)
+      setLoadingMessage('Obteniendo datos en paralelo...');
       const [incomes, expenses, changeOrdersResponse] = await Promise.all([
         incomeService.getProjectIncomes(selectedProjectId),
         expenseService.getProjectExpenses(selectedProjectId),
-        fetch(`/api/change-orders?project_id=${selectedProjectId}`)
+        fetch(`/api/change-orders?project_id=${selectedProjectId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(30000) // 30 segundos timeout
+        }).catch(error => {
+          console.warn('Error fetching change orders:', error);
+          return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        })
       ]);
       
 
@@ -329,11 +365,20 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         toast.info('Datos del proyecto cargados desde transacciones');
       }
 
-      // Procesar respuesta de órdenes de cambio
-      const changeOrdersData = changeOrdersResponse.ok ? await changeOrdersResponse.json() : [];
-      
-      // La API puede devolver { data: [...] } o directamente [...]
-      const changeOrders = Array.isArray(changeOrdersData) ? changeOrdersData : (changeOrdersData.data || []);
+      // Procesar respuesta de órdenes de cambio con manejo robusto de errores
+      let changeOrders: ChangeOrder[] = [];
+      try {
+        if (changeOrdersResponse && changeOrdersResponse.ok) {
+          const changeOrdersData = await changeOrdersResponse.json();
+          // La API puede devolver { data: [...] } o directamente [...]
+          changeOrders = Array.isArray(changeOrdersData) ? changeOrdersData : (changeOrdersData.data || []);
+        } else {
+          console.warn('Change orders API response not ok:', changeOrdersResponse?.status);
+        }
+      } catch (error) {
+        console.warn('Error parsing change orders response:', error);
+        changeOrders = [];
+      }
 
 
 
@@ -994,27 +1039,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
                   convertCurrency={convertCurrency}
                   formatCurrency={formatCurrency}
                 />
-                {/* Debug temporal - mostrar información de gastos */}
-                <Card className="mt-4 bg-yellow-50 border-yellow-200">
-                  <CardHeader>
-                    <CardTitle className="text-sm text-yellow-800">Debug Info - Costos Directos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xs space-y-2">
-                      <p><strong>Total gastos cargados:</strong> {reportData.expenses.length}</p>
-                      <p><strong>Gastos con categoría 'costos_directos':</strong> {reportData.expenses.filter(e => e.category === 'costos_directos').length}</p>
-                      <p><strong>Categorías encontradas:</strong> {[...new Set(reportData.expenses.map(e => e.category))].join(', ')}</p>
-                      <p><strong>Primeros 3 gastos con reference/invoice:</strong></p>
-                      <ul className="ml-4">
-                        {reportData.expenses.slice(0, 3).map((expense, i) => (
-                          <li key={i}>
-                            {expense.description} - Cat: {expense.category} - Ref: {expense.reference || 'N/A'} - Invoice: {expense.invoice_number || 'N/A'}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
+
               </div>
             )}
             {currentSection === 'costos_indirectos' && (
@@ -1025,27 +1050,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
                   convertCurrency={convertCurrency}
                   formatCurrency={formatCurrency}
                 />
-                {/* Debug temporal - mostrar información de gastos */}
-                <Card className="mt-4 bg-blue-50 border-blue-200">
-                  <CardHeader>
-                    <CardTitle className="text-sm text-blue-800">Debug Info - Costos Indirectos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xs space-y-2">
-                      <p><strong>Total gastos cargados:</strong> {reportData.expenses.length}</p>
-                      <p><strong>Gastos con categoría 'costos_indirectos':</strong> {reportData.expenses.filter(e => e.category === 'costos_indirectos').length}</p>
-                      <p><strong>Categorías encontradas:</strong> {[...new Set(reportData.expenses.map(e => e.category))].join(', ')}</p>
-                      <p><strong>Gastos con reference o invoice_number:</strong></p>
-                      <ul className="ml-4">
-                        {reportData.expenses.filter(e => e.reference || e.invoice_number).slice(0, 5).map((expense, i) => (
-                          <li key={i}>
-                            {expense.description} - Cat: {expense.category} - Ref: {expense.reference || 'N/A'} - Invoice: {expense.invoice_number || 'N/A'}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
+
               </div>
             )}
             {currentSection === 'mano_obra' && (
@@ -1468,27 +1473,32 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                         </td>
                         <td className="p-2">
                           <span className={`px-2 py-1 rounded text-xs ${
-                            changeOrder.impact_type === 'positivo' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                            changeOrder.impact_type === 'positivo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                             {changeOrder.impact_type === 'positivo' ? '+' : '-'}
                           </span>
                         </td>
-                        <td className="p-2" style={{ color: changeOrder.impact_type === 'positivo' ? '#e74c3c' : '#27ae60' }}>
+                        <td className="p-2" style={{ color: changeOrder.impact_type === 'positivo' ? '#27ae60' : '#e74c3c' }}>
                           {changeOrder.impact_type === 'positivo' ? '+' : '-'}
                           {formatCurrency(changeOrder.cost_impact_crc || 0, 'CRC')}
                         </td>
-                        <td className="p-2" style={{ color: changeOrder.impact_type === 'positivo' ? '#e74c3c' : '#27ae60' }}>
+                        <td className="p-2" style={{ color: changeOrder.impact_type === 'positivo' ? '#27ae60' : '#e74c3c' }}>
                           {changeOrder.impact_type === 'positivo' ? '+' : '-'}
                           {formatCurrency(convertCurrency(changeOrder.cost_impact_crc || 0, 'CRC', 'USD'), 'USD')}
                         </td>
                         <td className="p-2">
                           <span className={`px-2 py-1 rounded text-xs ${
-                            changeOrder.status === 'approved' ? 'bg-green-100 text-green-800' :
-                            changeOrder.status === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
+                            changeOrder.status === 'aprobado' ? 'bg-green-100 text-green-800' :
+                            changeOrder.status === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                            changeOrder.status === 'rechazado' ? 'bg-red-100 text-red-800' :
+                            changeOrder.status === 'implementado' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
                           }`}>
-                            {changeOrder.status === 'approved' ? 'Approved' :
-                             changeOrder.status === 'pending_approval' ? 'Pending' : 'Rejected'}
+                            {changeOrder.status === 'aprobado' ? 'Approved' :
+                             changeOrder.status === 'pendiente' ? 'Pending' :
+                             changeOrder.status === 'rechazado' ? 'Rejected' :
+                             changeOrder.status === 'implementado' ? 'Implemented' :
+                             'Draft'}
                           </span>
                         </td>
                       </tr>
@@ -1499,7 +1509,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                         <td className="p-2 font-bold" style={{ color: '#2980b9' }}>
                           {formatCurrency(
                             changeOrders
-                              .filter(co => co.status === 'approved')
+                              .filter(co => co.status === 'aprobado')
                               .reduce((sum, co) => {
                                 const impact = co.cost_impact_crc || 0;
                                 return sum + (co.impact_type === 'positivo' ? impact : -impact);
@@ -1511,7 +1521,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
                           {formatCurrency(
                             convertCurrency(
                               changeOrders
-                                .filter(co => co.status === 'approved')
+                                .filter(co => co.status === 'aprobado')
                                 .reduce((sum, co) => {
                                   const impact = co.cost_impact_crc || 0;
                                   return sum + (co.impact_type === 'positivo' ? impact : -impact);

@@ -68,11 +68,11 @@ const navigationItems: NavigationItem[] = [
     description: 'Gestión de equipos'
   },
   {
-    title: 'Facturas',
+    title: 'Gastos',
     href: '/invoices',
     icon: CreditCard,
     roles: [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE],
-    description: 'Facturación y pagos'
+    description: 'Gestión de gastos'
   },
   {
     title: 'Reportes',
@@ -168,7 +168,7 @@ function SidebarContent({ userRole, onItemClick }: SidebarContentProps) {
                 <span>Acceso de solo lectura a proyectos</span>
               )}
               {userRole === UserRole.CLIENTE && (
-                <span>Acceso a tus proyectos y facturas</span>
+                <span>Acceso a tus proyectos y gastos</span>
               )}
             </div>
           </div>

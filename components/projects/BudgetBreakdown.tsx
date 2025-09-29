@@ -124,7 +124,8 @@ export function BudgetBreakdown({ projectId, totalBudget, exchangeRate = 500, on
   };
 
   const getTotalEstimated = () => {
-    return budgetItems.reduce((sum, item) => sum + item.estimated_cost, 0);
+    // Usar directamente el presupuesto total del proyecto
+    return totalBudget;
   };
 
   const getTotalActual = () => {

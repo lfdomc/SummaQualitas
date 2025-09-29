@@ -607,6 +607,16 @@ export class ProjectService {
         return acc;
       }, {});
       
+      // Mapear categorías a la estructura esperada por ProjectFinancialAnalysis
+      const mappedByCategory = {
+        costos_directos: expensesByCategory['costos_directos'] || 0,
+        costos_indirectos: expensesByCategory['costos_indirectos'] || 0,
+        administracion: expensesByCategory['administracion'] || 0,
+        mano_obra: expensesByCategory['mano_obra'] || 0,
+        imprevistos: expensesByCategory['imprevistos'] || 0,
+        utilidad: 0 // La utilidad no es un gasto, se mantiene en 0
+      };
+      
       // Calcular total de gastos
       const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
       
@@ -615,7 +625,7 @@ export class ProjectService {
         ...projectData,
         expenses: {
           total: totalExpenses,
-          byCategory: expensesByCategory,
+          byCategory: mappedByCategory,
           items: expenses
         },
         remainingBudget: projectData.budget - totalExpenses,
@@ -1031,30 +1041,121 @@ export class IncomeService {
   }
 
   async getProjectIncomesSummary(projectId: string): Promise<ProjectIncomesSummary> {
-    const { data, error } = await this.supabase
-      .from('project_incomes_summary')
-      .select('*')
-      .eq('project_id', projectId)
-      .single();
+    try {
+      // Intentar usar función RPC optimizada primero
+      const { data: rpcData, error: rpcError } = await this.supabase.rpc('get_project_incomes_summary', {
+        p_project_id: projectId
+      });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return {
-          project_id: projectId,
-          project_name: '',
-          project_status: '',
-          total_incomes: 0,
-          total_amount: 0,
-          confirmed_amount: 0,
-          total_confirmed_amount: 0,
-          total_pending_amount: 0,
-          total_confirmed_usd: 0,
-          total_confirmed_crc: 0
-        };
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        return rpcData[0];
       }
-      throw error;
+
+      // Fallback a consulta optimizada con agregación en la base de datos
+      const { data: summaryData, error: summaryError } = await this.supabase
+        .from('incomes')
+        .select(`
+          project_id,
+          status,
+          currency,
+          count(*)::integer as income_count,
+          sum(amount)::decimal as total_amount,
+          min(received_date) as first_received_date,
+          max(received_date) as last_received_date,
+          projects!inner(name, status, clients(name))
+        `)
+        .eq('project_id', projectId)
+        .group('project_id, status, currency, projects.name, projects.status, projects.clients.name');
+
+      if (summaryError) {
+        console.error('Error getting incomes summary:', summaryError);
+        throw new Error(`Error al obtener resumen de ingresos: ${summaryError.message}`);
+      }
+
+      // Procesar datos agregados
+      const summaryRows = summaryData || [];
+      let totalIncomes = 0;
+      let totalAmount = 0;
+      let confirmedAmount = 0;
+      let pendingAmount = 0;
+      let confirmedUSD = 0;
+      let confirmedCRC = 0;
+      let firstReceivedDate: string | undefined;
+      let lastReceivedDate: string | undefined;
+      let projectName = '';
+      let projectStatus = '';
+      let clientName = '';
+
+      summaryRows.forEach(row => {
+        const count = parseInt(row.income_count) || 0;
+        const amount = parseFloat(row.total_amount) || 0;
+        const status = row.status;
+        const currency = row.currency;
+
+        totalIncomes += count;
+        totalAmount += amount;
+
+        // Obtener información del proyecto (solo una vez)
+        if (!projectName && row.projects) {
+          const project = row.projects as any;
+          projectName = project.name || '';
+          projectStatus = project.status || '';
+          clientName = project.clients?.name || '';
+        }
+
+        // Fechas de primer y último ingreso
+        if (row.first_received_date && (!firstReceivedDate || row.first_received_date < firstReceivedDate)) {
+          firstReceivedDate = row.first_received_date;
+        }
+        if (row.last_received_date && (!lastReceivedDate || row.last_received_date > lastReceivedDate)) {
+          lastReceivedDate = row.last_received_date;
+        }
+
+        // Calcular montos por status
+        if (status === 'confirmed' || status === 'confirmado') {
+          confirmedAmount += amount;
+          if (currency === 'USD') {
+            confirmedUSD += amount;
+          } else if (currency === 'CRC') {
+            confirmedCRC += amount;
+          }
+        } else if (status === 'pending' || status === 'pendiente') {
+          pendingAmount += amount;
+        }
+      });
+
+      return {
+        project_id: projectId,
+        project_name: projectName,
+        project_status: projectStatus,
+        client_name: clientName,
+        total_incomes: totalIncomes,
+        total_amount: totalAmount,
+        confirmed_amount: confirmedAmount,
+        total_confirmed_amount: confirmedAmount,
+        total_pending_amount: pendingAmount,
+        total_confirmed_usd: confirmedUSD,
+        total_confirmed_crc: confirmedCRC,
+        first_received_date: firstReceivedDate,
+        last_received_date: lastReceivedDate
+      };
+    } catch (error) {
+      console.error('Unexpected error in getProjectIncomesSummary:', error);
+      
+      // Devolver valores por defecto en caso de error
+      return {
+        project_id: projectId,
+        project_name: '',
+        project_status: '',
+        total_incomes: 0,
+        total_amount: 0,
+        confirmed_amount: 0,
+        total_confirmed_amount: 0,
+        total_pending_amount: 0,
+        total_confirmed_usd: 0,
+        total_confirmed_crc: 0
+      };
     }
-    return data;
   }
 
   async createIncome(incomeData: CreateIncomeData): Promise<Income> {

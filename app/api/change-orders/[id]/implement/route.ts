@@ -11,7 +11,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient(request);
-    const { id } = params;
+    const { id } = await params;
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
     
-    // Verificar que la orden esté en estado 'approved'
-    if (changeOrder.status !== 'approved') {
+    // Verificar que la orden esté en estado 'aprobado'
+    if (changeOrder.status !== 'aprobado') {
       return NextResponse.json(
         { success: false, error: 'Solo se pueden implementar órdenes de cambio aprobadas' },
         { status: 400 }
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     
     // Verificar que no esté ya implementada
-    if (changeOrder.status === 'implemented') {
+    if (changeOrder.status === 'implementado') {
       return NextResponse.json(
         { success: false, error: 'Esta orden de cambio ya está implementada' },
         { status: 400 }
@@ -68,7 +68,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     
     // Calcular nuevo presupuesto final
     const currentBudget = project.presupuesto_final || project.presupuesto_original || 0;
-    const newBudget = currentBudget + (changeOrder.budget_impact || 0);
+    const impactAmount = changeOrder.cost_impact_crc || changeOrder.cost_impact || 0;
+    const budgetImpact = changeOrder.impact_type === 'positivo' ? impactAmount : -impactAmount;
+    const newBudget = currentBudget + budgetImpact;
     
     // Calcular nuevas fechas si hay impacto en cronograma
     let newEndDate = project.estimated_end_date;
@@ -82,8 +84,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: updatedOrder, error: orderUpdateError } = await supabase
       .from('change_orders')
       .update({
-        status: 'implemented',
-        implemented_at: new Date().toISOString(),
+        status: 'implementado',
+        implementation_date: new Date().toISOString().split('T')[0],
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -121,8 +123,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       await supabase
         .from('change_orders')
         .update({
-          status: 'approved',
-          implemented_at: null,
+          status: 'aprobado',
+          implementation_date: null,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);

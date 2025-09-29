@@ -21,7 +21,7 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <LoginForm />
+        <LoginForm redirectTo="/dashboard" />
       </div>
 
       <div className="mt-8 text-center">

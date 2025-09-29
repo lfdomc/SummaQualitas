@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,93 +47,168 @@ import {
   CheckCircle,
   Eye,
 } from 'lucide-react';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { ChangeOrder, Project } from '@/types/database';
 
 export default function ChangeOrdersPage() {
-  const { user } = useAuthContext();
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProjects, setLoadingProjects] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   const supabase = createClient();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Leer project_id de la URL al cargar la página
+  useEffect(() => {
+    const projectIdFromUrl = searchParams.get('project_id');
+    if (projectIdFromUrl) {
+      setSelectedProject(projectIdFromUrl);
+    }
+  }, [searchParams]);
+
+  // Cargar proyectos una sola vez al inicio
   useEffect(() => {
     if (user) {
-      fetchData();
+      fetchProjects();
     }
   }, [user]);
 
   // Debounced search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (user && (selectedStatus !== 'all' || selectedType !== 'all' || selectedProject !== 'all' || searchTerm)) {
-        fetchData();
+      if (user) {
+        setCurrentPage(1); // Reset page when search changes
       }
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [selectedStatus, selectedType, selectedProject, searchTerm]);
+  }, [searchTerm]);
 
-  const fetchData = useCallback(async () => {
+  // Cargar órdenes de cambio cuando cambian los filtros o la página
+  useEffect(() => {
+    if (user) {
+      fetchChangeOrders();
+    }
+  }, [user, selectedStatus, selectedType, selectedProject, searchTerm, currentPage]);
+
+  // Cleanup effect para cancelar solicitudes pendientes
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const fetchProjects = useCallback(async () => {
+    if (!user) return;
+    
+    // Intentar cargar desde caché primero
+    const cacheKey = `projects_${user.id}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+    
+    // Si hay datos en caché y no han pasado más de 5 minutos, usarlos
+    if (cachedData && cacheTime) {
+      const timeDiff = Date.now() - parseInt(cacheTime);
+      if (timeDiff < 5 * 60 * 1000) { // 5 minutos
+        setProjects(JSON.parse(cachedData));
+        return;
+      }
+    }
+    
+    setLoadingProjects(true);
     try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      
+      const projectsData = data || [];
+      setProjects(projectsData);
+      
+      // Guardar en caché
+      localStorage.setItem(cacheKey, JSON.stringify(projectsData));
+      localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los proyectos",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingProjects(false);
+    }
+  }, [user, supabase, toast]);
+
+  const fetchChangeOrders = useCallback(async () => {
+    try {
+      // Cancelar solicitud anterior si existe
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Crear nuevo AbortController
+      abortControllerRef.current = new AbortController();
+      
       setLoading(true);
       
-      // Construir parámetros de consulta
+      // Construir parámetros de consulta con paginación
       const params = new URLSearchParams();
       if (selectedStatus !== 'all') params.append('status', selectedStatus);
       if (selectedType !== 'all') params.append('type', selectedType);
       if (selectedProject !== 'all') params.append('project_id', selectedProject);
       if (searchTerm) params.append('search', searchTerm);
+      params.append('page', currentPage.toString());
+      params.append('limit', '20'); // Reducir a 20 registros por página
       
       // Fetch change orders via API
-      const response = await fetch(`/api/change-orders?${params.toString()}`);
+      const response = await fetch(`/api/change-orders?${params.toString()}`, {
+        signal: abortControllerRef.current.signal
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       
       if (result.success) {
         setChangeOrders(result.data || []);
+        setTotalPages(result.pagination?.totalPages || 1);
+        setTotalRecords(result.pagination?.total || 0);
       } else {
         console.error('Error fetching change orders:', result.error);
         toast.error('Error al cargar las órdenes de cambio');
       }
-
-      // Fetch projects
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select('*')
-        .order('name');
-
-      if (projectsError) throw projectsError;
-
-      setProjects(projectsData || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Error al cargar los datos');
+    } catch (error: any) {
+      // No mostrar error si la solicitud fue cancelada
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching change orders:', error);
+        toast.error('Error al cargar las órdenes de cambio');
+      }
     } finally {
       setLoading(false);
     }
-  }, [user, selectedStatus, selectedType, selectedProject, searchTerm]);
+  }, [selectedStatus, selectedType, selectedProject, searchTerm, currentPage]);
 
-  const filteredChangeOrders = useMemo(() => {
-    return changeOrders.filter(order => {
-      const matchesSearch = order.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.designer?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Si no hay proyecto seleccionado o es 'all', mostrar todas las órdenes
-      const matchesProject = !selectedProject || selectedProject === 'all' || order.project_id === selectedProject;
-      const matchesType = selectedType === 'all' || order.change_type === selectedType;
-      const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
-      
-      return matchesSearch && matchesProject && matchesType && matchesStatus;
-    });
-  }, [changeOrders, selectedProject, searchTerm, selectedType, selectedStatus]);
+  // Ya no necesitamos filtrado local porque se hace en el servidor
+  const displayedChangeOrders = changeOrders;
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -186,7 +262,7 @@ export default function ChangeOrdersPage() {
       
       if (result.success) {
         toast.success('Orden de cambio implementada exitosamente');
-        fetchData(); // Refresh the data
+        fetchChangeOrders(); // Refresh the data
       } else {
         toast.error(result.error || 'Error al implementar la orden de cambio');
       }
@@ -249,7 +325,7 @@ export default function ChangeOrdersPage() {
               <FileEdit className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{filteredChangeOrders.length}</div>
+              <div className="text-2xl font-bold">{totalRecords}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 {projects.find(p => p.id === selectedProject)?.name}
               </p>
@@ -263,7 +339,7 @@ export default function ChangeOrdersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {filteredChangeOrders.filter(o => o.status === 'pendiente').length}
+                {displayedChangeOrders.filter(o => o.status === 'pendiente').length}
               </div>
             </CardContent>
           </Card>
@@ -276,7 +352,7 @@ export default function ChangeOrdersPage() {
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(
-                  filteredChangeOrders
+                  displayedChangeOrders
                     .filter(o => (o.cost_impact_crc || 0) > 0)
                     .reduce((sum, o) => sum + (o.cost_impact_crc || 0), 0)
                 )}
@@ -292,7 +368,7 @@ export default function ChangeOrdersPage() {
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
                 {formatCurrency(
-                  filteredChangeOrders
+                  displayedChangeOrders
                     .filter(o => (o.cost_impact_crc || 0) < 0)
                     .reduce((sum, o) => sum + Math.abs(o.cost_impact_crc || 0), 0)
                 )}
@@ -382,7 +458,15 @@ export default function ChangeOrdersPage() {
           <CardTitle>Lista de Órdenes de Cambio</CardTitle>
         </CardHeader>
         <CardContent>
-          {!selectedProject ? (
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">Cargando órdenes de cambio</h3>
+              <p className="text-muted-foreground">
+                {currentPage > 1 ? `Cargando página ${currentPage}...` : 'Obteniendo datos del servidor...'}
+              </p>
+            </div>
+          ) : !selectedProject ? (
             <div className="text-center py-12">
               <Filter className="h-12 w-12 text-blue-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Seleccione un Proyecto</h3>
@@ -393,7 +477,7 @@ export default function ChangeOrdersPage() {
                 Esta vista muestra las órdenes de un proyecto a la vez para una mejor organización.
               </p>
             </div>
-          ) : filteredChangeOrders.length === 0 ? (
+          ) : displayedChangeOrders.length === 0 ? (
             <div className="text-center py-12">
               <FileEdit className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No hay órdenes de cambio</h3>
@@ -426,7 +510,7 @@ export default function ChangeOrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredChangeOrders.map((order) => (
+                {displayedChangeOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">
                       <Link 
@@ -437,7 +521,7 @@ export default function ChangeOrdersPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {order.project?.name || 'N/A'}
+                      {order.projects?.name || 'N/A'}
                     </TableCell>
                     <TableCell>
                       {getTypeBadge(order.change_type)}
@@ -482,7 +566,7 @@ export default function ChangeOrdersPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
-                        {order.status === 'approved' && (
+                        {order.status === 'aprobado' && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="default" size="sm">
@@ -512,6 +596,60 @@ export default function ChangeOrdersPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+          
+          {/* Controles de paginación */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {((currentPage - 1) * 20) + 1} a {Math.min(currentPage * 20, totalRecords)} de {totalRecords} resultados
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1 || loading}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        disabled={loading}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages || loading}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

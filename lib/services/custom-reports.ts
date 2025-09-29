@@ -2,7 +2,7 @@
 // SERVICIO PARA REPORTES PERSONALIZADOS
 // =====================================================
 
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import {
   CustomReportType,
   CustomReportFilters,
@@ -28,6 +28,7 @@ export class CustomReportsService {
     filters?: CustomReportFilters
   ): Promise<DirectExpensesByProjectMonth[]> {
     try {
+      const supabase = createClient();
       let query = supabase
         .from('expenses')
         .select(`
@@ -134,6 +135,7 @@ export class CustomReportsService {
     filters?: CustomReportFilters
   ): Promise<ProjectTotalIncome[]> {
     try {
+      const supabase = createClient();
       let query = supabase
         .from('incomes')
         .select(`
@@ -262,6 +264,7 @@ export class CustomReportsService {
     filters?: CustomReportFilters
   ): Promise<SupplierExpensesByYear[]> {
     try {
+      const supabase = createClient();
       let query = supabase
         .from('expenses')
         .select(`
@@ -409,6 +412,7 @@ export class CustomReportsService {
     filters?: CustomReportFilters
   ): Promise<MonthlyExpensesByCategory[]> {
     try {
+      const supabase = createClient();
       let query = supabase
         .from('expenses')
         .select('*')
@@ -508,6 +512,7 @@ export class CustomReportsService {
     dateTo?: string
   ): Promise<ProjectProfitabilityAnalysis[]> {
     try {
+      const supabase = createClient();
       // Obtener datos de proyectos
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
@@ -626,6 +631,7 @@ export class CustomReportsService {
     dateTo?: string
   ): Promise<SupplierPaymentAnalysis[]> {
     try {
+      const supabase = createClient();
       let query = supabase
         .from('expenses')
         .select(`

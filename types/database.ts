@@ -1050,17 +1050,32 @@ export interface CreateChangeOrderData {
   project_id: string;
   title: string;
   description?: string;
-  amount: number;
-  currency?: string;
+  designer?: string;
+  change_type?: 'accion_correctiva' | 'accion_preventiva' | 'extras';
+  impact_type?: 'positivo' | 'negativo';
+  cost_impact?: number;
+  currency?: 'CRC' | 'USD';
+  exchange_rate?: number;
+  cost_impact_crc?: number;
+  schedule_impact_days?: number;
+  cost_impact_details?: string;
+  quality_impact?: string;
+  schedule_details?: string;
+  risk_assessment?: string;
+  additional_comments?: string;
+  cost_impact_level?: 'bajo' | 'medio' | 'alto';
+  quality_impact_level?: 'bajo' | 'medio' | 'alto';
+  schedule_impact_level?: 'bajo' | 'medio' | 'alto';
+  risk_impact_level?: 'bajo' | 'medio' | 'alto';
   status?: string;
-  requested_by?: string;
-  approved_by?: string;
   request_date?: string;
-  approval_date?: string;
-// Remove duplicate implementation_date since it's already declared below
   notes?: string;
   
-  // Fechas
+  // Campos legacy para compatibilidad
+  amount?: number;
+  requested_by?: string;
+  approved_by?: string;
+  approval_date?: string;
   requested_date?: string;
   implementation_date?: string;
 }
@@ -1086,7 +1101,7 @@ export interface UpdateChangeOrderData {
   schedule_comments?: string;
   risk_comments?: string;
   general_comments?: string;
-  status?: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'implemented';
+  status?: 'pendiente' | 'aprobado' | 'rechazado' | 'implementado';
   approved_by?: string;
   approved_at?: string;
   rejection_reason?: string;
@@ -1134,11 +1149,10 @@ export const CHANGE_ORDER_IMPACT_TYPES = [
 ] as const;
 
 export const CHANGE_ORDER_STATUSES = [
-  { value: 'draft', label: 'Borrador' },
-  { value: 'pending_approval', label: 'Pendiente de Aprobación' },
-  { value: 'approved', label: 'Aprobada' },
-  { value: 'rejected', label: 'Rechazada' },
-  { value: 'implemented', label: 'Implementada' }
+  { value: 'pendiente', label: 'Pendiente' },
+  { value: 'aprobado', label: 'Aprobada' },
+  { value: 'rechazado', label: 'Rechazada' },
+  { value: 'implementado', label: 'Implementada' }
 ] as const;
 
 export const IMPACT_LEVELS = [

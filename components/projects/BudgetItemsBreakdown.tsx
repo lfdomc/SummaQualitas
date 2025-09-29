@@ -61,15 +61,33 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
 
   const totalBudget = project.presupuesto_final || project.presupuesto_inicial || project.budget || 0;
 
+  // Calcular el total asignado inicial
+  const initialTotalAssigned = (project.costos_directos || 0) + 
+                              (project.costos_indirectos || 0) + 
+                              (project.administracion || 0) + 
+                              (project.mano_obra || 0) + 
+                              (project.imprevistos || 0) + 
+                              (project.utilidad || 0);
 
+  // Calcular el monto sin asignar
+  const unassigned = totalBudget - initialTotalAssigned;
+
+  // Si hay monto sin asignar, distribuirlo proporcionalmente
+  const distributionFactor = unassigned > 0 ? totalBudget / initialTotalAssigned : 1;
+
+  // Función para calcular el monto ajustado con distribución proporcional
+  const calculateAdjustedAmount = (originalAmount: number): number => {
+    if (originalAmount === 0) return 0;
+    return originalAmount * distributionFactor;
+  };
 
   // Crear las partidas presupuestarias basadas en los campos correctos de la tabla projects
   const budgetItems: BudgetItem[] = [
     {
       id: 'costos_directos',
       name: 'Costos Directos',
-      amount: project.costos_directos || 0,
-      percentage: calculatePercentage(project.costos_directos || 0, totalBudget),
+      amount: calculateAdjustedAmount(project.costos_directos || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_directos || 0), totalBudget),
       icon: Building,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
@@ -78,8 +96,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'costos_indirectos',
       name: 'Costos Indirectos',
-      amount: project.costos_indirectos || 0,
-      percentage: calculatePercentage(project.costos_indirectos || 0, totalBudget),
+      amount: calculateAdjustedAmount(project.costos_indirectos || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_indirectos || 0), totalBudget),
       icon: Settings,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
@@ -88,8 +106,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'administracion',
       name: 'Administración',
-      amount: project.administracion || 0,
-      percentage: calculatePercentage(project.administracion || 0, totalBudget),
+      amount: calculateAdjustedAmount(project.administracion || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.administracion || 0), totalBudget),
       icon: Calculator,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
@@ -98,8 +116,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'mano_obra',
       name: 'Mano de Obra',
-      amount: project.mano_obra || 0,
-      percentage: calculatePercentage(project.mano_obra || 0, totalBudget),
+      amount: calculateAdjustedAmount(project.mano_obra || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.mano_obra || 0), totalBudget),
       icon: Users,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
@@ -108,8 +126,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'imprevistos',
       name: 'Imprevistos',
-      amount: project.imprevistos || 0,
-      percentage: calculatePercentage(project.imprevistos || 0, totalBudget),
+      amount: calculateAdjustedAmount(project.imprevistos || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.imprevistos || 0), totalBudget),
       icon: AlertTriangle,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
@@ -118,8 +136,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'utilidad',
       name: 'Utilidad',
-      amount: project.utilidad || 0,
-      percentage: calculatePercentage(project.utilidad || 0, totalBudget),
+      amount: calculateAdjustedAmount(project.utilidad || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.utilidad || 0), totalBudget),
       icon: TrendingUp,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
@@ -129,8 +147,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
 
   const totalAssigned = budgetItems.reduce((sum, item) => sum + item.amount, 0);
   const totalPercentage = budgetItems.reduce((sum, item) => sum + item.percentage, 0);
-  const unassigned = totalBudget - totalAssigned;
-  const unassignedPercentage = calculatePercentage(unassigned, totalBudget);
+  const finalUnassigned = totalBudget - totalAssigned;
+  const unassignedPercentage = calculatePercentage(finalUnassigned, totalBudget);
 
 
 
@@ -163,10 +181,10 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
               <p className="text-2xl font-bold text-green-800">{formatCurrency(totalAssigned)}</p>
               <p className="text-sm text-green-600">{totalPercentage.toFixed(1)}% del presupuesto</p>
             </div>
-            {unassigned > 0 && (
+            {finalUnassigned > 0 && (
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 font-medium">Sin Asignar</p>
-                <p className="text-2xl font-bold text-gray-800">{formatCurrency(unassigned)}</p>
+                <p className="text-2xl font-bold text-gray-800">{formatCurrency(finalUnassigned)}</p>
                 <p className="text-sm text-gray-600">{unassignedPercentage.toFixed(1)}% restante</p>
               </div>
             )}

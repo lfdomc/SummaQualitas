@@ -128,8 +128,9 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
 
   // Initialize budget breakdown when editing an existing project
   useEffect(() => {
-    if (project && project.presupuesto_inicial && project.presupuesto_inicial > 0) {
-      const budget = project.presupuesto_inicial;
+    const finalBudget = project?.presupuesto_final || project?.presupuesto_inicial || 0;
+    if (project && finalBudget > 0) {
+      const budget = finalBudget;
       
       // Calculate percentages from absolute values
       const initialBreakdown: BudgetBreakdownData = {
@@ -154,14 +155,16 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
   }, [project]);
 
   // Watch budget changes to show/hide breakdown
-  const watchedBudget = form.watch('presupuesto_inicial');
+  const watchedBudgetInicial = form.watch('presupuesto_inicial');
+  const watchedBudgetFinal = form.watch('presupuesto_final');
   useEffect(() => {
-    if (watchedBudget && watchedBudget > 0) {
+    const budget = watchedBudgetFinal || watchedBudgetInicial;
+    if (budget && budget > 0) {
       setShowBreakdown(true);
     } else {
       setShowBreakdown(false);
     }
-  }, [watchedBudget]);
+  }, [watchedBudgetInicial, watchedBudgetFinal]);
 
   const loadFormData = async () => {
     try {
@@ -189,16 +192,6 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
   };
 
   const onSubmit = async (data: ProjectFormData) => {
-    console.log('🚀 Form submitted with data:', data);
-    console.log('📊 Percentage values being submitted:', {
-      costos_directos_porcentaje: data.costos_directos_porcentaje,
-      costos_indirectos_porcentaje: data.costos_indirectos_porcentaje,
-      mano_obra_porcentaje: data.mano_obra_porcentaje,
-      administracion_porcentaje: data.administracion_porcentaje,
-      imprevistos_porcentaje: data.imprevistos_porcentaje,
-      utilidad_porcentaje: data.utilidad_porcentaje
-    });
-    
     const projectData = {
       ...data,
       budget: data.presupuesto_inicial || 0,
@@ -209,22 +202,16 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       // Budget is calculated automatically from breakdown fields
     };
 
-    console.log('📝 Processed project data:', projectData);
-
     try {
       setLoading(true);
 
       let result: Project;
       
       if (isEditing && project) {
-        console.log('✏️ Editing mode - project ID:', project.id);
-        
         // Para edición, usar la clase ProjectService
         const updateData: UpdateProjectDTO = {
           ...projectData
         };
-        
-        console.log('📤 Update data to send:', updateData);
         
         const projectServiceInstance = new ProjectService();
         result = await projectServiceInstance.updateProject(project.id, updateData);
@@ -329,15 +316,7 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(
-            (data) => {
-              console.log('✅ Form validation passed, calling onSubmit');
-              onSubmit(data);
-            },
-            (errors) => {
-              console.log('❌ Form validation failed:', errors);
-            }
-          )} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Project Name */}
               <FormField
@@ -814,16 +793,16 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
             />
 
             {/* Budget Breakdown Section with Dynamic Percentages */}
-            {form.watch('presupuesto_inicial') > 0 && form.watch('exchange_rate_usd') > 0 && form.watch('total_area') > 0 && (
+            {(form.watch('presupuesto_final') > 0 || form.watch('presupuesto_inicial') > 0) && (form.watch('exchange_rate_usd') || 0) > 0 && (form.watch('total_area') || 0) > 0 && (
               <div className="space-y-4">
                 <BudgetPercentageBreakdown 
-                  budget={form.watch('presupuesto_inicial')}
-                  exchangeRate={form.watch('exchange_rate_usd')}
+                  budget={form.watch('presupuesto_final') || form.watch('presupuesto_inicial')}
+                  exchangeRate={form.watch('exchange_rate_usd') || 500}
                   totalArea={form.watch('total_area') || 0}
                   onBreakdownChange={(breakdown) => {
                     // Actualizar los campos del formulario con los valores calculados
                     // Mapear los campos del breakdown a los campos reales de la base de datos
-                    const budget = form.watch('presupuesto_inicial');
+                    const budget = form.watch('presupuesto_final') || form.watch('presupuesto_inicial');
                     
                     // Guardar los montos calculados (usando nombres de columnas correctos de la BD)
                     form.setValue('costos_directos', Math.round((budget * breakdown.costos_directos_porcentaje) / 100));
@@ -862,7 +841,6 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
               <Button 
                 type="submit" 
                 disabled={loading}
-                onClick={() => console.log('🔘 Submit button clicked')}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 <Save className="h-4 w-4 mr-2" />

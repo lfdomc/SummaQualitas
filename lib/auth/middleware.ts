@@ -150,7 +150,8 @@ export async function updateSession(request: NextRequest) {
 
   // Si la ruta es protegida y el usuario no está autenticado
   if (isProtectedRoute && !user) {
-    const redirectUrl = new URL('/auth/login', request.url);
+    const redirectUrl = new URL('/', request.url);
+    redirectUrl.searchParams.set('reason', 'authentication_required');
     redirectUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(redirectUrl);
   }

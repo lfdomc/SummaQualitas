@@ -227,7 +227,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
     
     // Verificar que la orden no esté implementada
-    if (existingOrder.status === 'implemented') {
+    if (existingOrder.status === 'implementado') {
       return NextResponse.json(
         { success: false, error: 'No se puede eliminar una orden de cambio implementada' },
         { status: 400 }

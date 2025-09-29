@@ -86,7 +86,7 @@ export class PDFGenerator {
     
     this.doc.setFontSize(20);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('SUMMA QUALITAS', textStartX, this.currentY);
+    this.doc.text('SUMMA QUÁLITAS', textStartX, this.currentY);
     
     this.currentY += 10;
     this.doc.setFontSize(12);

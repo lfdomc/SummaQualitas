@@ -26,11 +26,7 @@ interface ProjectIncomesProps {
 }
 
 interface IncomeWithRelations extends Income {
-  client?: {
-    id: string;
-    name: string;
-    email?: string;
-  };
+  // La interfaz Income ya incluye client?: Client, no necesitamos redefinirla
 }
 
 export default function ProjectIncomes({ projectId, clientId, projectName, canManage = true }: ProjectIncomesProps) {
@@ -77,7 +73,23 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
       setSummary(summaryData);
     } catch (error) {
       console.error('Error loading project incomes:', error);
-      toast.error('Error al cargar los ingresos del proyecto');
+      
+      // Mostrar información más específica del error
+      let errorMessage = 'Error al cargar los ingresos del proyecto';
+      
+      if (error instanceof Error) {
+        errorMessage = `Error al cargar los ingresos: ${error.message}`;
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      } else if (typeof error === 'object' && error !== null) {
+        console.error('Error object:', JSON.stringify(error, null, 2));
+        errorMessage = `Error al cargar los ingresos: ${JSON.stringify(error)}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -463,7 +475,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
 
             <div className="space-y-2">
               <Label htmlFor="status">Estado</Label>
-              <Select value={incomeForm.status} onValueChange={(value) => setIncomeForm({ ...incomeForm, status: value as 'pending' | 'confirmed' | 'cancelled' })}>
+              <Select value={incomeForm.status} onValueChange={(value: 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado') => setIncomeForm({ ...incomeForm, status: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -542,7 +554,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
                 id="reference"
                 value={incomeForm.reference}
                 onChange={(e) => setIncomeForm({ ...incomeForm, reference: e.target.value })}
-                placeholder="Número de referencia o factura"
+                placeholder="Número de referencia o gasto"
               />
             </div>
 
@@ -671,7 +683,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
 
             <div className="space-y-2">
               <Label htmlFor="edit_status">Estado</Label>
-              <Select value={incomeForm.status} onValueChange={(value: 'pending' | 'confirmed' | 'cancelled') => setIncomeForm({ ...incomeForm, status: value })}>
+              <Select value={incomeForm.status} onValueChange={(value: 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado') => setIncomeForm({ ...incomeForm, status: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -691,7 +703,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
                 id="edit_reference"
                 value={incomeForm.reference}
                 onChange={(e) => setIncomeForm({ ...incomeForm, reference: e.target.value })}
-                placeholder="Número de referencia o factura"
+                placeholder="Número de referencia o gasto"
               />
             </div>
 

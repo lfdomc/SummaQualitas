@@ -33,7 +33,7 @@ interface CreateExpenseData {
   description: string;
   amount: number;
   currency: 'CRC' | 'USD';
-  exchange_rate?: number;
+  exchange_rate_usd?: number;
   date: string;
   supplier_id?: string;
 
@@ -67,22 +67,14 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
   const [expenseForm, setExpenseForm] = useState<CreateExpenseData>({
     project_id: project.id,
     category: 'costos_directos',
-    subcategory_direct: undefined,
-    subcategory_indirect: undefined,
     description: '',
     amount: 0,
     currency: 'CRC',
-    exchange_rate: 500,
+    exchange_rate_usd: 500,
     date: new Date().toISOString().split('T')[0],
-    supplier_id: '',
-
     reference: '',
     details: '',
-    notes: '',
-    attachment_url: undefined,
-    attachment_name: undefined,
-    attachment_type: undefined,
-    attachment_size: undefined
+    notes: ''
   });
 
   const loadExpenses = useCallback(async () => {
@@ -189,7 +181,7 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
           description: expenseForm.description,
           amount: expenseForm.amount,
           currency: expenseForm.currency,
-          exchange_rate: expenseForm.exchange_rate,
+          exchange_rate_usd: expenseForm.exchange_rate_usd,
           expense_date: expenseForm.date,
           supplier_id: expenseForm.supplier_id || null,
     
@@ -241,7 +233,7 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
       description: '',
       amount: 0,
       currency: 'CRC',
-      exchange_rate: 500,
+      exchange_rate_usd: 500,
       date: new Date().toISOString().split('T')[0],
       supplier_id: '',
   
@@ -283,14 +275,14 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
       description: expense.description,
       amount: expense.amount,
       currency: expense.currency,
-      exchange_rate: expense.exchange_rate || 500,
+      exchange_rate_usd: expense.exchange_rate_usd || 500,
       date: expense.expense_date,
       supplier_id: expense.supplier_id || '',
   
       reference: expense.reference || '',
       details: expense.details || '',
       notes: expense.notes || '',
-      attachment_url: expense.attachment_url || undefined,
+      attachment_url: expense.receipt_url || undefined,
       attachment_name: expense.attachment_name || undefined,
       attachment_type: expense.attachment_type || undefined,
       attachment_size: expense.attachment_size || undefined
@@ -312,15 +304,15 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
   // Calcular totales con useMemo
   const { totalExpenses, totalUSD, expensesByCategory } = useMemo(() => {
     const totalExpenses = filteredExpenses.reduce((sum, expense) => {
-      return sum + (expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate || 500));
+      return sum + (expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate_usd || 500));
     }, 0);
 
     const totalUSD = filteredExpenses.reduce((sum, expense) => {
-      return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate || 500));
+      return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 500));
     }, 0);
 
     const expensesByCategory = filteredExpenses.reduce((acc, expense) => {
-      const amount = expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate || 500);
+      const amount = expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate_usd || 500);
       acc[expense.category] = (acc[expense.category] || 0) + amount;
       return acc;
     }, {} as Record<string, number>);
@@ -507,8 +499,8 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                           type="number"
                           step="0.01"
                           min="0"
-                          value={expenseForm.exchange_rate}
-                      onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate: parseFloat(e.target.value) || 500 })}
+                          value={expenseForm.exchange_rate_usd}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate_usd: parseFloat(e.target.value) || 500 })}
                           placeholder="500"
                         />
                       </div>
@@ -734,7 +726,7 @@ Equivalent in dollars
                         </div>
                         {expense.currency === 'USD' && (
                           <div className="text-sm text-gray-500">
-                            {formatCurrency(expense.amount * (expense.exchange_rate || 500))}
+                            {formatCurrency(expense.amount * (expense.exchange_rate_usd || 500))}
                           </div>
                         )}
                       </td>
@@ -909,8 +901,8 @@ Equivalent in dollars
                     type="number"
                     step="0.01"
                     min="0"
-                    value={expenseForm.exchange_rate}
-                    onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate: parseFloat(e.target.value) || 500 })}
+                    value={expenseForm.exchange_rate_usd}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate_usd: parseFloat(e.target.value) || 500 })}
                     placeholder="500"
                   />
                 </div>

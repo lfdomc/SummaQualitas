@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { User } from '@supabase/supabase-js';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { User, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
+import { useLoginState } from '@/lib/contexts/LoginStateContext';
 import { UserRole, UserRoleType } from '@/lib/types';
 
 interface UserProfile {
@@ -35,78 +36,71 @@ export function useAuthDirect(): UseAuthReturn {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
-    loading: false, // Cambiamos a false inicialmente
+    loading: true, // Iniciar con loading true para evitar redirecciones prematuras
     error: null,
   });
 
   const supabase = createClient();
+  const { isLoginInProgress } = useLoginState();
   const initialized = useRef(false);
 
 
 
-  // Función para verificar autenticación
+  // Función para verificar autenticación (optimizada para un solo re-render)
   const refreshAuth = async () => {
+    console.log('🔄 [useAuthDirect] refreshAuth iniciado');
+    
+    // Preparar el nuevo estado
+    let newAuthState: AuthState = {
+      user: null,
+      profile: null,
+      loading: false,
+      error: null,
+    };
+    
     try {
-
-      
       const { data: { session }, error } = await supabase.auth.getSession();
+      
+      console.log('🔍 [useAuthDirect] Resultado de getSession:', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email,
+        error: error?.message
+      });
       
       if (error) {
         console.error('❌ [useAuthDirect] Error obteniendo sesión:', error);
-        setAuthState({
-          user: null,
-          profile: null,
-          loading: false,
-          error: error.message,
-        });
-        return;
-      }
-
-     
-
-      if (!session?.user) {
-        
-        setAuthState({
-          user: null,
-          profile: null,
-          loading: false,
-          error: null,
-        });
-        return;
-      }
-
-      
-
-      // Obtener el perfil del usuario
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('id, email, name, role')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('❌ [useAuthDirect] Error obteniendo perfil:', profileError);
+        newAuthState.error = error.message;
+      } else if (!session?.user) {
+        console.log('❌ [useAuthDirect] No hay sesión o usuario');
+        // newAuthState ya está configurado para usuario null
       } else {
+        console.log('✅ [useAuthDirect] Usuario autenticado:', session.user.email);
         
-      }
-      
-      setAuthState({
-        user: session.user,
-        profile: profile || null,
-        loading: false,
-        error: null,
-      });
+        // Obtener el perfil del usuario
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('id, email, name, role')
+          .eq('id', session.user.id)
+          .single();
 
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('❌ [useAuthDirect] Error obteniendo perfil:', profileError);
+        }
+        
+        // Configurar estado exitoso
+        newAuthState.user = session.user;
+        newAuthState.profile = profile || null;
+      }
       
     } catch (error) {
       console.error('❌ [useAuthDirect] Error inesperado:', error);
-      setAuthState({
-        user: null,
-        profile: null,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Error desconocido',
-      });
+      newAuthState.error = error instanceof Error ? error.message : 'Error desconocido';
     }
+    
+    // Una sola llamada a setAuthState al final
+    console.log('🔄 [useAuthDirect] Estableciendo estado final - UN SOLO RE-RENDER');
+    setAuthState(newAuthState);
   };
 
   // Ejecutar verificación inicial y configurar listener
@@ -122,6 +116,7 @@ export function useAuthDirect(): UseAuthReturn {
         console.log('🔄 [useAuthDirect] Auth state changed:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          console.log('🔄 [useAuthDirect] Ejecutando refreshAuth debido a:', event);
           await refreshAuth();
         }
       }

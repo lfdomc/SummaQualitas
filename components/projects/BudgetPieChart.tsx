@@ -34,6 +34,26 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
 
   const totalBudget = project.presupuesto_final || project.presupuesto_inicial || project.budget || 0;
 
+  // Calcular el total asignado inicial
+  const initialTotalAssigned = (project.costos_directos || 0) + 
+                              (project.costos_indirectos || 0) + 
+                              (project.administracion || 0) + 
+                              (project.mano_obra || 0) + 
+                              (project.imprevistos || 0) + 
+                              (project.utilidad || 0);
+
+  // Calcular el monto sin asignar
+  const unassigned = totalBudget - initialTotalAssigned;
+
+  // Si hay monto sin asignar, distribuirlo proporcionalmente
+  const distributionFactor = unassigned > 0 ? totalBudget / initialTotalAssigned : 1;
+
+  // Función para calcular el monto ajustado con distribución proporcional
+  const calculateAdjustedAmount = (originalAmount: number): number => {
+    if (originalAmount === 0) return 0;
+    return originalAmount * distributionFactor;
+  };
+
   // Colores para cada categoría (usando los campos correctos de la tabla projects)
   const categoryColors = {
     costos_directos: '#3B82F6',      // blue-500
@@ -49,38 +69,38 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
     {
       id: 'costos_directos',
       name: 'Costos Directos',
-      amount: project.costos_directos || 0,
-      percentage: calculatePercentage(project.costos_directos || 0, totalBudget)
+      amount: calculateAdjustedAmount(project.costos_directos || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_directos || 0), totalBudget)
     },
     {
       id: 'costos_indirectos',
       name: 'Costos Indirectos',
-      amount: project.costos_indirectos || 0,
-      percentage: calculatePercentage(project.costos_indirectos || 0, totalBudget)
+      amount: calculateAdjustedAmount(project.costos_indirectos || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_indirectos || 0), totalBudget)
     },
     {
       id: 'administracion',
       name: 'Administración',
-      amount: project.administracion || 0,
-      percentage: calculatePercentage(project.administracion || 0, totalBudget)
+      amount: calculateAdjustedAmount(project.administracion || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.administracion || 0), totalBudget)
     },
     {
       id: 'mano_obra',
       name: 'Mano de Obra',
-      amount: project.mano_obra || 0,
-      percentage: calculatePercentage(project.mano_obra || 0, totalBudget)
+      amount: calculateAdjustedAmount(project.mano_obra || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.mano_obra || 0), totalBudget)
     },
     {
       id: 'imprevistos',
       name: 'Imprevistos',
-      amount: project.imprevistos || 0,
-      percentage: calculatePercentage(project.imprevistos || 0, totalBudget)
+      amount: calculateAdjustedAmount(project.imprevistos || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.imprevistos || 0), totalBudget)
     },
     {
       id: 'utilidad',
       name: 'Utilidad',
-      amount: project.utilidad || 0,
-      percentage: calculatePercentage(project.utilidad || 0, totalBudget)
+      amount: calculateAdjustedAmount(project.utilidad || 0),
+      percentage: calculatePercentage(calculateAdjustedAmount(project.utilidad || 0), totalBudget)
     }
   ].filter(item => item.amount > 0); // Solo mostrar partidas con valor
 

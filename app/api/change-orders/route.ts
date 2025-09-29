@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
           location,
           status
         )
-      `);
+      `, { count: 'exact' });
     
     // Aplicar filtros
     if (projectId && projectId !== 'all' && projectId.trim() !== '') {
@@ -120,15 +120,30 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json();
-    const changeOrderData: CreateChangeOrderData = {
+    const changeOrderData: any = {
       project_id: body.project_id,
       title: body.title,
       description: body.description,
-      amount: parseFloat(body.cost_impact_crc || body.cost_impact || body.amount) || 0,
-      currency: body.currency || 'USD',
+      designer: body.designer,
+      change_type: body.change_type,
+      impact_type: body.impact_type,
+      cost_impact: parseFloat(body.cost_impact) || 0,
+      amount: parseFloat(body.cost_impact) || 0, // Campo requerido por la base de datos
+      currency: body.currency || 'CRC',
+      exchange_rate: parseFloat(body.exchange_rate) || 500.00,
+      cost_impact_crc: parseFloat(body.cost_impact_crc) || 0,
+      schedule_impact_days: parseInt(body.schedule_impact_days) || 0,
+      cost_comments: body.cost_impact_details || body.cost_comments || '',
+      quality_comments: body.quality_impact || body.quality_comments || '',
+      schedule_comments: body.schedule_details || body.schedule_comments || '',
+      risk_comments: body.risk_assessment || body.risk_comments || '',
+      general_comments: body.additional_comments || body.general_comments || '',
+      cost_impact_level: body.cost_impact_level || 'bajo',
+      quality_impact_level: body.quality_impact_level || 'bajo',
+      schedule_impact_level: body.schedule_impact_level || 'bajo',
+      risk_impact_level: body.risk_impact_level || 'bajo',
       status: body.status || 'pendiente',
       request_date: body.request_date || new Date().toISOString().split('T')[0],
-      notes: body.additional_comments || body.notes || '',
     };
     
     // Validaciones básicas
@@ -155,7 +170,7 @@ export async function POST(request: NextRequest) {
     
     if (!changeOrderData.change_type?.trim()) {
       return NextResponse.json(
-        { success: false, error: 'Tipo de orden es requerido' },
+        { success: false, error: 'Tipo de cambio es requerido' },
         { status: 400 }
       );
     }

@@ -73,6 +73,10 @@ export default function ProjectFinancialAnalysis({
       setIncomesSummary(summary);
     } catch (error) {
       console.error('Error loading financial data:', error);
+      // Mostrar un error más específico al usuario
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -81,15 +85,18 @@ export default function ProjectFinancialAnalysis({
   const calculateMetrics = () => {
     if (!incomesSummary || !projectExpenses) return;
 
-    const totalIncome = incomesSummary.confirmed_amount || 0;
+    // Usar ingresos confirmados si existen, sino usar el presupuesto del proyecto como estimación
+    const confirmedIncome = incomesSummary.confirmed_amount || 0;
+    const estimatedIncome = confirmedIncome > 0 ? confirmedIncome : (projectBudget || 0);
+    
     const totalExpenses = projectExpenses.total || 0;
-    const netProfit = totalIncome - totalExpenses;
-    const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+    const netProfit = estimatedIncome - totalExpenses;
+    const profitMargin = estimatedIncome > 0 ? (netProfit / estimatedIncome) * 100 : 0;
     const budgetUtilization = projectBudget > 0 ? (totalExpenses / projectBudget) * 100 : 0;
     const roi = totalExpenses > 0 ? (netProfit / totalExpenses) * 100 : 0;
 
     setMetrics({
-      totalIncome,
+      totalIncome: estimatedIncome,
       totalExpenses,
       netProfit,
       profitMargin,
@@ -101,36 +108,39 @@ export default function ProjectFinancialAnalysis({
   const calculateCategoryComparison = () => {
     if (!incomesSummary || !projectExpenses) return;
 
-    const totalIncome = incomesSummary.confirmed_amount || 0;
+    // Usar ingresos confirmados si existen, sino usar el presupuesto del proyecto como estimación
+    const confirmedIncome = incomesSummary.confirmed_amount || 0;
+    const estimatedIncome = confirmedIncome > 0 ? confirmedIncome : (projectBudget || 0);
+    
     const categories = [
       {
         category: 'Costos Directos',
-        income: totalIncome * 0.30, // Asumiendo distribución proporcional
+        income: estimatedIncome * 0.40, // Basado en DEFAULT_BUDGET_PERCENTAGES
         expenses: projectExpenses.byCategory.costos_directos || 0
       },
       {
         category: 'Costos Indirectos',
-        income: totalIncome * 0.15,
+        income: estimatedIncome * 0.20,
         expenses: projectExpenses.byCategory.costos_indirectos || 0
       },
       {
         category: 'Administración',
-        income: totalIncome * 0.10,
+        income: estimatedIncome * 0.08,
         expenses: projectExpenses.byCategory.administracion || 0
       },
       {
         category: 'Mano de Obra',
-        income: totalIncome * 0.25,
+        income: estimatedIncome * 0.25,
         expenses: projectExpenses.byCategory.mano_obra || 0
       },
       {
         category: 'Imprevistos',
-        income: totalIncome * 0.10,
+        income: estimatedIncome * 0.05,
         expenses: projectExpenses.byCategory.imprevistos || 0
       },
       {
         category: 'Utilidad',
-        income: totalIncome * 0.10,
+        income: estimatedIncome * 0.02,
         expenses: projectExpenses.byCategory.utilidad || 0
       }
     ];
@@ -198,8 +208,15 @@ export default function ProjectFinancialAnalysis({
     diferencia: cat.difference
   }));
 
+  // Determinar si estamos usando ingresos estimados o confirmados
+  const usingEstimatedIncome = !incomesSummary?.confirmed_amount || incomesSummary.confirmed_amount === 0;
+
   const pieData = [
-    { name: 'Ingresos Confirmados', value: metrics.totalIncome, color: '#10B981' },
+    { 
+      name: usingEstimatedIncome ? 'Ingresos Estimados' : 'Ingresos Confirmados', 
+      value: metrics.totalIncome, 
+      color: '#10B981' 
+    },
     { name: 'Gastos Totales', value: metrics.totalExpenses, color: '#EF4444' },
     { name: 'Ganancia Neta', value: Math.max(0, metrics.netProfit), color: '#06B6D4' }
   ];
@@ -210,6 +227,19 @@ export default function ProjectFinancialAnalysis({
       <div>
         <h2 className="text-2xl font-bold">Análisis Financiero del Proyecto</h2>
         <p className="text-gray-600">Comparación de ingresos vs gastos y métricas de rentabilidad</p>
+        {usingEstimatedIncome && (
+          <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm text-yellow-800 font-medium">
+                Ingresos Estimados
+              </span>
+            </div>
+            <p className="text-xs text-yellow-700 mt-1">
+              Los ingresos mostrados están basados en el presupuesto del proyecto ya que no hay ingresos confirmados registrados.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Key Metrics */}

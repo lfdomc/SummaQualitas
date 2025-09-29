@@ -10,14 +10,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ArrowLeft, Edit, CheckCircle, Trash2, FileText, Calendar, DollarSign, Clock, User, AlertTriangle, Check } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useAuth } from '@/lib/hooks/useAuth';
 import type { ChangeOrder } from '@/types/database';
 
 interface ChangeOrderWithProject extends ChangeOrder {
   // Propiedades opcionales que pueden no existir en la base de datos
   designer?: string;
   cost_impact_crc?: number;
-  schedule_impact_days?: number;
   exchange_rate?: number;
   cost_impact_level?: 'bajo' | 'medio' | 'alto';
   quality_impact_level?: 'bajo' | 'medio' | 'alto';
@@ -42,7 +41,7 @@ interface ChangeOrderWithProject extends ChangeOrder {
 export default function ChangeOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   const [changeOrder, setChangeOrder] = useState<ChangeOrderWithProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [implementing, setImplementing] = useState(false);
@@ -116,7 +115,7 @@ export default function ChangeOrderDetailPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          status: 'approved'
+          status: 'aprobado'
         }),
       });
       
@@ -315,7 +314,7 @@ export default function ChangeOrderDetailPage() {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          {changeOrder.status === 'approved' && (
+          {changeOrder.status === 'aprobado' && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" disabled={implementing}>
