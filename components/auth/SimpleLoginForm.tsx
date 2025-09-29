@@ -8,13 +8,40 @@ interface SimpleLoginFormProps {
   redirectTo?: string;
 }
 
-export default function SimpleLoginForm({ redirectTo = '/dashboard' }: SimpleLoginFormProps) {
+export default function SimpleLoginForm({ redirectTo = '/proyectos' }: SimpleLoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingSignOut, setLoadingSignOut] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const supabase = createClient();
+
+  const handleSignOut = async () => {
+    setLoadingSignOut(true);
+    setError('');
+    
+    try {
+      console.log('🚪 [SimpleLogin] Cerrando sesión...');
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('❌ [SimpleLogin] Error al cerrar sesión:', error);
+        setError('Error al cerrar sesión: ' + error.message);
+      } else {
+        console.log('✅ [SimpleLogin] Sesión cerrada exitosamente');
+        setError('');
+        // Limpiar formulario
+        setEmail('');
+        setPassword('');
+      }
+    } catch (err) {
+      console.error('❌ [SimpleLogin] Error inesperado:', err);
+      setError('Error inesperado al cerrar sesión');
+    } finally {
+      setLoadingSignOut(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +151,18 @@ export default function SimpleLoginForm({ redirectTo = '/dashboard' }: SimpleLog
           <p className="text-gray-600 mt-2">
             Versión simplificada para testing
           </p>
+          
+          {/* Botón de cerrar sesión */}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={loadingSignOut || loading}
+              className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            >
+              {loadingSignOut ? 'Cerrando sesión...' : '🚪 Cerrar Sesión Previa'}
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

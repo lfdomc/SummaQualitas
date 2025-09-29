@@ -51,7 +51,7 @@ export function LoginForm({
       });
       if (error) throw error;
       // Redirect to projects after successful login
-      router.push("/projects");
+      router.push("/proyectos");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
