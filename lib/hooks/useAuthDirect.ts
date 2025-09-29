@@ -138,35 +138,67 @@ export function useAuthDirect(): UseAuthReturn {
 
   const signOut = async () => {
     try {
-  
+      console.log('🔄 [useAuthDirect] Iniciando cierre de sesión');
       
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Verificar si hay una sesión activa antes de intentar cerrarla
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.warn('⚠️ [useAuthDirect] Error al verificar sesión:', sessionError);
+      }
+      
+      if (!session) {
+        console.log('ℹ️ [useAuthDirect] No hay sesión activa, limpiando estado local');
+        // No hay sesión activa, solo limpiar el estado local
+        setAuthState({
+          user: null,
+          profile: null,
+          loading: false,
+          error: null,
+        });
+        window.location.href = '/';
+        return;
       }
 
-      const data = await response.json();
+      // Hay una sesión activa, proceder con el cierre normal
+      const { error } = await supabase.auth.signOut();
       
-
+      if (error) {
+        // Si el error es que la sesión no existe, no es un error crítico
+        if (error.message.includes('Auth session missing') || error.message.includes('session_not_found')) {
+          console.log('ℹ️ [useAuthDirect] Sesión ya no existe, limpiando estado local');
+        } else {
+          console.error('❌ [useAuthDirect] Error al cerrar sesión:', error);
+          throw error;
+        }
+      } else {
+        console.log('✅ [useAuthDirect] Sesión cerrada exitosamente');
+      }
+      
+      // Limpiar estado local independientemente del resultado
       setAuthState({
         user: null,
         profile: null,
         loading: false,
         error: null,
       });
+
+      // Redirigir a la página principal
+      window.location.href = '/';
     } catch (error) {
       console.error('❌ [useAuthDirect] Error al cerrar sesión:', error);
-      setAuthState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Error al cerrar sesión',
-      }));
+      
+      // Incluso si hay error, limpiar el estado local y redirigir
+      // porque el usuario quiere cerrar sesión
+      setAuthState({
+        user: null,
+        profile: null,
+        loading: false,
+        error: null,
+      });
+      
+      // Redirigir de todas formas
+      window.location.href = '/';
     }
   };
 

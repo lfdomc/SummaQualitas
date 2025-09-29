@@ -15,7 +15,8 @@ import {
   Building,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  FolderOpen
 } from "lucide-react"
 import Link from "next/link"
 import { useAuthContext } from "@/lib/contexts/AuthContext"
@@ -105,6 +106,13 @@ export function UserMenu({ className = "" }: UserMenuProps) {
                 <Button variant="ghost" size="sm" className="text-primary hover:bg-accent">
                   <Settings className="w-4 h-4 mr-1" />
                   Perfil
+                </Button>
+              </Link>
+              
+              <Link href="/proyectos">
+                <Button variant="ghost" size="sm" className="text-primary hover:bg-accent">
+                  <FolderOpen className="w-4 h-4 mr-1" />
+                  Proyectos
                 </Button>
               </Link>
               

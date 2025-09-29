@@ -48,20 +48,35 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // IMPORTANT: If you remove getClaims() and you use server-side rendering
+  // IMPORTANT: If you remove getUser() and you use server-side rendering
   // with the Supabase client, your users may be randomly logged out.
   console.log(`🔄 [Middleware] Processing ${request.nextUrl.pathname}`);
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
-  console.log(`🔄 [Middleware] User claims:`, user ? 'authenticated' : 'not authenticated');
+  const { data: { user }, error } = await supabase.auth.getUser();
+  console.log(`🔄 [Middleware] User authentication:`, user ? `authenticated (${user.email})` : 'not authenticated');
+  if (error) {
+    console.log(`🔄 [Middleware] Auth error:`, error.message);
+  }
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
+  // Define public routes that don't require authentication
+  const publicRoutes = [
+    "/",
+    "/proyectos",
+    "/nosotros",
+    "/servicios",
+    "/contacto",
+    "/cotizacion"
+  ];
+
+  const isPublicRoute = publicRoutes.some(route => 
+    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + "/")
+  );
+
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/login") || 
+                     request.nextUrl.pathname.startsWith("/auth");
+
+  if (!user && !isPublicRoute && !isAuthRoute) {
     // no user, potentially respond by redirecting the user to the login page
+    console.log(`🔄 [Middleware] Redirecting to login: ${request.nextUrl.pathname}`);
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
