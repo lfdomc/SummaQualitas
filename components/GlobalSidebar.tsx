@@ -249,19 +249,16 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
   // Redirigir usuarios autenticados desde la página principal al dashboard
   useEffect(() => {
     if (user && !loading && pathname === '/') {
-      router.push('/dashboard');
+      // Pequeño delay para permitir que el header se renderice antes de redirigir
+      const timer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [user, loading, pathname, router]);
 
   // No mostrar sidebar en rutas públicas o si el usuario no está logueado
-  // Excepción: si el usuario está autenticado y está en '/', se redirige al dashboard
-  if (!user || loading || (PUBLIC_ROUTES.has(pathname) && pathname !== '/')) {
-    return <>{children}</>;
-  }
-
-  // Si el usuario está autenticado pero está en '/', no renderizar nada 
-  // porque se está redirigiendo al dashboard
-  if (user && pathname === '/') {
+  if (!user || loading || PUBLIC_ROUTES.has(pathname)) {
     return <>{children}</>;
   }
 
