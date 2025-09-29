@@ -22,34 +22,47 @@ export default function SimpleLoginForm({ redirectTo = '/dashboard' }: SimpleLog
     console.log('🚀 [SimpleLogin] Iniciando login básico');
     console.log('📧 [SimpleLogin] Email:', email);
     
-    // Debug de configuración de Supabase
-    console.log('🔧 [SimpleLogin] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('🔧 [SimpleLogin] SUPABASE_ANON_KEY existe:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    console.log('🔧 [SimpleLogin] SUPABASE_ANON_KEY primeros 20 chars:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20));
-    
-    // Verificar el cliente de Supabase
-    console.log('🔧 [SimpleLogin] Cliente Supabase:', supabase);
-    console.log('🔧 [SimpleLogin] Cliente Supabase auth:', supabase.auth);
-    
-    // Interceptor de red para debug
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const [url, options] = args;
-      console.log('🌐 [SimpleLogin] Interceptando fetch:', url);
-      console.log('🌐 [SimpleLogin] Headers:', options?.headers);
-      console.log('🌐 [SimpleLogin] Body:', options?.body);
-      
-      const response = await originalFetch(...args);
-      console.log('🌐 [SimpleLogin] Response status:', response.status);
-      console.log('🌐 [SimpleLogin] Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      return response;
-    };
-    
     setLoading(true);
     setError('');
     
+    // Declarar originalFetch fuera del try para que esté disponible en finally
+    let originalFetch: typeof window.fetch;
+    
     try {
+      // PASO 1: Limpiar cualquier sesión previa
+      console.log('🧹 [SimpleLogin] Limpiando sesión previa...');
+      await supabase.auth.signOut();
+      
+      // Esperar un momento para que se complete el signOut
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('✅ [SimpleLogin] Sesión previa limpiada');
+      
+      // Debug de configuración de Supabase
+      console.log('🔧 [SimpleLogin] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+      console.log('🔧 [SimpleLogin] SUPABASE_ANON_KEY existe:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+      console.log('🔧 [SimpleLogin] SUPABASE_ANON_KEY primeros 20 chars:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20));
+      
+      // Verificar el cliente de Supabase
+      console.log('🔧 [SimpleLogin] Cliente Supabase:', supabase);
+      console.log('🔧 [SimpleLogin] Cliente Supabase auth:', supabase.auth);
+    
+    // Interceptor de red para debug
+      originalFetch = window.fetch;
+      window.fetch = async (...args) => {
+        const [url, options] = args;
+        console.log('🌐 [SimpleLogin] Interceptando fetch:', url);
+        console.log('🌐 [SimpleLogin] Headers:', options?.headers);
+        console.log('🌐 [SimpleLogin] Body:', options?.body);
+        
+        const response = await originalFetch(...args);
+        console.log('🌐 [SimpleLogin] Response status:', response.status);
+        console.log('🌐 [SimpleLogin] Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        return response;
+      };
+      
+      // PASO 2: Realizar el login con sesión limpia
       console.log('🔄 [SimpleLogin] Llamando a signInWithPassword...');
       
       const result = await supabase.auth.signInWithPassword({
@@ -60,13 +73,11 @@ export default function SimpleLoginForm({ redirectTo = '/dashboard' }: SimpleLog
       console.log('✅ [SimpleLogin] Respuesta recibida');
       console.log('📊 [SimpleLogin] Result:', result);
       
-      // Restaurar fetch original
-      window.fetch = originalFetch;
+      // Nota: fetch se restaurará en el bloque finally
       
       if (result.error) {
         console.error('❌ [SimpleLogin] Error en login:', result.error);
         setError(result.error.message);
-        setLoading(false);
         return;
       }
       
@@ -83,10 +94,12 @@ export default function SimpleLoginForm({ redirectTo = '/dashboard' }: SimpleLog
       
     } catch (err) {
       console.error('❌ [SimpleLogin] Error capturado:', err);
-      setError('Error de conexión');
-      // Restaurar fetch original en caso de error también
-      window.fetch = originalFetch;
+      setError(err instanceof Error ? err.message : 'Error de conexión');
     } finally {
+      // Restaurar fetch original en todos los casos
+      if (typeof originalFetch !== 'undefined') {
+        window.fetch = originalFetch;
+      }
       setLoading(false);
     }
   };
