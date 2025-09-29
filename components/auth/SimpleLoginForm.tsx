@@ -31,10 +31,13 @@ export default function SimpleLoginForm({ redirectTo = '/dashboard' }: SimpleLog
     try {
       // PASO 1: Limpiar cualquier sesión previa
       console.log('🧹 [SimpleLogin] Limpiando sesión previa...');
-      await supabase.auth.signOut();
+      const signOutResult = await supabase.auth.signOut();
+      console.log('✅ [SimpleLogin] Sesión limpiada:', signOutResult);
       
-      // Esperar un momento para que se complete el signOut
+      // PASO 2: Esperar un momento para evitar conflictos
+      console.log('🔄 [SimpleLogin] Esperando 500ms...');
       await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('⏰ [SimpleLogin] Delay completado, continuando...');
       
       console.log('✅ [SimpleLogin] Sesión previa limpiada');
       
@@ -65,10 +68,17 @@ export default function SimpleLoginForm({ redirectTo = '/dashboard' }: SimpleLog
       // PASO 2: Realizar el login con sesión limpia
       console.log('🔄 [SimpleLogin] Llamando a signInWithPassword...');
       
-      const result = await supabase.auth.signInWithPassword({
+      // Timeout de seguridad para evitar cuelgues
+      const loginPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: Login tardó más de 15 segundos')), 15000)
+      );
+      
+      const result = await Promise.race([loginPromise, timeoutPromise]);
       
       console.log('✅ [SimpleLogin] Respuesta recibida');
       console.log('📊 [SimpleLogin] Result:', result);
