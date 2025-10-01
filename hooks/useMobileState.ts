@@ -24,6 +24,8 @@ export function useMobileState(): MobileState {
   });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const updateMobileState = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -129,6 +131,8 @@ export function useMobileMenu(initialState = false) {
   
   // Prevenir scroll del body cuando el menú está abierto en móvil
   useEffect(() => {
+    if (typeof document === 'undefined') return;
+    
     if (isMobile && isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -160,6 +164,8 @@ export function useMobileOptimizations() {
   const { isMobile } = useMobileState();
   
   useEffect(() => {
+    if (typeof document === 'undefined') return;
+    
     if (isMobile) {
       // Optimizaciones específicas para móviles
       

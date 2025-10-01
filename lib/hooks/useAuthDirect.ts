@@ -5,6 +5,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { useLoginState } from '@/lib/contexts/LoginStateContext';
 import { UserRole, UserRoleType } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 interface UserProfile {
   id: string;
@@ -42,14 +43,13 @@ export function useAuthDirect(): UseAuthReturn {
 
   const supabase = createClient();
   const { isLoginInProgress } = useLoginState();
+  const router = useRouter();
   const initialized = useRef(false);
 
 
 
   // Función para verificar autenticación (optimizada para un solo re-render)
   const refreshAuth = async () => {
-    console.log('🔄 [useAuthDirect] refreshAuth iniciado');
-    
     // Preparar el nuevo estado
     let newAuthState: AuthState = {
       user: null,
@@ -61,22 +61,11 @@ export function useAuthDirect(): UseAuthReturn {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      console.log('🔍 [useAuthDirect] Resultado de getSession:', {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userEmail: session?.user?.email,
-        error: error?.message
-      });
-      
       if (error) {
-        console.error('❌ [useAuthDirect] Error obteniendo sesión:', error);
         newAuthState.error = error.message;
       } else if (!session?.user) {
-        console.log('❌ [useAuthDirect] No hay sesión o usuario');
         // newAuthState ya está configurado para usuario null
       } else {
-        console.log('✅ [useAuthDirect] Usuario autenticado:', session.user.email);
-        
         // Obtener el perfil del usuario
         const { data: profile, error: profileError } = await supabase
           .from('users')
@@ -85,7 +74,7 @@ export function useAuthDirect(): UseAuthReturn {
           .single();
 
         if (profileError && profileError.code !== 'PGRST116') {
-          console.error('❌ [useAuthDirect] Error obteniendo perfil:', profileError);
+          // Error obteniendo perfil
         }
         
         // Configurar estado exitoso
@@ -94,12 +83,10 @@ export function useAuthDirect(): UseAuthReturn {
       }
       
     } catch (error) {
-      console.error('❌ [useAuthDirect] Error inesperado:', error);
       newAuthState.error = error instanceof Error ? error.message : 'Error desconocido';
     }
     
     // Una sola llamada a setAuthState al final
-    console.log('🔄 [useAuthDirect] Estableciendo estado final - UN SOLO RE-RENDER');
     setAuthState(newAuthState);
   };
 
@@ -113,10 +100,7 @@ export function useAuthDirect(): UseAuthReturn {
     // Configurar listener para cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 [useAuthDirect] Auth state changed:', event, session?.user?.email);
-        
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          console.log('🔄 [useAuthDirect] Ejecutando refreshAuth debido a:', event);
           await refreshAuth();
         }
       }
@@ -138,17 +122,10 @@ export function useAuthDirect(): UseAuthReturn {
 
   const signOut = async () => {
     try {
-      console.log('🔄 [useAuthDirect] Iniciando cierre de sesión');
-      
       // Verificar si hay una sesión activa antes de intentar cerrarla
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError) {
-        console.warn('⚠️ [useAuthDirect] Error al verificar sesión:', sessionError);
-      }
-      
       if (!session) {
-        console.log('ℹ️ [useAuthDirect] No hay sesión activa, limpiando estado local');
         // No hay sesión activa, solo limpiar el estado local
         setAuthState({
           user: null,
@@ -156,7 +133,7 @@ export function useAuthDirect(): UseAuthReturn {
           loading: false,
           error: null,
         });
-        window.location.href = '/';
+        router.push('/');
         return;
       }
 
@@ -165,14 +142,9 @@ export function useAuthDirect(): UseAuthReturn {
       
       if (error) {
         // Si el error es que la sesión no existe, no es un error crítico
-        if (error.message.includes('Auth session missing') || error.message.includes('session_not_found')) {
-          console.log('ℹ️ [useAuthDirect] Sesión ya no existe, limpiando estado local');
-        } else {
-          console.error('❌ [useAuthDirect] Error al cerrar sesión:', error);
+        if (!error.message.includes('Auth session missing') && !error.message.includes('session_not_found')) {
           throw error;
         }
-      } else {
-        console.log('✅ [useAuthDirect] Sesión cerrada exitosamente');
       }
       
       // Limpiar estado local independientemente del resultado
@@ -184,10 +156,8 @@ export function useAuthDirect(): UseAuthReturn {
       });
 
       // Redirigir a la página principal
-      window.location.href = '/';
+      router.push('/');
     } catch (error) {
-      console.error('❌ [useAuthDirect] Error al cerrar sesión:', error);
-      
       // Incluso si hay error, limpiar el estado local y redirigir
       // porque el usuario quiere cerrar sesión
       setAuthState({
@@ -198,7 +168,7 @@ export function useAuthDirect(): UseAuthReturn {
       });
       
       // Redirigir de todas formas
-      window.location.href = '/';
+      router.push('/');
     }
   };
 

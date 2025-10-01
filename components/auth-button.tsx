@@ -24,7 +24,9 @@ export default function AuthButton() {
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = '/';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   if (loading) {

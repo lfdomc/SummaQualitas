@@ -33,9 +33,11 @@ export function useSessionTimeout({
     try {
       await supabase.auth.signOut();
       
-      // Limpiar localStorage
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
+      // Limpiar localStorage (solo en el cliente)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
+      }
       
       // Ejecutar callback personalizado si existe
       if (onTimeout) {
@@ -55,8 +57,8 @@ export function useSessionTimeout({
   const handleWarning = useCallback(() => {
     if (onWarning) {
       onWarning();
-    } else {
-      // Advertencia por defecto
+    } else if (typeof window !== 'undefined') {
+      // Advertencia por defecto (solo en el cliente)
       const shouldContinue = window.confirm(
         `Tu sesión expirará en ${warningMinutes} minutos por inactividad. ¿Deseas continuar?`
       );
@@ -172,10 +174,12 @@ export function useSessionTimeout({
     // Configurar timeout inicial
     resetTimeout();
 
-    // Agregar event listeners para actividad del usuario
-    activityEvents.forEach(event => {
-      document.addEventListener(event, handleActivity, true);
-    });
+    // Agregar event listeners para actividad del usuario (solo en el cliente)
+    if (typeof document !== 'undefined') {
+      activityEvents.forEach(event => {
+        document.addEventListener(event, handleActivity, true);
+      });
+    }
 
     // Verificar sesión periódicamente (cada 5 minutos)
     const sessionCheckInterval = setInterval(checkSession, 5 * 60 * 1000);
@@ -189,9 +193,11 @@ export function useSessionTimeout({
         clearTimeout(warningRef.current);
       }
       
-      activityEvents.forEach(event => {
-        document.removeEventListener(event, handleActivity, true);
-      });
+      if (typeof document !== 'undefined') {
+        activityEvents.forEach(event => {
+          document.removeEventListener(event, handleActivity, true);
+        });
+      }
       
       clearInterval(sessionCheckInterval);
     };

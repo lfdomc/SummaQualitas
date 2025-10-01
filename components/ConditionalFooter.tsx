@@ -43,5 +43,9 @@ export function ConditionalFooter() {
     return null;
   }
 
-  return <Footer />;
+  return (
+    <div suppressHydrationWarning>
+      <Footer />
+    </div>
+  );
 }

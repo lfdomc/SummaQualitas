@@ -93,7 +93,7 @@ export function RegisterForm({
       // Redirect or call success callback
       if (onSuccess) {
         onSuccess();
-      } else {
+      } else if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
     } catch (err) {

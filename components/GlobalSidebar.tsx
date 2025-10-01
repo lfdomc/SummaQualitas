@@ -44,7 +44,7 @@ import {
   X,
   Menu,
 } from 'lucide-react';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useAuthWorking } from '@/lib/hooks/useAuthWorking';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
@@ -187,7 +187,7 @@ interface GlobalSidebarProps {
 }
 
 export function GlobalSidebar({ children }: GlobalSidebarProps) {
-  const { user, profile, loading } = useAuthContext();
+  const { user, profile, loading, isAuthenticated } = useAuthWorking();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -257,8 +257,23 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
     }
   }, [user, loading, pathname, router]);
 
+  // Debug logs
+  console.log('🔍 [GlobalSidebar] Debug info:', {
+    user: !!user,
+    loading,
+    pathname,
+    isPublicRoute: PUBLIC_ROUTES.has(pathname),
+    userEmail: user?.email,
+    profileRole: profile?.role
+  });
+
   // No mostrar sidebar en rutas públicas o si el usuario no está logueado
   if (!user || loading || PUBLIC_ROUTES.has(pathname)) {
+    console.log('❌ [GlobalSidebar] No mostrando sidebar:', {
+      noUser: !user,
+      loading,
+      isPublicRoute: PUBLIC_ROUTES.has(pathname)
+    });
     return <>{children}</>;
   }
 

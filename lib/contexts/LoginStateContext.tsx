@@ -29,18 +29,7 @@ export function LoginStateProvider({ children }: LoginStateProviderProps) {
     shouldPreventRedirects: false,
   });
 
-  // TEMPORALMENTE DESACTIVADO: Verificación específica para Chrome
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-      if (isChrome) {
-        console.log('🌐 [LoginStateContext] Navegador Chrome detectado - Optimizaciones DESACTIVADAS temporalmente');
-      }
-    }
-  }, []);
-
   const startLogin = useCallback((email: string) => {
-    console.log('🔐 [LoginStateContext] Iniciando proceso de login para:', email);
     setLoginState({
       isLoggingIn: true,
       loginEmail: email,
@@ -49,7 +38,6 @@ export function LoginStateProvider({ children }: LoginStateProviderProps) {
   }, []);
 
   const completeLogin = useCallback(() => {
-    console.log('✅ [LoginStateContext] Completando proceso de login');
     setLoginState({
       isLoggingIn: false,
       loginEmail: null,
@@ -58,7 +46,6 @@ export function LoginStateProvider({ children }: LoginStateProviderProps) {
   }, []);
 
   const cancelLogin = useCallback(() => {
-    console.log('❌ [LoginStateContext] Cancelando proceso de login');
     setLoginState({
       isLoggingIn: false,
       loginEmail: null,

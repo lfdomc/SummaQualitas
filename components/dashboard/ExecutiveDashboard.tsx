@@ -381,7 +381,6 @@ export default function ExecutiveDashboard() {
     
       return formatted;
     } catch (error) {
-      console.error('🔍 [DEBUG] Error en formatCurrency:', error);
       return '₡0';
     }
   };

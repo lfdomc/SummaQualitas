@@ -13,12 +13,6 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Skip middleware processing for auth pages to avoid interference with auth flow
-  if (request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/auth")) {
-    console.log('🔄 [Middleware] Skipping middleware for auth page:', request.nextUrl.pathname);
-    return supabaseResponse;
-  }
-
   // With Fluid compute, don't put this client in a global environment
   // variable. Always create a new one on each request.
   const supabase = createServerClient(
@@ -50,12 +44,7 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: If you remove getUser() and you use server-side rendering
   // with the Supabase client, your users may be randomly logged out.
-  console.log(`🔄 [Middleware] Processing ${request.nextUrl.pathname}`);
   const { data: { user }, error } = await supabase.auth.getUser();
-  console.log(`🔄 [Middleware] User authentication:`, user ? `authenticated (${user.email})` : 'not authenticated');
-  if (error) {
-    console.log(`🔄 [Middleware] Auth error:`, error.message);
-  }
 
   // Define public routes that don't require authentication
   const publicRoutes = [
@@ -74,9 +63,16 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login") || 
                      request.nextUrl.pathname.startsWith("/auth");
 
+  // Check if authenticated user is trying to access auth pages
+  if (user && isAuthRoute) {
+    // User is authenticated but trying to access auth pages, redirect to dashboard
+    const url = request.nextUrl.clone();
+    url.pathname = "/projects";
+    return NextResponse.redirect(url);
+  }
+
   if (!user && !isPublicRoute && !isAuthRoute) {
     // no user, potentially respond by redirecting the user to the login page
-    console.log(`🔄 [Middleware] Redirecting to login: ${request.nextUrl.pathname}`);
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

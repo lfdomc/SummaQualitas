@@ -21,6 +21,8 @@ export function Header() {
   
   // Detectar si es dispositivo móvil
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -33,17 +35,17 @@ export function Header() {
   
   // Cerrar menú al hacer clic fuera en móvil
   useEffect(() => {
-    if (isMenuOpen && isMobile) {
-      const handleClickOutside = (event: MouseEvent) => {
-        const target = event.target as Element;
-        if (!target.closest('.mobile-menu') && !target.closest('.menu-button')) {
-          setIsMenuOpen(false);
-        }
-      };
-      
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
+    if (typeof document === 'undefined' || !isMenuOpen || !isMobile) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.mobile-menu') && !target.closest('.menu-button')) {
+        setIsMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [isMenuOpen, isMobile]);
 
   const navigationItems = [
@@ -96,47 +98,43 @@ export function Header() {
 
           {/* Right side - Auth buttons y Mobile menu */}
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {!loading && (
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className="flex items-center space-x-2 min-h-touch min-w-touch p-2 sm:px-3"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline text-mobile-sm sm:text-sm truncate max-w-32">
+                      Usuario
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Cerrar Sesión
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
               <>
-                {isAuthenticated ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        className="flex items-center space-x-2 min-h-touch min-w-touch p-2 sm:px-3"
-                      >
-                        <User className="h-4 w-4" />
-                        <span className="hidden sm:inline text-mobile-sm sm:text-sm truncate max-w-32">
-                          Usuario
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem className="cursor-pointer">
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Cerrar Sesión
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <>
-                    <Link href="/login" className="hidden sm:inline-block">
-                      <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-full text-mobile-sm sm:text-sm">
-                        Iniciar Sesión
-                      </Button>
-                    </Link>
-                    <Link href="/cotizacion" className="hidden sm:inline-block">
-                      <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-mobile-sm sm:text-sm">
-                        Get Quote
-                      </Button>
-                    </Link>
-                    <Link href="/login" className="sm:hidden">
-                      <Button variant="ghost" size="sm" className="min-h-touch">
-                        <User className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </>
-                )}
+                <Link href="/login" className="hidden sm:inline-block">
+                  <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-full text-mobile-sm sm:text-sm">
+                    Iniciar Sesión
+                  </Button>
+                </Link>
+                <Link href="/cotizacion" className="hidden sm:inline-block">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-mobile-sm sm:text-sm">
+                    Get Quote
+                  </Button>
+                </Link>
+                <Link href="/login" className="sm:hidden">
+                  <Button variant="ghost" size="sm" className="min-h-touch">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </Link>
               </>
             )}
 
@@ -188,7 +186,7 @@ onClick={() => setIsMenuOpen(false)}
                 })}
               
                 {/* Mobile Auth Buttons */}
-                {!loading && !isAuthenticated && (
+                {!isAuthenticated && (
                   <div className="pt-4 space-y-3 border-t border-border mt-2">
                     <Link href="/cotizacion" onClick={() => setIsMenuOpen(false)}>
                       <Button className="mobile-primary-button w-full rounded-full">Get Quote</Button>

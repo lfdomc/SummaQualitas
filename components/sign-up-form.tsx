@@ -50,11 +50,12 @@ export function SignUpForm({
     }
 
     try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
+          emailRedirectTo: `${origin}/protected`,
           data: {
             full_name: fullName,
             phone: phone,

@@ -4,6 +4,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth, UseAuthReturn } from '@/lib/hooks/useAuth';
 import { useAuthSimple } from '@/lib/hooks/useAuthSimple';
 import { useAuthDirect } from '@/lib/hooks/useAuthDirect';
+import { useAuthFixed } from '@/lib/hooks/useAuthFixed';
 
 const AuthContext = createContext<UseAuthReturn | undefined>(undefined);
 
@@ -12,12 +13,12 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const authDirect = useAuthDirect();
+  const authFixed = useAuthFixed();
   
 
 
   return (
-    <AuthContext.Provider value={authDirect}>
+    <AuthContext.Provider value={authFixed}>
       {children}
     </AuthContext.Provider>
   );

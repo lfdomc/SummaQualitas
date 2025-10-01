@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { SessionTimeoutProvider } from "@/components/providers/SessionTimeoutProvider";
 import { LoginStateProvider } from "@/lib/contexts/LoginStateContext";
-import { GlobalSidebar } from "@/components/GlobalSidebar";
+import { GlobalSidebar } from '@/components/GlobalSidebar';
 import { ConditionalHeader } from "@/components/ConditionalHeader";
 import { ConditionalFooter } from "@/components/ConditionalFooter";
 import { Toaster } from "@/components/ui/toaster";
@@ -78,19 +78,17 @@ export default function RootLayout({
                 warningMinutes={5}
                 enabled={true}
               >
-              <div className="flex min-h-screen bg-background safe-area-inset">
-                <GlobalSidebar>
-                  <div className="flex flex-col flex-1 min-w-0 w-full lg:w-auto">
-                    <ConditionalHeader />
-                    
-                    <main className="flex-1 w-full">
-                      <div className="w-full max-w-none">
-                        {children}
-                      </div>
-                    </main>
-                  </div>
-                </GlobalSidebar>
-              </div>
+              <GlobalSidebar>
+                <div className="flex flex-col flex-1 min-w-0 w-full lg:w-auto">
+                  <ConditionalHeader />
+                  
+                  <main className="flex-1 w-full">
+                    <div className="w-full max-w-none">
+                      {children}
+                    </div>
+                  </main>
+                </div>
+              </GlobalSidebar>
               
               <ConditionalFooter />
                 </SessionTimeoutProvider>
@@ -99,30 +97,7 @@ export default function RootLayout({
           <Toaster />
         </ThemeProvider>
         
-        {/* Performance and accessibility improvements */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Prevent FOUC (Flash of Unstyled Content)
-              document.documentElement.style.visibility = 'visible';
-              
-              // Improve touch responsiveness
-              document.addEventListener('touchstart', function() {}, {passive: true});
-              
-              // Optimize scroll performance
-              let ticking = false;
-              function updateScrollPosition() {
-                ticking = false;
-              }
-              document.addEventListener('scroll', function() {
-                if (!ticking) {
-                  requestAnimationFrame(updateScrollPosition);
-                  ticking = true;
-                }
-              }, {passive: true});
-            `,
-          }}
-        />
+
       </body>
     </html>
   );

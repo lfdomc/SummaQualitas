@@ -35,6 +35,7 @@ import ClientForm from '@/components/clients/ClientForm';
 import { ProjectService } from '@/lib/supabase/database';
 import ProjectTableSkeleton from '@/components/projects/ProjectTableSkeleton';
 import { createClient } from '@/lib/supabase/client';
+import { AuthDebug } from '@/components/debug/AuthDebug';
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -217,6 +218,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <AuthDebug />
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

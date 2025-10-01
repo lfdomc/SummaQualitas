@@ -6,38 +6,32 @@ import { createClient } from '@/lib/supabase/client';
 
 export function useAuthSimple() {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   
   console.log('🚀 [useAuthSimple] Hook inicializado');
 
   useEffect(() => {
-    console.log('⚡ [useAuthSimple] useEffect ejecutándose...');
+    console.log('⚡⚡⚡ [useAuthSimple] useEffect EJECUTÁNDOSE!!!');
     
-    const supabase = createClient();
-    
-    const checkAuth = async () => {
-      try {
-        console.log('🔍 [useAuthSimple] Verificando autenticación...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ [useAuthSimple] Error:', error);
-          setUser(null);
-        } else {
-          console.log('✅ [useAuthSimple] Sesión:', session?.user?.email || 'No user');
-          setUser(session?.user || null);
-        }
-      } catch (err) {
-        console.error('❌ [useAuthSimple] Error inesperado:', err);
-        setUser(null);
-      } finally {
-        console.log('🏁 [useAuthSimple] Finalizando, loading = false');
-        setLoading(false);
-      }
+    // Función simple para probar
+    const testFunction = () => {
+      console.log('🧪 [useAuthSimple] Función de prueba ejecutándose...');
+      setLoading(false);
     };
-
-    checkAuth();
+    
+    // Ejecutar inmediatamente
+    testFunction();
+    
+    // También probar con timeout
+    const timer = setTimeout(() => {
+      console.log('⏰ [useAuthSimple] Timer ejecutándose...');
+    }, 1000);
+    
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
 
-  return { user, loading, isAuthenticated: !!user };
+  return { user, profile, loading, isAuthenticated: !!user };
 }

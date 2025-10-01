@@ -157,7 +157,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(existingFile.url, '_blank')}
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.open(existingFile.url, '_blank');
+                    }
+                  }}
                 >
                   Ver
                 </Button>

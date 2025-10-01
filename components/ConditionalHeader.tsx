@@ -30,39 +30,26 @@ export function ConditionalHeader() {
   const { user, loading } = useAuthContext();
   const pathname = usePathname();
 
-  // Debug logs
-  console.log('🔍 [ConditionalHeader] Estado:', {
-    pathname,
-    hasUser: !!user,
-    userEmail: user?.email,
-    loading,
-    isPublicRoute: PUBLIC_ROUTES.has(pathname)
-  });
-
-  // Si está cargando, no mostrar nada para evitar parpadeo
-  if (loading) {
-    console.log('⏳ [ConditionalHeader] Loading - no mostrar header');
-    return null;
-  }
-
-  // En rutas públicas, SIEMPRE mostrar header público (independientemente del estado de autenticación)
+  // En rutas públicas, SIEMPRE mostrar header público (independientemente del estado de autenticación o loading)
   if (PUBLIC_ROUTES.has(pathname)) {
-    console.log('✅ [ConditionalHeader] Ruta pública - mostrar header');
     return (
-      <>
+      <div suppressHydrationWarning>
         <Header />
         <UserMenu />
-      </>
+      </div>
     );
+  }
+
+  // Si está cargando en rutas privadas, no mostrar nada para evitar parpadeo
+  if (loading) {
+    return null;
   }
 
   // En rutas privadas con usuario logueado, no mostrar header (las páginas con sidebar no lo necesitan)
   if (user) {
-    console.log('🔒 [ConditionalHeader] Usuario logueado en ruta privada - no mostrar header');
     return null;
   }
 
   // Si no hay usuario en ruta privada, no mostrar header (se redirigirá al login)
-  console.log('❌ [ConditionalHeader] Sin usuario en ruta privada - no mostrar header');
   return null;
 }
