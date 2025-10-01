@@ -32,21 +32,11 @@ export interface UseAuthReturn extends AuthState {
 }
 
 export function useAuthFixed(): UseAuthReturn {
-  console.log('🎯 [useAuthFixed] HOOK EJECUTÁNDOSE - Inicio del hook');
-  
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     profile: null,
     loading: false, // Empezamos con loading: false
     error: null,
-  });
-
-  console.log('🔍 [useAuthFixed] Estado actual:', {
-    user: !!authState.user,
-    profile: !!authState.profile,
-    loading: authState.loading,
-    userEmail: authState.user?.email,
-    profileRole: authState.profile?.role
   });
 
   const supabase = useMemo(() => createClient(), []);
@@ -74,8 +64,6 @@ export function useAuthFixed(): UseAuthReturn {
 
   // Función simplificada para verificar autenticación
   const refreshAuth = useCallback(async () => {
-    console.log('🔄 [useAuthFixed] Iniciando refreshAuth...');
-    
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -91,7 +79,6 @@ export function useAuthFixed(): UseAuthReturn {
       }
 
       if (!session?.user) {
-        console.log('ℹ️ [useAuthFixed] No hay usuario autenticado');
         setAuthState({
           user: null,
           profile: null,
@@ -100,8 +87,6 @@ export function useAuthFixed(): UseAuthReturn {
         });
         return;
       }
-
-      console.log('✅ [useAuthFixed] Usuario encontrado:', session.user.email);
 
       // Obtener perfil del usuario
       const profile = await fetchUserProfile(session.user.id);
@@ -112,8 +97,6 @@ export function useAuthFixed(): UseAuthReturn {
         loading: false,
         error: null,
       });
-
-      console.log('✅ [useAuthFixed] Estado actualizado exitosamente');
 
     } catch (error) {
       console.error('❌ [useAuthFixed] Error inesperado en refreshAuth:', error);
@@ -128,14 +111,11 @@ export function useAuthFixed(): UseAuthReturn {
 
   // Efecto de inicialización
   useEffect(() => {
-    console.log('🚀🚀🚀 [useAuthFixed] USEEFFECT EJECUTÁNDOSE - Inicializando...');
     refreshAuth();
   }, [refreshAuth]);
 
   // Función de login
   const signIn = async (email: string, password: string) => {
-    console.log('🔐 [useAuthFixed] Intento de login:', email);
-    
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -153,8 +133,6 @@ export function useAuthFixed(): UseAuthReturn {
         }));
         return { error };
       }
-
-      console.log('✅ [useAuthFixed] Login exitoso');
       
       // El estado se actualizará automáticamente por el listener
       return { error: null };
@@ -173,8 +151,6 @@ export function useAuthFixed(): UseAuthReturn {
 
   // Función de logout
   const signOut = async () => {
-    console.log('👋 [useAuthFixed] Cerrando sesión...');
-    
     try {
       await supabase.auth.signOut();
       // El estado se actualizará automáticamente por el listener
@@ -185,8 +161,6 @@ export function useAuthFixed(): UseAuthReturn {
 
   // Función de registro
   const signUp = async (email: string, password: string, userData: any) => {
-    console.log('📝 [useAuthFixed] Intento de registro:', email);
-    
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -208,7 +182,6 @@ export function useAuthFixed(): UseAuthReturn {
         return { error };
       }
 
-      console.log('✅ [useAuthFixed] Registro exitoso');
       setAuthState(prev => ({ ...prev, loading: false }));
       return { error: null };
 
@@ -226,8 +199,6 @@ export function useAuthFixed(): UseAuthReturn {
 
   // Función de reset de contraseña
   const resetPassword = async (email: string) => {
-    console.log('🔑 [useAuthFixed] Reset de contraseña:', email);
-    
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       
@@ -236,7 +207,6 @@ export function useAuthFixed(): UseAuthReturn {
         return { error };
       }
 
-      console.log('✅ [useAuthFixed] Reset enviado');
       return { error: null };
 
     } catch (error) {
@@ -247,8 +217,6 @@ export function useAuthFixed(): UseAuthReturn {
 
   // Función de actualización de perfil
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    console.log('📝 [useAuthFixed] Actualizando perfil...');
-    
     if (!authState.user) {
       return { error: { message: 'No hay usuario autenticado' } };
     }
@@ -270,7 +238,6 @@ export function useAuthFixed(): UseAuthReturn {
         profile: prev.profile ? { ...prev.profile, ...updates } : null,
       }));
 
-      console.log('✅ [useAuthFixed] Perfil actualizado');
       return { error: null };
 
     } catch (error) {

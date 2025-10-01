@@ -257,23 +257,8 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
     }
   }, [user, loading, pathname, router]);
 
-  // Debug logs
-  console.log('🔍 [GlobalSidebar] Debug info:', {
-    user: !!user,
-    loading,
-    pathname,
-    isPublicRoute: PUBLIC_ROUTES.has(pathname),
-    userEmail: user?.email,
-    profileRole: profile?.role
-  });
-
   // No mostrar sidebar en rutas públicas o si el usuario no está logueado
   if (!user || loading || PUBLIC_ROUTES.has(pathname)) {
-    console.log('❌ [GlobalSidebar] No mostrando sidebar:', {
-      noUser: !user,
-      loading,
-      isPublicRoute: PUBLIC_ROUTES.has(pathname)
-    });
     return <>{children}</>;
   }
 

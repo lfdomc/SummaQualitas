@@ -12,81 +12,66 @@ interface AuthState {
 }
 
 export function useAuthWorking(): AuthState {
-  console.log('🚀🚀🚀 [useAuthWorking] Hook ejecutándose...');
-  
-  const [state, setState] = useState<AuthState>(() => {
-    console.log('🔧 [useAuthWorking] Inicializando estado...');
-    
-    // Ejecutar autenticación inmediatamente
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    profile: null,
+    loading: true,
+    isAuthenticated: false
+  });
+
+  useEffect(() => {
     const supabase = createClient();
-    console.log('🔍 [useAuthWorking] Cliente Supabase creado');
     
-    // Intentar obtener sesión de forma síncrona si es posible
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('🔍 [useAuthWorking] Resultado de sesión:', { hasSession: !!session, error: error?.message });
-      
-      if (error) {
-        console.error('❌ [useAuthWorking] Error:', error.message);
-        setState({
-          user: null,
-          profile: null,
-          loading: false,
-          isAuthenticated: false
-        });
-        return;
-      }
-
-      if (!session?.user) {
-        console.log('ℹ️ [useAuthWorking] No hay sesión activa');
-        setState({
-          user: null,
-          profile: null,
-          loading: false,
-          isAuthenticated: false
-        });
-        return;
-      }
-
-      console.log('✅ [useAuthWorking] Usuario encontrado:', session.user.email);
-
-      // Obtener perfil
-      supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-        .then(({ data: profile, error: profileError }) => {
-          if (profileError) {
-            console.error('❌ [useAuthWorking] Error obteniendo perfil:', profileError.message);
-          } else {
-            console.log('✅ [useAuthWorking] Perfil obtenido:', profile?.email, profile?.role);
-          }
-
+    // Función para obtener la sesión y perfil
+    const getSessionAndProfile = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
           setState({
-            user: session.user,
-            profile: profile || null,
+            user: null,
+            profile: null,
             loading: false,
-            isAuthenticated: true
+            isAuthenticated: false
           });
-        });
-    });
-    
-    return {
-      user: null,
-      profile: null,
-      loading: true,
-      isAuthenticated: false
-    };
-  });
+          return;
+        }
 
-  console.log('📊 [useAuthWorking] Estado actual:', {
-    hasUser: !!state.user,
-    hasProfile: !!state.profile,
-    loading: state.loading,
-    isAuthenticated: state.isAuthenticated,
-    userEmail: state.user?.email,
-    profileRole: state.profile?.role
-  });
+        if (!session?.user) {
+          setState({
+            user: null,
+            profile: null,
+            loading: false,
+            isAuthenticated: false
+          });
+          return;
+        }
+
+        // Obtener perfil
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('id, email, name, role')
+          .eq('id', session.user.id)
+          .single();
+
+        setState({
+          user: session.user,
+          profile: profile || null,
+          loading: false,
+          isAuthenticated: true
+        });
+      } catch (error) {
+        setState({
+          user: null,
+          profile: null,
+          loading: false,
+          isAuthenticated: false
+        });
+      }
+    };
+
+    getSessionAndProfile();
+  }, []);
 
   return state;
 }

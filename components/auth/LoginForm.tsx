@@ -25,7 +25,6 @@ export function LoginForm({ redirectTo = '/projects' }: LoginFormProps) {
   // Verificar si ya hay una sesión activa y redirigir automáticamente
   useEffect(() => {
     if (user && isAuthenticated) {
-      console.log('🔄 [LoginForm] Usuario ya autenticado, redirigiendo a:', redirectTo);
       router.push(redirectTo);
     }
   }, [user, isAuthenticated, router, redirectTo]);
@@ -42,8 +41,6 @@ export function LoginForm({ redirectTo = '/projects' }: LoginFormProps) {
     setLocalError('');
 
     try {
-      console.log('🔐 [LoginForm] Iniciando login para:', email);
-      
       const { error } = await signIn(email, password);
 
       if (error) {
@@ -51,8 +48,6 @@ export function LoginForm({ redirectTo = '/projects' }: LoginFormProps) {
         setLocalError(error.message || 'Error durante el login');
         return;
       }
-
-      console.log('✅ [LoginForm] Login exitoso, redirigiendo...');
       
       // Redirección directa
       router.push(redirectTo);
