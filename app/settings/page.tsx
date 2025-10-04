@@ -29,46 +29,63 @@ function SettingsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-4">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Settings className="h-8 w-8 text-blue-600" />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Configuración</h1>
-            <p className="text-gray-600">Administra las configuraciones del sistema y preferencias</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+          <Settings className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+              <span className="hidden sm:inline">Configuración</span>
+              <span className="sm:hidden">Config</span>
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600">
+              <span className="hidden sm:inline">Administra las configuraciones del sistema y preferencias</span>
+              <span className="sm:hidden">Configuraciones del sistema</span>
+            </p>
           </div>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {/* Perfil de Usuario */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Perfil de Usuario
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Perfil de Usuario</span>
+                <span className="sm:hidden">Perfil</span>
               </CardTitle>
-              <CardDescription>
-                Actualiza tu información personal y datos de contacto
+              <CardDescription className="text-sm">
+                <span className="hidden sm:inline">Actualiza tu información personal y datos de contacto</span>
+                <span className="sm:hidden">Información personal</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre completo</Label>
-                  <Input id="name" placeholder="Tu nombre completo" />
+                  <Label htmlFor="name" className="text-sm">
+                    <span className="hidden sm:inline">Nombre completo</span>
+                    <span className="sm:hidden">Nombre</span>
+                  </Label>
+                  <Input id="name" placeholder="Tu nombre completo" className="h-9 sm:h-10" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <Input id="email" type="email" placeholder="tu@email.com" />
+                  <Label htmlFor="email" className="text-sm">
+                    <span className="hidden sm:inline">Correo electrónico</span>
+                    <span className="sm:hidden">Email</span>
+                  </Label>
+                  <Input id="email" type="email" placeholder="tu@email.com" className="h-9 sm:h-10" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <Input id="phone" placeholder="+52 123 456 7890" />
+                  <Label htmlFor="phone" className="text-sm">Teléfono</Label>
+                  <Input id="phone" placeholder="+52 123 456 7890" className="h-9 sm:h-10" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">Departamento</Label>
-                  <Input id="department" placeholder="Departamento" />
+                  <Label htmlFor="department" className="text-sm">
+                    <span className="hidden sm:inline">Departamento</span>
+                    <span className="sm:hidden">Depto</span>
+                  </Label>
+                  <Input id="department" placeholder="Departamento" className="h-9 sm:h-10" />
                 </div>
               </div>
             </CardContent>
@@ -76,21 +93,29 @@ function SettingsPage() {
 
           {/* Notificaciones */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notificaciones
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Notificaciones</span>
+                <span className="sm:hidden">Notif</span>
               </CardTitle>
-              <CardDescription>
-                Configura cómo y cuándo recibir notificaciones
+              <CardDescription className="text-sm">
+                <span className="hidden sm:inline">Configura cómo y cuándo recibir notificaciones</span>
+                <span className="sm:hidden">Configurar alertas</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Notificaciones por email</Label>
-                    <p className="text-sm text-gray-500">Recibir alertas y actualizaciones por correo</p>
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <Label className="text-sm">
+                      <span className="hidden sm:inline">Notificaciones por email</span>
+                      <span className="sm:hidden">Email</span>
+                    </Label>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      <span className="hidden sm:inline">Recibir alertas y actualizaciones por correo</span>
+                      <span className="sm:hidden">Alertas por correo</span>
+                    </p>
                   </div>
                   <Switch
                     checked={notifications.email}
@@ -100,10 +125,16 @@ function SettingsPage() {
                   />
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Notificaciones push</Label>
-                    <p className="text-sm text-gray-500">Recibir notificaciones en el navegador</p>
+                <div className="flex items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <Label className="text-sm">
+                      <span className="hidden sm:inline">Notificaciones push</span>
+                      <span className="sm:hidden">Push</span>
+                    </Label>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      <span className="hidden sm:inline">Recibir notificaciones en el navegador</span>
+                      <span className="sm:hidden">En navegador</span>
+                    </p>
                   </div>
                   <Switch
                     checked={notifications.push}
@@ -113,10 +144,16 @@ function SettingsPage() {
                   />
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Notificaciones SMS</Label>
-                    <p className="text-sm text-gray-500">Recibir alertas críticas por SMS</p>
+                <div className="flex items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <Label className="text-sm">
+                      <span className="hidden sm:inline">Notificaciones SMS</span>
+                      <span className="sm:hidden">SMS</span>
+                    </Label>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      <span className="hidden sm:inline">Recibir alertas críticas por SMS</span>
+                      <span className="sm:hidden">Alertas críticas</span>
+                    </p>
                   </div>
                   <Switch
                     checked={notifications.sms}
@@ -131,44 +168,49 @@ function SettingsPage() {
 
           {/* Preferencias */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Preferencias
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Palette className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Preferencias</span>
+                <span className="sm:hidden">Pref</span>
               </CardTitle>
-              <CardDescription>
-                Personaliza la apariencia y comportamiento de la aplicación
+              <CardDescription className="text-sm">
+                <span className="hidden sm:inline">Personaliza la apariencia y comportamiento de la aplicación</span>
+                <span className="sm:hidden">Personalizar experiencia</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Idioma</Label>
-                    <select 
-                      id="language" 
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      value={preferences.language}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
-                    >
-                      <option value="es">Español</option>
-                      <option value="en">English</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="timezone">Zona horaria</Label>
-                    <select 
-                      id="timezone" 
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      value={preferences.timezone}
-                      onChange={(e) => setPreferences(prev => ({ ...prev, timezone: e.target.value }))}
-                    >
-                      <option value="America/Mexico_City">Ciudad de México</option>
-                      <option value="America/Monterrey">Monterrey</option>
-                      <option value="America/Tijuana">Tijuana</option>
-                    </select>
-                  </div>
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="language" className="text-sm">
+                    <span className="hidden sm:inline">Idioma</span>
+                    <span className="sm:hidden">Idioma</span>
+                  </Label>
+                  <select 
+                    id="language" 
+                    className="w-full p-2 border border-gray-300 rounded-md h-9 sm:h-10"
+                    value={preferences.language}
+                    onChange={(e) => setPreferences(prev => ({ ...prev, language: e.target.value }))}
+                  >
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timezone" className="text-sm">
+                    <span className="hidden sm:inline">Zona horaria</span>
+                    <span className="sm:hidden">Zona</span>
+                  </Label>
+                  <select 
+                    id="timezone" 
+                    className="w-full p-2 border border-gray-300 rounded-md h-9 sm:h-10"
+                    value={preferences.timezone}
+                    onChange={(e) => setPreferences(prev => ({ ...prev, timezone: e.target.value }))}
+                  >
+                    <option value="America/Mexico_City">Ciudad de México</option>
+                    <option value="America/Monterrey">Monterrey</option>
+                    <option value="America/Tijuana">Tijuana</option>
+                  </select>
                 </div>
               </div>
             </CardContent>
@@ -176,54 +218,100 @@ function SettingsPage() {
 
           {/* Seguridad */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Seguridad
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Seguridad</span>
+                <span className="sm:hidden">Segur</span>
               </CardTitle>
-              <CardDescription>
-                Administra la seguridad de tu cuenta
+              <CardDescription className="text-sm">
+                <span className="hidden sm:inline">Gestiona la seguridad de tu cuenta</span>
+                <span className="sm:hidden">Gestionar seguridad</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <Button variant="outline" className="w-full md:w-auto">
-                  Cambiar contraseña
-                </Button>
-                <Button variant="outline" className="w-full md:w-auto">
-                  Configurar autenticación de dos factores
-                </Button>
-                <Button variant="outline" className="w-full md:w-auto">
-                  Ver sesiones activas
-                </Button>
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <Label className="text-sm">
+                      <span className="hidden sm:inline">Cambiar contraseña</span>
+                      <span className="sm:hidden">Contraseña</span>
+                    </Label>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      <span className="hidden sm:inline">Actualiza tu contraseña regularmente</span>
+                      <span className="sm:hidden">Actualizar contraseña</span>
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <span className="hidden sm:inline">Cambiar</span>
+                    <span className="sm:hidden">Cambiar</span>
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <Label className="text-sm">
+                      <span className="hidden sm:inline">Autenticación de dos factores</span>
+                      <span className="sm:hidden">2FA</span>
+                    </Label>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      <span className="hidden sm:inline">Añade una capa extra de seguridad</span>
+                      <span className="sm:hidden">Seguridad extra</span>
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <span className="hidden sm:inline">Configurar</span>
+                    <span className="sm:hidden">Config</span>
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg gap-3">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <Label className="text-sm">
+                      <span className="hidden sm:inline">Sesiones activas</span>
+                      <span className="sm:hidden">Sesiones</span>
+                    </Label>
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      <span className="hidden sm:inline">Revisa y gestiona tus sesiones</span>
+                      <span className="sm:hidden">Gestionar sesiones</span>
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <span className="hidden sm:inline">Ver sesiones</span>
+                    <span className="sm:hidden">Ver</span>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Sistema */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Sistema
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Database className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Sistema</span>
+                <span className="sm:hidden">Sist</span>
               </CardTitle>
-              <CardDescription>
-                Información del sistema y herramientas de administración
+              <CardDescription className="text-sm">
+                <span className="hidden sm:inline">Información del sistema y herramientas de administración</span>
+                <span className="sm:hidden">Info del sistema</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-800">
-                    Sistema funcionando correctamente. Última actualización: hace 2 horas
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="p-3 sm:p-4 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-xs sm:text-sm text-green-800">
+                    <span className="hidden sm:inline">Sistema funcionando correctamente. Última actualización: hace 2 horas</span>
+                    <span className="sm:hidden">Sistema OK. Actualiz: 2h</span>
                   </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button variant="outline">
-                    Exportar datos
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <span className="hidden sm:inline">Exportar datos</span>
+                    <span className="sm:hidden">Exportar</span>
                   </Button>
-                  <Button variant="outline">
-                    Generar reporte de actividad
+                  <Button variant="outline" size="sm" className="w-full">
+                    <span className="hidden sm:inline">Generar reporte de actividad</span>
+                    <span className="sm:hidden">Reporte</span>
                   </Button>
                 </div>
               </div>
@@ -231,13 +319,12 @@ function SettingsPage() {
           </Card>
         </div>
 
-        {/* Botones de acción */}
-        <div className="flex justify-end gap-4">
-          <Button variant="outline">
-            Cancelar
-          </Button>
-          <Button onClick={handleSaveSettings}>
-            Guardar cambios
+        {/* Botón de guardar */}
+        <div className="flex justify-end">
+          <Button onClick={handleSaveSettings} className="w-full sm:w-auto" size="sm">
+            <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Guardar configuración</span>
+            <span className="sm:hidden">Guardar</span>
           </Button>
         </div>
       </div>

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Obtener estadísticas de equipos
     const { data: equipmentStats, error: equipmentError } = await supabase
       .from('equipment')
-      .select('id, name, category, status, daily_rental_rate, is_active');
+      .select('id, name, category, status, daily_rental_rate');
     
     if (equipmentError) {
       console.error('Error fetching equipment stats:', equipmentError);
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     
     // Obtener alquileres activos
     const { data: activeRentals, error: rentalsError } = await supabase
-      .from('equipment_rental')
+      .from('equipment_rentals')
       .select(`
         *,
         equipment:equipment_id(id, name, category),
@@ -55,27 +55,11 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Obtener gastos mensuales del año actual
-    const currentYear = new Date().getFullYear();
-    const { data: monthlyExpenses, error: expensesError } = await supabase
-      .from('equipment_monthly_expenses')
-      .select(`
-        *,
-        equipment:equipment_id(name, category)
-      `)
-      .eq('year', currentYear);
-    
-    if (expensesError) {
-      console.error('Error fetching monthly expenses:', expensesError);
-      return NextResponse.json(
-        { success: false, error: 'Error al obtener gastos mensuales' },
-        { status: 500 }
-      );
-    }
+    // Los gastos mensuales se calculan desde equipment_rentals más abajo
     
     // Estadísticas de alquileres del mes
     let rentalsQuery = supabase
-      .from('equipment_rental')
+      .from('equipment_rentals')
       .select(`
         *,
         equipment:equipment_id(
@@ -106,7 +90,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Calcular estadísticas
-    const equipment = equipmentStats?.filter(e => e.is_active) || [];
+    const equipment = equipmentStats || [];
     const equipmentStatsCalculated = {
       total: equipment?.length || 0,
       available: equipment?.filter(e => e.status === 'available').length || 0,
@@ -195,22 +179,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10);
     
-    // Calcular gastos mensuales totales
-    const totalMonthlyExpenses = monthlyExpenses?.reduce((sum, expense) => sum + (expense.total_amount || 0), 0) || 0;
-    
-    // Gastos por categoría desde monthly_expenses
-    const monthlyExpensesByCategory = monthlyExpenses?.reduce((acc, expense) => {
-      const category = expense.equipment?.category || 'Sin categoría';
-      acc[category] = (acc[category] || 0) + (expense.total_amount || 0);
-      return acc;
-    }, {} as Record<string, number>) || {};
-    
-    // Gastos por proyecto desde monthly_expenses
-    const monthlyExpensesByProject = monthlyExpenses?.reduce((acc, expense) => {
-      const project = expense.project?.name || 'Sin proyecto';
-      acc[project] = (acc[project] || 0) + (expense.total_amount || 0);
-      return acc;
-    }, {} as Record<string, number>) || {};
+    // Los gastos mensuales se calculan desde los alquileres activos
     
     return NextResponse.json({
       success: true,
@@ -225,12 +194,6 @@ export async function GET(request: NextRequest) {
         equipment: equipmentStatsCalculated,
         rentals: rentalStats,
         activeRentals: activeRentals || [],
-        monthlyExpenses: {
-          total: totalMonthlyExpenses,
-          byCategory: monthlyExpensesByCategory,
-          byProject: monthlyExpensesByProject,
-          details: monthlyExpenses || []
-        },
         expenses: {
           total: totalMonthlyExpense,
           byCategory: expensesByCategory,

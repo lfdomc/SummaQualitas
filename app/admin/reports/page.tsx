@@ -24,7 +24,8 @@ import {
   AlertTriangle,
   Loader2
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Bar, Pie, Cell } from 'recharts';
+import { LazyLineChart, LazyBarChart, LazyPieChart } from '@/components/ui/lazy-chart';
 
 interface ReportData {
   id: string;
@@ -185,102 +186,124 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reportes del Sistema</h1>
-          <p className="text-gray-600 mt-1">
-            Genera y descarga reportes detallados del sistema
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <span className="hidden sm:inline">Reportes del Sistema</span>
+            <span className="sm:hidden">Reportes</span>
+          </h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
+            <span className="hidden sm:inline">Genera y descarga reportes detallados del sistema</span>
+            <span className="sm:hidden">Genera y descarga reportes</span>
           </p>
         </div>
-        <Button>
+        <Button className="w-full sm:w-auto">
           <FileText className="h-4 w-4 mr-2" />
-          Nuevo Reporte
+          <span className="hidden sm:inline">Nuevo Reporte</span>
+          <span className="sm:hidden">Nuevo</span>
         </Button>
       </div>
 
       {/* Métricas Rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Usuarios Totales</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalUsers}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">
+                  <span className="hidden sm:inline">Usuarios Totales</span>
+                  <span className="sm:hidden">Usuarios</span>
+                </p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.totalUsers}</p>
                 <p className="text-xs text-green-600 mt-1">
                   {metrics.activeUsers} activos
                 </p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Proyectos</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.totalProjects}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Proyectos</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.totalProjects}</p>
                 <p className="text-xs text-green-600 mt-1">
                   {metrics.activeProjects} activos
                 </p>
               </div>
-              <FolderOpen className="h-8 w-8 text-green-500" />
+              <FolderOpen className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Ingresos Mensuales</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">
+                  <span className="hidden sm:inline">Ingresos Mensuales</span>
+                  <span className="sm:hidden">Ingresos</span>
+                </p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">
                   ${(metrics.monthlyRevenue / 1000).toFixed(0)}K
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  +12% vs mes anterior
+                  <span className="hidden sm:inline">+12% vs mes anterior</span>
+                  <span className="sm:hidden">+12%</span>
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-yellow-500" />
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Uptime del Sistema</p>
-                <p className="text-2xl font-bold text-gray-900">{metrics.systemUptime}%</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">
+                  <span className="hidden sm:inline">Uptime del Sistema</span>
+                  <span className="sm:hidden">Uptime</span>
+                </p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{metrics.systemUptime}%</p>
                 <p className="text-xs text-green-600 mt-1">
-                  Últimos 30 días
+                  <span className="hidden sm:inline">Últimos 30 días</span>
+                  <span className="sm:hidden">30 días</span>
                 </p>
               </div>
-              <BarChart3 className="h-8 w-8 text-purple-500" />
+              <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="reports" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="reports">Reportes</TabsTrigger>
-          <TabsTrigger value="analytics">Análisis</TabsTrigger>
-          <TabsTrigger value="scheduled">Programados</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 h-10 sm:h-auto">
+          <TabsTrigger value="reports" className="text-xs sm:text-sm">Reportes</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm">Análisis</TabsTrigger>
+          <TabsTrigger value="scheduled" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Programados</span>
+            <span className="sm:hidden">Program.</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="reports" className="space-y-4">
           {/* Filtros */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reportType">Tipo de Reporte</Label>
+                  <Label htmlFor="reportType" className="text-sm">
+                    <span className="hidden sm:inline">Tipo de Reporte</span>
+                    <span className="sm:hidden">Tipo</span>
+                  </Label>
                   <Select value={selectedReportType} onValueChange={setSelectedReportType}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9 sm:h-10">
                       <SelectValue placeholder="Seleccionar tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -295,9 +318,12 @@ export default function AdminReportsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dateRange">Rango de Fechas</Label>
+                  <Label htmlFor="dateRange" className="text-sm">
+                    <span className="hidden sm:inline">Rango de Fechas</span>
+                    <span className="sm:hidden">Rango</span>
+                  </Label>
                   <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9 sm:h-10">
                       <SelectValue placeholder="Seleccionar rango" />
                     </SelectTrigger>
                     <SelectContent>
@@ -309,66 +335,78 @@ export default function AdminReportsPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="customDate">Fecha Personalizada</Label>
-                  <Input type="date" id="customDate" />
+                <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                  <Label htmlFor="customDate" className="text-sm">
+                    <span className="hidden sm:inline">Fecha Personalizada</span>
+                    <span className="sm:hidden">Fecha</span>
+                  </Label>
+                  <Input type="date" id="customDate" className="h-9 sm:h-10" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Lista de Reportes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
             {filteredReports.map((report) => (
               <Card key={report.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      {getTypeIcon(report.type)}
-                      <CardTitle className="text-lg">{report.name}</CardTitle>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center space-x-2 min-w-0 flex-1">
+                      <div className="flex-shrink-0">
+                        {getTypeIcon(report.type)}
+                      </div>
+                      <CardTitle className="text-base sm:text-lg truncate">{report.name}</CardTitle>
                     </div>
-                    {getStatusBadge(report.status)}
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(report.status)}
+                    </div>
                   </div>
-                  <CardDescription>{report.description}</CardDescription>
+                  <CardDescription className="text-sm line-clamp-2">{report.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Última generación:</span>
-                      <span className="font-medium">{report.lastGenerated}</span>
+                <CardContent className="pt-0">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="text-gray-600">
+                        <span className="hidden sm:inline">Última generación:</span>
+                        <span className="sm:hidden">Última:</span>
+                      </span>
+                      <span className="font-medium text-right">{report.lastGenerated}</span>
                     </div>
                     
                     {report.size && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
                         <span className="text-gray-600">Tamaño:</span>
                         <span className="font-medium">{report.size}</span>
                       </div>
                     )}
 
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleGenerateReport(report.id)}
                         disabled={generatingReport === report.id || report.status === 'generating'}
-                        className="flex-1"
+                        className="flex-1 h-8 sm:h-9"
                       >
                         {generatingReport === report.id ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
                         ) : (
-                          <FileText className="h-4 w-4 mr-2" />
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         )}
-                        {generatingReport === report.id ? 'Generando...' : 'Generar'}
+                        <span className="text-xs sm:text-sm">
+                          {generatingReport === report.id ? 'Generando...' : 'Generar'}
+                        </span>
                       </Button>
                       
                       {report.status === 'ready' && (
                         <Button
                           size="sm"
                           onClick={() => handleDownloadReport(report.id)}
-                          className="flex-1"
+                          className="flex-1 h-8 sm:h-9"
                         >
-                          <Download className="h-4 w-4 mr-2" />
-                          Descargar
+                          <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Descargar</span>
                         </Button>
                       )}
                     </div>
@@ -379,45 +417,57 @@ export default function AdminReportsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TabsContent value="analytics" className="space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Tendencias Mensuales</CardTitle>
-                <CardDescription>Usuarios, proyectos e ingresos por mes</CardDescription>
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="text-base sm:text-lg">
+                  <span className="hidden sm:inline">Tendencias Mensuales</span>
+                  <span className="sm:hidden">Tendencias</span>
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  <span className="hidden sm:inline">Usuarios, proyectos e ingresos por mes</span>
+                  <span className="sm:hidden">Usuarios y proyectos</span>
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
+                <div className="h-64 sm:h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
+                    <LazyLineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
+                      <XAxis dataKey="month" fontSize={12} />
+                      <YAxis fontSize={12} />
                       <Tooltip />
                       <Line type="monotone" dataKey="usuarios" stroke="#3b82f6" strokeWidth={2} />
                       <Line type="monotone" dataKey="proyectos" stroke="#10b981" strokeWidth={2} />
-                    </LineChart>
+                    </LazyLineChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Estado de Proyectos</CardTitle>
-                <CardDescription>Distribución por estado actual</CardDescription>
+              <CardHeader className="pb-3 sm:pb-6">
+                <CardTitle className="text-base sm:text-lg">
+                  <span className="hidden sm:inline">Estado de Proyectos</span>
+                  <span className="sm:hidden">Estados</span>
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  <span className="hidden sm:inline">Distribución por estado actual</span>
+                  <span className="sm:hidden">Distribución actual</span>
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
+                <div className="h-64 sm:h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <LazyPieChart>
                       <Pie
                         data={pieData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        outerRadius={window.innerWidth < 640 ? 60 : 80}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -426,7 +476,7 @@ export default function AdminReportsPage() {
                         ))}
                       </Pie>
                       <Tooltip />
-                    </PieChart>
+                    </LazyPieChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
@@ -434,26 +484,35 @@ export default function AdminReportsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="scheduled" className="space-y-4">
+        <TabsContent value="scheduled" className="space-y-3 sm:space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Reportes Programados</CardTitle>
-              <CardDescription>
-                Configura reportes automáticos que se generen periódicamente
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-base sm:text-lg">
+                <span className="hidden sm:inline">Reportes Programados</span>
+                <span className="sm:hidden">Programados</span>
+              </CardTitle>
+              <CardDescription className="text-sm">
+                <span className="hidden sm:inline">Configura reportes automáticos que se generen periódicamente</span>
+                <span className="sm:hidden">Reportes automáticos</span>
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Función en Desarrollo
+              <div className="text-center py-6 sm:py-8">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+                  <span className="hidden sm:inline">Función en Desarrollo</span>
+                  <span className="sm:hidden">En Desarrollo</span>
                 </h3>
-                <p className="text-gray-600 mb-4">
-                  La programación automática de reportes estará disponible próximamente.
+                <p className="text-sm text-gray-600 mb-3 sm:mb-4 px-4">
+                  <span className="hidden sm:inline">La programación automática de reportes estará disponible próximamente.</span>
+                  <span className="sm:hidden">Próximamente disponible</span>
                 </p>
-                <Button variant="outline">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Configurar Programación
+                <Button variant="outline" size="sm" className="h-8 sm:h-9">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="text-xs sm:text-sm">
+                    <span className="hidden sm:inline">Configurar Programación</span>
+                    <span className="sm:hidden">Configurar</span>
+                  </span>
                 </Button>
               </div>
             </CardContent>

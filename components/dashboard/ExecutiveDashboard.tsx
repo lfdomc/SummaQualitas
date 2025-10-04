@@ -26,7 +26,7 @@ import {
   Target,
   Briefcase
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, Area, AreaChart, LabelList } from 'recharts';
+import { LazyLineChart, LazyBarChart, LazyPieChart, LazyAreaChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Bar, Pie, Cell, Area, LabelList } from '@/components/ui/lazy-chart';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
 
@@ -792,40 +792,38 @@ export default function ExecutiveDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={financialTrends}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`} />
-                      <Tooltip 
-                        formatter={(value: number) => [formatCurrency(value), '']}
-                        labelFormatter={(label) => `Mes: ${label}`}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stackId="1"
-                        stroke="#8884d8" 
-                        fill="#8884d8"
-                        name="Ingresos"
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="costs" 
-                        stackId="2"
-                        stroke="#82ca9d" 
-                        fill="#82ca9d"
-                        name="Costos"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="profit" 
-                        stroke="#ffc658" 
-                        strokeWidth={3}
-                        name="Ganancia"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <LazyAreaChart data={financialTrends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`} />
+                    <Tooltip 
+                      formatter={(value: number) => [formatCurrency(value), '']}
+                      labelFormatter={(label) => `Mes: ${label}`}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stackId="1"
+                      stroke="#8884d8" 
+                      fill="#8884d8"
+                      name="Ingresos"
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="costs" 
+                      stackId="2"
+                      stroke="#82ca9d" 
+                      fill="#82ca9d"
+                      name="Costos"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="profit" 
+                      stroke="#ffc658" 
+                      strokeWidth={3}
+                      name="Ganancia"
+                    />
+                  </LazyAreaChart>
                 </div>
               </CardContent>
             </Card>
@@ -837,24 +835,22 @@ export default function ExecutiveDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsPieChart>
-                      <Pie
-                        data={statusDistribution}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="count"
-                        label={({ status, percentage }: { status: string; percentage: number }) => `${status} ${percentage.toFixed(0)}%`}
-                      >
-                        {statusDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </RechartsPieChart>
-                  </ResponsiveContainer>
+                  <LazyPieChart>
+                    <Pie
+                      data={statusDistribution}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                      label={({ status, percentage }: { status: string; percentage: number }) => `${status} ${percentage.toFixed(0)}%`}
+                    >
+                      {statusDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </LazyPieChart>
                 </div>
               </CardContent>
             </Card>
@@ -894,27 +890,25 @@ export default function ExecutiveDashboard() {
                 <CardTitle>Análisis de Rentabilidad</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={financialTrends}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis 
-                        domain={[0, 'dataMax']} 
-                        tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`} 
+                <div className="h-64 sm:h-80">
+                  <LazyAreaChart data={financialTrends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis 
+                      domain={[0, 'dataMax']} 
+                      tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`} 
+                    />
+                    <Tooltip formatter={(value: number) => [formatCurrency(value), '']} />
+                    <Bar dataKey="profit" fill="#8884d8" name="Ganancia">
+                      <LabelList 
+                        dataKey="profit" 
+                        position="center" 
+                        fill="white" 
+                        fontSize={12}
+                        formatter={(value: number) => `$${(value / 1000000).toFixed(1)}M`}
                       />
-                      <Tooltip formatter={(value: number) => [formatCurrency(value), '']} />
-                      <Bar dataKey="profit" fill="#8884d8" name="Ganancia">
-                        <LabelList 
-                          dataKey="profit" 
-                          position="center" 
-                          fill="white" 
-                          fontSize={12}
-                          formatter={(value: number) => `$${(value / 1000000).toFixed(1)}M`}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                    </Bar>
+                  </LazyBarChart>
                 </div>
               </CardContent>
             </Card>

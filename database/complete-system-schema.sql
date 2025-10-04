@@ -9,7 +9,7 @@ DROP TABLE IF EXISTS supplier_payments CASCADE;
 DROP TABLE IF EXISTS invoice_items CASCADE;
 DROP TABLE IF EXISTS invoices CASCADE;
 DROP TABLE IF EXISTS project_equipment CASCADE;
-DROP TABLE IF EXISTS equipment_rental CASCADE;
+DROP TABLE IF EXISTS equipment_rentals CASCADE;
 DROP TABLE IF EXISTS equipment CASCADE;
 DROP TABLE IF EXISTS project_suppliers CASCADE;
 DROP TABLE IF EXISTS suppliers CASCADE;
@@ -169,7 +169,7 @@ CREATE TABLE equipment (
 -- 6. ALQUILER DE EQUIPOS
 -- =====================================================
 
-CREATE TABLE equipment_rental (
+CREATE TABLE equipment_rentals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     equipment_id UUID REFERENCES equipment(id),
     project_id UUID REFERENCES projects(id),
@@ -194,7 +194,7 @@ CREATE TABLE project_equipment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID REFERENCES projects(id),
     equipment_id UUID REFERENCES equipment(id),
-    rental_id UUID REFERENCES equipment_rental(id),
+    rental_id UUID REFERENCES equipment_rentals(id),
     assigned_date DATE DEFAULT CURRENT_DATE,
     removed_date DATE,
     is_active BOOLEAN DEFAULT true,
@@ -362,9 +362,9 @@ CREATE INDEX idx_equipment_status ON equipment(status);
 CREATE INDEX idx_equipment_category ON equipment(category);
 
 -- Índices para alquiler de equipos
-CREATE INDEX idx_equipment_rental_project ON equipment_rental(project_id);
-CREATE INDEX idx_equipment_rental_equipment ON equipment_rental(equipment_id);
-CREATE INDEX idx_equipment_rental_dates ON equipment_rental(start_date, end_date);
+CREATE INDEX idx_equipment_rental_project ON equipment_rentals(project_id);
+CREATE INDEX idx_equipment_rental_equipment ON equipment_rentals(equipment_id);
+CREATE INDEX idx_equipment_rental_dates ON equipment_rentals(start_date, end_date);
 
 -- Índices para facturas
 CREATE INDEX idx_invoices_project ON invoices(project_id);
@@ -397,7 +397,7 @@ CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients FOR EACH ROW E
 CREATE TRIGGER update_suppliers_updated_at BEFORE UPDATE ON suppliers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_equipment_updated_at BEFORE UPDATE ON equipment FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_equipment_rental_updated_at BEFORE UPDATE ON equipment_rental FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_equipment_rental_updated_at BEFORE UPDATE ON equipment_rentals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_client_payments_updated_at BEFORE UPDATE ON client_payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_supplier_payments_updated_at BEFORE UPDATE ON supplier_payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -517,7 +517,7 @@ SELECT
     er.total_days,
     er.total_cost,
     er.status
-FROM equipment_rental er
+FROM equipment_rentals er
 JOIN equipment e ON er.equipment_id = e.id
 JOIN projects p ON er.project_id = p.id;
 

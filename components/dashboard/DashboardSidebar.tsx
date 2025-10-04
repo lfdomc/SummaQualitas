@@ -9,6 +9,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 
 interface DashboardSidebarProps extends React.ComponentProps<"div"> {
   variant?: "sidebar" | "floating" | "inset"
@@ -31,8 +32,29 @@ const DashboardSidebar = React.forwardRef<HTMLDivElement, DashboardSidebarProps>
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
     if (isMobile) {
-      // En móvil, mantener el comportamiento original con Sheet
-      return null // El Sheet se maneja en el SidebarProvider
+      return (
+        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+          <SheetContent
+            data-sidebar="sidebar"
+            data-mobile="true"
+            className="w-[--sidebar-width] bg-white p-0 text-gray-900 [&>button]:hidden border-r border-gray-200"
+            style={
+              {
+                "--sidebar-width": "18rem",
+              } as React.CSSProperties
+            }
+            side={side}
+          >
+            <div
+              data-sidebar="sidebar"
+              className="flex h-full w-full flex-col bg-white border-r border-gray-200"
+            >
+              <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+              {children}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )
     }
 
     return (

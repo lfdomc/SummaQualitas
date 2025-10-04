@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, LabelList } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Bar, Pie, Cell, Line, LabelList } from 'recharts';
+import { LazyBarChart, LazyPieChart, LazyLineChart } from '@/components/ui/lazy-chart';
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle, Clock, Target } from 'lucide-react';
 import { incomeService } from '@/lib/supabase/database';
 import type { ProjectIncomesSummary } from '@/types/database';
@@ -324,7 +325,7 @@ export default function ProjectFinancialAnalysis({
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={chartData}>
+                <LazyBarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category" />
                   <YAxis 
@@ -351,7 +352,7 @@ export default function ProjectFinancialAnalysis({
                       formatter={(value: number) => `$${(value / 1000000).toFixed(1)}M`}
                     />
                   </Bar>
-                </BarChart>
+                </LazyBarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -402,7 +403,7 @@ export default function ProjectFinancialAnalysis({
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                <PieChart>
+                <LazyPieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
@@ -418,7 +419,7 @@ export default function ProjectFinancialAnalysis({
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                </PieChart>
+                </LazyPieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

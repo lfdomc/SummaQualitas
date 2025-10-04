@@ -116,7 +116,7 @@ export function useDeviceType(): 'mobile' | 'tablet' | 'desktop' {
 }
 
 /**
- * Hook para manejar menús móviles con estado persistente
+ * Hook para manejar menús móviles con estado persistente y mejoras UX
  */
 export function useMobileMenu(initialState = false) {
   const [isOpen, setIsOpen] = useState(initialState);
@@ -131,22 +131,71 @@ export function useMobileMenu(initialState = false) {
   
   // Prevenir scroll del body cuando el menú está abierto en móvil
   useEffect(() => {
-    if (typeof document === 'undefined') return;
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
     
     if (isMobile && isOpen) {
+      // Guardar posición actual del scroll
+      const scrollY = window.scrollY;
+      
+      // Prevenir scroll y mantener posición
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.touchAction = 'none'; // Prevenir gestos de scroll en móvil
+      
+      return () => {
+        // Restaurar scroll al cerrar el menú
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+        
+        // Restaurar posición del scroll
+        if (scrollY) {
+          window.scrollTo(0, scrollY);
+        }
+      };
     }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [isMobile, isOpen]);
+
+  // Cerrar menú con tecla Escape
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [isOpen]);
   
-  const toggle = () => setIsOpen(!isOpen);
-  const open = () => setIsOpen(true);
-  const close = () => setIsOpen(false);
+  const toggle = () => {
+    console.log('useMobileMenu toggle called, current state:', isOpen);
+    setIsOpen(prev => {
+      const newState = !prev;
+      console.log('useMobileMenu new state:', newState);
+      return newState;
+    });
+  };
+  
+  const open = () => {
+    console.log('useMobileMenu open called');
+    setIsOpen(true);
+  };
+  
+  const close = () => {
+    console.log('useMobileMenu close called');
+    setIsOpen(false);
+  };
   
   return {
     isOpen,

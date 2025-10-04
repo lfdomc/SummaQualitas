@@ -45,7 +45,7 @@ export function ConditionalHeader() {
     return null;
   }
 
-  // En rutas privadas con usuario logueado, no mostrar header (las páginas con sidebar no lo necesitan)
+  // En rutas privadas con usuario logueado, NO mostrar header (el GlobalSidebar se encarga de esto)
   if (user) {
     return null;
   }

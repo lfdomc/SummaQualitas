@@ -288,22 +288,29 @@ function SuppliersPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-2">
-          <Truck className="h-8 w-8 text-blue-600" />
+          <Truck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
           <div>
-            <h1 className="text-3xl font-bold">Gestión de Proveedores</h1>
-            <p className="text-muted-foreground">Administra la información de tus proveedores</p>
+            <h1 className="text-xl sm:text-3xl font-bold">
+              <span className="hidden sm:inline">Gestión de Proveedores</span>
+              <span className="sm:hidden">Proveedores</span>
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              <span className="hidden sm:inline">Administra la información de tus proveedores</span>
+              <span className="sm:hidden">Gestiona proveedores</span>
+            </p>
           </div>
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              Agregar Proveedor
+              <span className="hidden sm:inline">Agregar Proveedor</span>
+              <span className="sm:hidden">Agregar</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -405,18 +412,21 @@ function SuppliersPage() {
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">
+            <span className="hidden sm:inline">Filtros</span>
+            <span className="sm:hidden">Buscar</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="search">Buscar</Label>
+              <Label htmlFor="search" className="text-sm">Buscar</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder="Buscar por nombre, contacto, email..."
+                  placeholder="Buscar proveedores..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -424,7 +434,7 @@ function SuppliersPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="filter-type">Tipo</Label>
+              <Label htmlFor="filter-type" className="text-sm">Tipo</Label>
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger>
                   <SelectValue />
@@ -439,7 +449,7 @@ function SuppliersPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="filter-status">Estado</Label>
+              <Label htmlFor="filter-status" className="text-sm">Estado</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger>
                   <SelectValue />
@@ -461,7 +471,8 @@ function SuppliersPage() {
                 }}
                 className="w-full"
               >
-                Limpiar Filtros
+                <span className="hidden sm:inline">Limpiar Filtros</span>
+                <span className="sm:hidden">Limpiar</span>
               </Button>
             </div>
           </div>
@@ -470,101 +481,182 @@ function SuppliersPage() {
 
       {/* Suppliers List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Proveedores ({filteredSuppliers.length})</span>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="flex items-center justify-between text-base sm:text-lg">
+            <span>
+              <span className="hidden sm:inline">Proveedores ({filteredSuppliers.length})</span>
+              <span className="sm:hidden">{filteredSuppliers.length} proveedores</span>
+            </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {filteredSuppliers.length === 0 ? (
-            <div className="text-center py-8">
-              <Truck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No se encontraron proveedores</p>
+            <div className="text-center py-6 sm:py-8">
+              <Truck className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-muted-foreground" />
+              <p className="text-sm sm:text-base text-muted-foreground">No se encontraron proveedores</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Cédula</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile View */}
+              <div className="block lg:hidden space-y-3">
                 {filteredSuppliers.map((supplier) => (
-                  <TableRow key={supplier.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">
-                      <div>
-                        <div className="font-semibold">{supplier.name}</div>
+                  <Card key={supplier.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm truncate">{supplier.name}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">{supplier.contact_person}</p>
+                        </div>
+                        <div className="flex space-x-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(supplier)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeleteSupplier(supplier.id);
+                            }}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={getTypeBadgeVariant(supplier.supplier_type)} className="text-xs">
+                          {supplierTypeLabels[supplier.supplier_type]}
+                        </Badge>
+                        <Badge variant={getStatusBadgeVariant(supplier.status)} className="text-xs">
+                          {statusLabels[supplier.status]}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-1 text-xs">
+                        {supplier.phone && (
+                          <div className="flex items-center text-muted-foreground">
+                            <Phone className="h-3 w-3 mr-2" />
+                            <span>{supplier.phone}</span>
+                          </div>
+                        )}
+                        {supplier.email && (
+                          <div className="flex items-center text-muted-foreground">
+                            <Mail className="h-3 w-3 mr-2" />
+                            <span className="truncate">{supplier.email}</span>
+                          </div>
+                        )}
                         {supplier.address && (
-                          <div className="text-sm text-muted-foreground flex items-center mt-1">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            <span className="truncate max-w-[200px]">{supplier.address}</span>
+                          <div className="flex items-center text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-2" />
+                            <span className="truncate">{supplier.address}</span>
+                          </div>
+                        )}
+                        {supplier.tax_id && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Cédula:</span> {supplier.tax_id}
                           </div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>{supplier.contact_person}</TableCell>
-                    <TableCell>
-                      <Badge variant={getTypeBadgeVariant(supplier.supplier_type)}>
-                        {supplierTypeLabels[supplier.supplier_type]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(supplier.status)}>
-                        {statusLabels[supplier.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {supplier.phone && (
-                        <div className="flex items-center">
-                          <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{supplier.phone}</span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {supplier.email && (
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>{supplier.email}</span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {supplier.tax_id}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditDialog(supplier)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDeleteSupplier(supplier.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Contacto</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Teléfono</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Cédula</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSuppliers.map((supplier) => (
+                      <TableRow key={supplier.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">
+                          <div>
+                            <div className="font-semibold">{supplier.name}</div>
+                            {supplier.address && (
+                              <div className="text-sm text-muted-foreground flex items-center mt-1">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                <span className="truncate max-w-[200px]">{supplier.address}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{supplier.contact_person}</TableCell>
+                        <TableCell>
+                          <Badge variant={getTypeBadgeVariant(supplier.supplier_type)}>
+                            {supplierTypeLabels[supplier.supplier_type]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusBadgeVariant(supplier.status)}>
+                            {statusLabels[supplier.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {supplier.phone && (
+                            <div className="flex items-center">
+                              <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                              <span>{supplier.phone}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {supplier.email && (
+                            <div className="flex items-center">
+                              <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                              <span>{supplier.email}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {supplier.tax_id}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditDialog(supplier)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleDeleteSupplier(supplier.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

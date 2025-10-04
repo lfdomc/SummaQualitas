@@ -32,7 +32,7 @@ export async function POST(
     
     // Obtener el alquiler actual
     const { data: rental, error: rentalError } = await supabase
-      .from('equipment_rental')
+      .from('equipment_rentals')
       .select(`
         *,
         equipment:equipment_id(id, name, daily_rental_rate)
@@ -64,7 +64,7 @@ export async function POST(
     
     // Actualizar el alquiler
     const { data: updatedRental, error: updateError } = await supabase
-      .from('equipment_rental')
+      .from('equipment_rentals')
       .update({
         end_date: body.end_date,
         actual_days: actualDays,

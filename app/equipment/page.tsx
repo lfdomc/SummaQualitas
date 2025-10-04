@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePermissions } from '@/hooks/usePermissions';
+
 import { Equipment, EquipmentRental, Project, Client } from '@/types/database';
 import {
   Card,
@@ -137,7 +138,6 @@ interface ProjectEquipmentGroup {
 }
 
 interface MobileState {
-  isMobile: boolean;
   selectedEquipment: Equipment | null;
   showFilters: boolean;
   expandedCards: Set<string>;
@@ -275,6 +275,7 @@ export default function EquipmentPage() {
   const { profile } = useRequireAuth();
   const permissions = usePermissions();
 
+
   // States
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [rentals, setRentals] = useState<EquipmentRental[]>([]);
@@ -294,23 +295,10 @@ export default function EquipmentPage() {
   
   // Mobile states
   const [mobileState, setMobileState] = useState<MobileState>({
-    isMobile: false,
     selectedEquipment: null,
     showFilters: false,
     expandedCards: new Set<string>()
   });
-
-  // Detect mobile device
-  useEffect(() => {
-    const checkMobile = () => {
-      const isMobile = window.innerWidth < 768;
-      setMobileState(prev => ({ ...prev, isMobile }));
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Forms
   const [createEquipmentForm, setCreateEquipmentForm] = useState<CreateEquipmentForm>({
@@ -923,9 +911,7 @@ export default function EquipmentPage() {
       return;
     }
 
-    const confirmMessage = mobileState.isMobile 
-      ? '¿Eliminar equipo?' 
-      : '¿Estás seguro de que deseas eliminar este equipo? Esta acción no se puede deshacer.';
+    const confirmMessage = '¿Estás seguro de que deseas eliminar este equipo? Esta acción no se puede deshacer.';
     
     if (!confirm(confirmMessage)) {
       return;
@@ -976,87 +962,87 @@ export default function EquipmentPage() {
   }
 
   return (
-    <div className="container mx-auto mobile-padding py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-6 px-4 sm:px-6">
       {/* Header */}
-      <div className={`flex items-center justify-between ${mobileState.isMobile ? 'flex-col space-y-4' : ''}`}>
-        <div className={mobileState.isMobile ? 'text-center' : ''}>
-          <h1 className={`font-bold text-gray-900 ${mobileState.isMobile ? 'text-2xl' : 'text-3xl'}`}>
-            {mobileState.isMobile ? 'Equipos' : 'Equipos por Proyecto'}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <div className="text-center sm:text-left">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
+            <span className="sm:hidden">Equipos</span>
+            <span className="hidden sm:inline">Equipos por Proyecto</span>
           </h1>
-          <p className={`text-gray-600 mt-1 ${mobileState.isMobile ? 'text-sm' : ''}`}>
-            {mobileState.isMobile 
-              ? 'Gestiona equipos y alquileres'
-              : 'Gestiona equipos alquilados por proyecto y sus gastos mensuales'
-            }
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            <span className="sm:hidden">Gestiona equipos y alquileres</span>
+            <span className="hidden sm:inline">Gestiona equipos alquilados por proyecto y sus gastos mensuales</span>
           </p>
         </div>
         
-        <div className={`flex space-x-2 ${mobileState.isMobile ? 'w-full justify-center flex-wrap gap-2' : ''}`}>
+        <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
           {canCreateRentals && (
             <Button 
               onClick={() => openCreateMonthlyExpenseDialog()} 
               variant="outline"
-              size={mobileState.isMobile ? 'sm' : 'default'}
-              className={mobileState.isMobile ? 'flex-1 min-w-0' : ''}
+              size="sm"
+              className="flex-1 sm:flex-none"
             >
-              <DollarSign className="h-4 w-4 mr-2" />
-              {mobileState.isMobile ? 'Gastos' : 'Gastos Mensuales'}
+              <DollarSign className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="sm:hidden">Gastos</span>
+              <span className="hidden sm:inline">Gastos Mensuales</span>
             </Button>
           )}
           {canCreateRentals && (
             <Button 
               onClick={() => openCreateRentalDialog()} 
               variant="outline"
-              size={mobileState.isMobile ? 'sm' : 'default'}
-              className={mobileState.isMobile ? 'flex-1 min-w-0' : ''}
+              size="sm"
+              className="flex-1 sm:flex-none"
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              {mobileState.isMobile ? 'Alquiler' : 'Nuevo Alquiler'}
+              <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="sm:hidden">Alquiler</span>
+              <span className="hidden sm:inline">Nuevo Alquiler</span>
             </Button>
           )}
           {canCreateEquipment && (
             <Button 
               onClick={openCreateEquipmentDialog}
-              size={mobileState.isMobile ? 'sm' : 'default'}
-              className={mobileState.isMobile ? 'flex-1 min-w-0' : ''}
+              size="sm"
+              className="flex-1 sm:flex-none"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              {mobileState.isMobile ? 'Equipo' : 'Agregar Equipo'}
+              <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="sm:hidden">Equipo</span>
+              <span className="hidden sm:inline">Agregar Equipo</span>
             </Button>
           )}
         </div>
       </div>
 
       {/* Filters */}
-      <Card className="mobile-card">
-        <CardContent className="mobile-padding pt-6">
+      <Card>
+        <CardContent className="pt-6">
           {/* Mobile Filter Toggle */}
-          {mobileState.isMobile && (
-            <div className="mb-4">
-              <Button
-                variant="outline"
-                onClick={() => setMobileState(prev => ({ ...prev, showFilters: !prev.showFilters }))}
-                className="w-full justify-between"
-              >
-                <span className="flex items-center">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtros
-                </span>
-                {mobileState.showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </div>
-          )}
+          <div className="mb-4 sm:hidden">
+            <Button
+              variant="outline"
+              onClick={() => setMobileState(prev => ({ ...prev, showFilters: !prev.showFilters }))}
+              className="w-full justify-between"
+            >
+              <span className="flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                Filtros
+              </span>
+              {mobileState.showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
           
           {/* Search - Always visible */}
-          <div className={`space-y-2 ${mobileState.isMobile ? 'mb-4' : ''}`}>
-            <Label htmlFor="search" className={mobileState.isMobile ? 'text-sm font-medium' : ''}>
+          <div className="space-y-2 mb-4">
+            <Label htmlFor="search" className="text-sm font-medium">
               Buscar
             </Label>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder={mobileState.isMobile ? "Buscar..." : "Buscar equipos..."}
+                placeholder="Buscar equipos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -1065,9 +1051,9 @@ export default function EquipmentPage() {
           </div>
           
           {/* Collapsible Filters */}
-          <div className={`${mobileState.isMobile && !mobileState.showFilters ? 'hidden' : ''} ${mobileState.isMobile ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-3 gap-4'}`}>
+          <div className={`${!mobileState.showFilters ? 'hidden sm:block' : 'block'} space-y-4 sm:space-y-0 sm:grid sm:grid-cols-1 md:grid-cols-3 sm:gap-4`}>
             <div className="space-y-2">
-              <Label htmlFor="category" className={mobileState.isMobile ? 'text-sm font-medium' : ''}>
+              <Label htmlFor="category" className="text-sm font-medium">
                 Categoría
               </Label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -1086,7 +1072,7 @@ export default function EquipmentPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="status" className={mobileState.isMobile ? 'text-sm font-medium' : ''}>
+              <Label htmlFor="status" className="text-sm font-medium">
                 Estado
               </Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1104,7 +1090,7 @@ export default function EquipmentPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="viewMode">Vista</Label>
+              <Label htmlFor="viewMode" className="text-sm font-medium">Vista</Label>
               <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'equipment' | 'projects')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar vista" />
@@ -1157,90 +1143,95 @@ export default function EquipmentPage() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-4">
-        <Card className="mobile-card">
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobileState.isMobile ? 'pb-1' : 'pb-2'}`}>
-            <CardTitle className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium ${mobileState.isMobile ? 'leading-tight' : ''}`}>
-              {mobileState.isMobile ? 'Total' : 'Total Equipos'}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium leading-tight">
+              <span className="sm:hidden">Total</span>
+              <span className="hidden sm:inline">Total Equipos</span>
             </CardTitle>
-            <Package className={`${mobileState.isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
+            <Package className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className={mobileState.isMobile ? 'pt-0 pb-3' : ''}>
-            <div className={`${mobileState.isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{totalEquipment}</div>
+          <CardContent className="pt-0 pb-3">
+            <div className="text-lg sm:text-2xl font-bold">{totalEquipment}</div>
           </CardContent>
         </Card>
         
-        <Card className="mobile-card">
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobileState.isMobile ? 'pb-1' : 'pb-2'}`}>
-            <CardTitle className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium ${mobileState.isMobile ? 'leading-tight' : ''}`}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium leading-tight">
               Disponibles
             </CardTitle>
-            <CheckCircle className={`${mobileState.isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-green-600`} />
+            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
           </CardHeader>
-          <CardContent className={mobileState.isMobile ? 'pt-0 pb-3' : ''}>
-            <div className={`${mobileState.isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-600`}>{availableEquipment}</div>
+          <CardContent className="pt-0 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">{availableEquipment}</div>
           </CardContent>
         </Card>
         
-        <Card className="mobile-card">
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobileState.isMobile ? 'pb-1' : 'pb-2'}`}>
-            <CardTitle className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium ${mobileState.isMobile ? 'leading-tight' : ''}`}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium leading-tight">
               Alquilados
             </CardTitle>
-            <Clock className={`${mobileState.isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-blue-600`} />
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
           </CardHeader>
-          <CardContent className={mobileState.isMobile ? 'pt-0 pb-3' : ''}>
-            <div className={`${mobileState.isMobile ? 'text-lg' : 'text-2xl'} font-bold text-blue-600`}>{rentedEquipment}</div>
+          <CardContent className="pt-0 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">{rentedEquipment}</div>
           </CardContent>
         </Card>
         
-        <Card className="mobile-card">
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobileState.isMobile ? 'pb-1' : 'pb-2'}`}>
-            <CardTitle className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium ${mobileState.isMobile ? 'leading-tight' : ''}`}>
-              {mobileState.isMobile ? 'Mant.' : 'Mantenimiento'}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium leading-tight">
+              <span className="sm:hidden">Mant.</span>
+              <span className="hidden sm:inline">Mantenimiento</span>
             </CardTitle>
-            <Settings className={`${mobileState.isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-orange-600`} />
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
           </CardHeader>
-          <CardContent className={mobileState.isMobile ? 'pt-0 pb-3' : ''}>
-            <div className={`${mobileState.isMobile ? 'text-lg' : 'text-2xl'} font-bold text-orange-600`}>{maintenanceEquipment}</div>
+          <CardContent className="pt-0 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-orange-600">{maintenanceEquipment}</div>
           </CardContent>
         </Card>
         
-        <Card className="mobile-card">
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobileState.isMobile ? 'pb-1' : 'pb-2'}`}>
-            <CardTitle className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium ${mobileState.isMobile ? 'leading-tight' : ''}`}>
-              {mobileState.isMobile ? 'Valor' : 'Valor Diario Total'}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium leading-tight">
+              <span className="sm:hidden">Valor</span>
+              <span className="hidden sm:inline">Valor Diario Total</span>
             </CardTitle>
-            <DollarSign className={`${mobileState.isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-muted-foreground`} />
+            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className={mobileState.isMobile ? 'pt-0 pb-3' : ''}>
-            <div className={`${mobileState.isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{formatCurrency(totalDailyValue)}</div>
+          <CardContent className="pt-0 pb-3">
+            <div className="text-lg sm:text-2xl font-bold">{formatCurrency(totalDailyValue)}</div>
           </CardContent>
         </Card>
         
-        <Card className="mobile-card">
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobileState.isMobile ? 'pb-1' : 'pb-2'}`}>
-            <CardTitle className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium ${mobileState.isMobile ? 'leading-tight' : ''}`}>
-              {mobileState.isMobile ? 'Activos' : 'Alquileres Activos'}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium leading-tight">
+              <span className="sm:hidden">Activos</span>
+              <span className="hidden sm:inline">Alquileres Activos</span>
             </CardTitle>
-            <Truck className={`${mobileState.isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-purple-600`} />
+            <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
           </CardHeader>
-          <CardContent className={mobileState.isMobile ? 'pt-0 pb-3' : ''}>
-            <div className={`${mobileState.isMobile ? 'text-lg' : 'text-2xl'} font-bold text-purple-600`}>{formatCurrency(activeRentalsValue)}</div>
+          <CardContent className="pt-0 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-purple-600">{formatCurrency(activeRentalsValue)}</div>
           </CardContent>
         </Card>
         
-        <Card className="mobile-card">
-          <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobileState.isMobile ? 'pb-1' : 'pb-2'}`}>
-            <CardTitle className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium ${mobileState.isMobile ? 'leading-tight' : ''}`}>
-              {mobileState.isMobile ? 'Gasto' : 'Gasto Mensual'}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium leading-tight">
+              <span className="sm:hidden">Gasto</span>
+              <span className="hidden sm:inline">Gasto Mensual</span>
             </CardTitle>
-            <Calendar className={`${mobileState.isMobile ? 'h-3 w-3' : 'h-4 w-4'} text-red-600`} />
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
           </CardHeader>
-          <CardContent className={mobileState.isMobile ? 'pt-0 pb-3' : ''}>
-            <div className={`${mobileState.isMobile ? 'text-lg' : 'text-2xl'} font-bold text-red-600`}>
+          <CardContent className="pt-0 pb-3">
+            <div className="text-lg sm:text-2xl font-bold text-red-600">
               {monthlyStats ? formatCurrency(monthlyStats.total_monthly_cost || 0) : formatCurrency(0)}
             </div>
-            <p className={`${mobileState.isMobile ? 'text-xs hidden' : 'text-xs'} text-muted-foreground`}>
+            <p className="text-xs text-muted-foreground hidden sm:block">
               {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
             </p>
           </CardContent>
@@ -1249,53 +1240,55 @@ export default function EquipmentPage() {
 
       {/* Monthly Statistics Details */}
       {monthlyStats && (
-        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 ${mobileState.isMobile ? 'space-y-4' : ''}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6">
           {/* Gastos por Categoría */}
-          <Card className="mobile-card">
-            <CardHeader className="mobile-padding">
-              <CardTitle className={`${mobileState.isMobile ? 'text-base' : 'text-lg'} font-semibold`}>
-                {mobileState.isMobile ? 'Por Categoría' : 'Gastos por Categoría'}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg font-semibold">
+                <span className="sm:hidden">Por Categoría</span>
+                <span className="hidden sm:inline">Gastos por Categoría</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="mobile-padding">
+            <CardContent>
               {monthlyStats.expenses_by_category && monthlyStats.expenses_by_category.length > 0 ? (
-                <div className={`${mobileState.isMobile ? 'space-y-2' : 'space-y-3'}`}>
+                <div className="space-y-2 sm:space-y-3">
                   {monthlyStats.expenses_by_category.map((item: { category: string; total_cost: number }, index: number) => (
                     <div key={index} className="flex justify-between items-center">
-                      <span className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium`}>{item.category}</span>
-                      <span className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-bold text-red-600`}>
+                      <span className="text-xs sm:text-sm font-medium">{item.category}</span>
+                      <span className="text-xs sm:text-sm font-bold text-red-600">
                         {formatCurrency(item.total_cost)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>No hay gastos registrados este mes</p>
+                <p className="text-xs sm:text-sm text-gray-500">No hay gastos registrados este mes</p>
               )}
             </CardContent>
           </Card>
 
           {/* Gastos por Proyecto */}
-          <Card className="mobile-card">
-            <CardHeader className="mobile-padding">
-              <CardTitle className={`${mobileState.isMobile ? 'text-base' : 'text-lg'} font-semibold`}>
-                {mobileState.isMobile ? 'Por Proyecto' : 'Gastos por Proyecto'}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg font-semibold">
+                <span className="sm:hidden">Por Proyecto</span>
+                <span className="hidden sm:inline">Gastos por Proyecto</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="mobile-padding">
+            <CardContent>
               {monthlyStats.expenses_by_project && monthlyStats.expenses_by_project.length > 0 ? (
-                <div className={`${mobileState.isMobile ? 'space-y-2' : 'space-y-3'}`}>
+                <div className="space-y-2 sm:space-y-3">
                   {monthlyStats.expenses_by_project.map((item: { project_name: string; total_cost: number }, index: number) => (
                     <div key={index} className="flex justify-between items-center">
-                      <span className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-medium`}>{item.project_name}</span>
-                      <span className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} font-bold text-red-600`}>
+                      <span className="text-xs sm:text-sm font-medium">{item.project_name}</span>
+                      <span className="text-xs sm:text-sm font-bold text-red-600">
                         {formatCurrency(item.total_cost)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className={`${mobileState.isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>No hay gastos registrados este mes</p>
+                <p className="text-xs sm:text-sm text-gray-500">No hay gastos registrados este mes</p>
               )}
             </CardContent>
           </Card>
@@ -1304,44 +1297,46 @@ export default function EquipmentPage() {
 
       {/* Equipment Content - Vista por Equipos o Proyectos */}
       {viewMode === 'equipment' ? (
-        <Card className="mobile-card">
-          <CardHeader className="mobile-padding">
-            <CardTitle className={mobileState.isMobile ? 'text-lg' : ''}>
-              {mobileState.isMobile ? 'Equipos' : 'Lista de Equipos'}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              <span className="sm:hidden">Equipos</span>
+              <span className="hidden sm:inline">Lista de Equipos</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="mobile-padding">
+          <CardContent>
             {loadingEquipment ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className={`${mobileState.isMobile ? 'h-6 w-6' : 'h-8 w-8'} animate-spin`} />
-                <span className={`ml-2 ${mobileState.isMobile ? 'text-sm' : ''}`}>Cargando equipos...</span>
+                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin" />
+                <span className="ml-2 text-sm sm:text-base">Cargando equipos...</span>
               </div>
             ) : filteredEquipment.length === 0 ? (
               <div className="text-center py-8">
-                <Package className={`${mobileState.isMobile ? 'h-8 w-8' : 'h-12 w-12'} text-gray-400 mx-auto mb-4`} />
-                <h3 className={`${mobileState.isMobile ? 'text-base' : 'text-lg'} font-medium text-gray-900 mb-2`}>
+                <Package className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
                   {equipment.length === 0 ? 'No hay equipos registrados' : 'No se encontraron equipos'}
                 </h3>
-                <p className={`text-gray-500 mb-4 ${mobileState.isMobile ? 'text-sm' : ''}`}>
+                <p className="text-gray-500 mb-4 text-sm sm:text-base">
                   {equipment.length === 0 
                     ? 'Comienza agregando tu primer equipo al inventario'
                     : 'Intenta ajustar los filtros de búsqueda'
                   }
                 </p>
                 {equipment.length === 0 && canCreateEquipment && (
-                  <Button onClick={openCreateEquipmentDialog} size={mobileState.isMobile ? 'sm' : 'default'}>
+                  <Button onClick={openCreateEquipmentDialog} size="default" className="text-sm sm:text-base">
                     <Plus className="h-4 w-4 mr-2" />
-                    {mobileState.isMobile ? 'Agregar' : 'Agregar Primer Equipo'}
+                    <span className="sm:hidden">Agregar</span>
+                    <span className="hidden sm:inline">Agregar Primer Equipo</span>
                   </Button>
                 )}
               </div>
             ) : (
               <>
                 {/* Mobile View - Cards */}
-                {mobileState.isMobile ? (
+                <div className="block sm:hidden">
                   <div className="space-y-3">
                     {filteredEquipment.map((item) => (
-                      <Card key={item.id} className="border border-gray-200">
+                      <Card key={item.id}>
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
@@ -1418,8 +1413,10 @@ export default function EquipmentPage() {
                       </Card>
                     ))}
                   </div>
-                ) : (
-                  /* Desktop View - Table */
+                </div>
+                
+                {/* Desktop View - Table */}
+                <div className="hidden sm:block">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -1510,24 +1507,24 @@ export default function EquipmentPage() {
                       </TableBody>
                     </Table>
                   </div>
-                )}
+                </div>
               </>
             )}
           </CardContent>
         </Card>
       ) : (
         /* Vista por Proyectos */
-        <div className={`space-y-${mobileState.isMobile ? '4' : '6'}`}>
+        <div className="space-y-4 sm:space-y-6">
           {(() => {
             const projectGroups = groupEquipmentByProject();
             
             if (loadingEquipment) {
               return (
-                <Card className="mobile-card">
-                  <CardContent className={`py-8 ${mobileState.isMobile ? 'mobile-padding' : ''}`}>
+                <Card>
+                  <CardContent className="py-8">
                     <div className="flex items-center justify-center">
-                      <Loader2 className={`${mobileState.isMobile ? 'h-6 w-6' : 'h-8 w-8'} animate-spin`} />
-                      <span className={`ml-2 ${mobileState.isMobile ? 'text-sm' : ''}`}>Cargando datos...</span>
+                      <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin" />
+                      <span className="ml-2 text-sm sm:text-base">Cargando datos...</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -1536,14 +1533,14 @@ export default function EquipmentPage() {
             
             if (projectGroups.length === 0) {
               return (
-                <Card className="mobile-card">
-                  <CardContent className={`py-8 ${mobileState.isMobile ? 'mobile-padding' : ''}`}>
+                <Card>
+                  <CardContent className="py-8">
                     <div className="text-center">
-                      <Package className={`${mobileState.isMobile ? 'h-8 w-8' : 'h-12 w-12'} text-gray-400 mx-auto mb-4`} />
-                      <h3 className={`${mobileState.isMobile ? 'text-base' : 'text-lg'} font-medium text-gray-900 mb-2`}>
+                      <Package className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
                         No hay equipos alquilados
                       </h3>
-                      <p className={`text-gray-500 mb-4 ${mobileState.isMobile ? 'text-sm' : ''}`}>
+                      <p className="text-gray-500 mb-4 text-sm sm:text-base">
                         {selectedProjectId 
                           ? 'Este proyecto no tiene equipos alquilados actualmente'
                           : 'No hay equipos alquilados en ningún proyecto actualmente'
@@ -1558,19 +1555,19 @@ export default function EquipmentPage() {
             return projectGroups.map((group) => (
               <Card key={group.project.id}>
                 <CardHeader>
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
                     <div>
-                      <CardTitle className="text-xl">{group.project.name}</CardTitle>
-                      <p className="text-sm text-gray-500 mt-1">{group.project.description}</p>
-                      <p className="text-sm text-gray-500">{group.project.location}</p>
+                      <CardTitle className="text-lg sm:text-xl">{group.project.name}</CardTitle>
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">{group.project.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">{group.project.location}</p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-500">Valor Total Alquileres</div>
-                      <div className="text-lg font-bold text-blue-600">
+                    <div className="text-left sm:text-right">
+                      <div className="text-xs sm:text-sm text-gray-500">Valor Total Alquileres</div>
+                      <div className="text-base sm:text-lg font-bold text-blue-600">
                         {formatCurrency(group.totalRentalValue)}
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">Gastos Mensuales</div>
-                      <div className="text-lg font-bold text-red-600">
+                      <div className="text-xs sm:text-sm text-gray-500 mt-1">Gastos Mensuales</div>
+                      <div className="text-base sm:text-lg font-bold text-red-600">
                         {formatCurrency(group.totalMonthlyExpenses)}
                       </div>
                     </div>

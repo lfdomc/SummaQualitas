@@ -396,80 +396,100 @@ export default function IncomesPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold">Gestión de Ingresos</h1>
-          <p className="text-gray-600">Administra los ingresos de tus proyectos</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            <span className="sm:hidden">Ingresos</span>
+            <span className="hidden sm:inline">Gestión de Ingresos</span>
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
+            <span className="sm:hidden">Administra ingresos</span>
+            <span className="hidden sm:inline">Administra los ingresos de tus proyectos</span>
+          </p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700">
+        <Button onClick={() => setIsAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
-          Nuevo Ingreso
+          <span className="sm:hidden">Agregar</span>
+          <span className="hidden sm:inline">Nuevo Ingreso</span>
         </Button>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Ingresos</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-sm font-medium">
+              <span className="sm:hidden">Total</span>
+              <span className="hidden sm:inline">Total Ingresos</span>
+            </CardTitle>
+            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalIncomes)}</div>
-            <div className="text-sm text-muted-foreground font-medium">
+          <CardContent className="p-4 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold">{formatCurrency(totalIncomes)}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground font-medium">
               {formatCurrencyUSD(convertCRCToUSD(totalIncomes))}
             </div>
             <p className="text-xs text-muted-foreground">
-              {filteredIncomes.length} ingresos registrados
+              {filteredIncomes.length} 
+              <span className="sm:hidden"> registrados</span>
+              <span className="hidden sm:inline"> ingresos registrados</span>
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
             <CardTitle className="text-sm font-medium">Confirmados</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalConfirmed)}</div>
-            <div className="text-sm text-muted-foreground font-medium">
+          <CardContent className="p-4 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(totalConfirmed)}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground font-medium">
               {formatCurrencyUSD(convertCRCToUSD(totalConfirmed))}
             </div>
             <p className="text-xs text-muted-foreground">
-              {confirmedIncomes.length} ingresos confirmados
+              {confirmedIncomes.length} 
+              <span className="sm:hidden"> confirmados</span>
+              <span className="hidden sm:inline"> ingresos confirmados</span>
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
             <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
-            <Calendar className="h-4 w-4 text-yellow-600" />
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{formatCurrency(totalPending)}</div>
-            <div className="text-sm text-muted-foreground font-medium">
+          <CardContent className="p-4 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold text-yellow-600">{formatCurrency(totalPending)}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground font-medium">
               {formatCurrencyUSD(convertCRCToUSD(totalPending))}
             </div>
             <p className="text-xs text-muted-foreground">
-              {pendingIncomes.length} ingresos pendientes
+              {pendingIncomes.length} 
+              <span className="sm:hidden"> pendientes</span>
+              <span className="hidden sm:inline"> ingresos pendientes</span>
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Proyectos Activos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+            <CardTitle className="text-sm font-medium">
+              <span className="sm:hidden">Proyectos</span>
+              <span className="hidden sm:inline">Proyectos Activos</span>
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+          <CardContent className="p-4 sm:p-6">
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">
               {new Set(filteredIncomes.map(income => income.project_id)).size}
             </div>
             <p className="text-xs text-muted-foreground">
-projects with income
+              <span className="sm:hidden">con ingresos</span>
+              <span className="hidden sm:inline">projects with income</span>
             </p>
           </CardContent>
         </Card>
@@ -477,18 +497,21 @@ projects with income
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">
+            <span className="sm:hidden">Filtros</span>
+            <span className="hidden sm:inline">Filters</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="search">Search</Label>
+              <Label htmlFor="search" className="text-sm">Search</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search"
-                  placeholder="Buscar por descripción, proyecto o cliente..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-8"
@@ -497,7 +520,7 @@ projects with income
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="project-filter">Proyecto</Label>
+              <Label htmlFor="project-filter" className="text-sm">Proyecto</Label>
               <Select value={selectedProject} onValueChange={setSelectedProject}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los proyectos" />
@@ -514,7 +537,7 @@ projects with income
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status-filter">Estado</Label>
+              <Label htmlFor="status-filter" className="text-sm">Estado</Label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los estados" />
@@ -531,7 +554,7 @@ projects with income
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category-filter">Categoría</Label>
+              <Label htmlFor="category-filter" className="text-sm">Categoría</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todas las categorías" />
@@ -548,14 +571,15 @@ projects with income
             </div>
 
             <div className="flex items-end">
-              <Button variant="outline" onClick={() => {
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => {
                 setSearchTerm('');
                 setSelectedProject('all');
                 setSelectedStatus('all');
                 setSelectedCategory('all');
               }}>
                 <Filter className="h-4 w-4 mr-2" />
-Clear Filters
+                <span className="sm:hidden">Limpiar</span>
+                <span className="hidden sm:inline">Clear Filters</span>
               </Button>
             </div>
           </div>
@@ -564,102 +588,196 @@ Clear Filters
 
       {/* Incomes Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Income List</CardTitle>
-          <CardDescription>
-            {filteredIncomes.length} incomes found
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">
+            <span className="sm:hidden">Lista de Ingresos</span>
+            <span className="hidden sm:inline">Income List</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            {filteredIncomes.length} 
+            <span className="sm:hidden"> ingresos</span>
+            <span className="hidden sm:inline"> incomes found</span>
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {filteredIncomes.length === 0 ? (
             <div className="text-center py-8">
               <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No incomes registered</h3>
-              <p className="text-gray-600 mb-4">Start by adding the first income for your projects</p>
-              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+                <span className="sm:hidden">No hay ingresos registrados</span>
+                <span className="hidden sm:inline">No incomes registered</span>
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                <span className="sm:hidden">Comienza agregando el primer ingreso</span>
+                <span className="hidden sm:inline">Start by adding the first income for your projects</span>
+              </p>
+              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
-                Add First Income
+                <span className="sm:hidden">Agregar Ingreso</span>
+                <span className="hidden sm:inline">Add First Income</span>
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile View */}
+              <div className="block sm:hidden space-y-4">
                 {filteredIncomes.map((income) => (
-                  <TableRow key={income.id}>
-                    <TableCell>
-                      {new Date(income.received_date).toLocaleDateString('es-ES')}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {income.project?.name || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {income.client?.name || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{income.description}</div>
-                        {income.reference && (
-                          <div className="text-sm text-gray-500">Ref: {income.reference}</div>
-                        )}
+                  <Card key={income.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium text-sm">{income.project?.name || 'N/A'}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(income.received_date).toLocaleDateString('es-ES')}
+                          </div>
+                        </div>
+                        <Badge variant={getStatusBadgeVariant(income.status)} className="text-xs">
+                          {getStatusLabel(income.status)}
+                        </Badge>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getCategoryLabel(income.category)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="font-semibold text-green-600">
-                        {formatCurrency(income.amount, income.currency)}
+                      
+                      <div className="space-y-2">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Categoría</div>
+                          <Badge variant="outline" className="text-xs">
+                            {getCategoryLabel(income.category)}
+                          </Badge>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-muted-foreground">Descripción</div>
+                          <div className="text-sm">{income.description}</div>
+                          {income.reference && (
+                            <div className="text-xs text-gray-500">Ref: {income.reference}</div>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-muted-foreground">Cliente</div>
+                          <div className="text-sm">{income.client?.name || 'N/A'}</div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-muted-foreground">Monto</div>
+                          <div className="font-semibold text-green-600">
+                            {formatCurrency(income.amount, income.currency)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {income.currency === 'USD' 
+                              ? formatCurrency(income.amount * exchangeRate, 'CRC')
+                              : formatCurrencyUSD(convertCRCToUSD(income.amount))
+                            }
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {income.currency === 'USD' 
-                          ? formatCurrency(income.amount * exchangeRate, 'CRC')
-                          : formatCurrencyUSD(convertCRCToUSD(income.amount))
-                        }
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(income.status)}>
-                        {getStatusLabel(income.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center space-x-2">
+                      
+                      <div className="flex space-x-2 pt-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditIncome(income)}
-                          className="h-8 w-8 p-0"
+                          className="flex-1"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteIncome(income)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          className="flex-1 text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredIncomes.map((income) => (
+                      <TableRow key={income.id}>
+                        <TableCell>
+                          {new Date(income.received_date).toLocaleDateString('es-ES')}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {income.project?.name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {income.client?.name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{income.description}</div>
+                            {income.reference && (
+                              <div className="text-sm text-gray-500">Ref: {income.reference}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {getCategoryLabel(income.category)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="font-semibold text-green-600">
+                            {formatCurrency(income.amount, income.currency)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {income.currency === 'USD' 
+                              ? formatCurrency(income.amount * exchangeRate, 'CRC')
+                              : formatCurrencyUSD(convertCRCToUSD(income.amount))
+                            }
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusBadgeVariant(income.status)}>
+                            {getStatusLabel(income.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditIncome(income)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteIncome(income)}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -47,13 +47,14 @@ import {
   CheckCircle,
   Eye,
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuthWorking } from '@/lib/hooks/useAuthWorking';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { ChangeOrder, Project } from '@/types/database';
 
 export default function ChangeOrdersPage() {
-  const { user } = useAuth();
+  // Usando useAuthWorking para sincronización con sidebar
+  const { user } = useAuthWorking();
   const searchParams = useSearchParams();
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);

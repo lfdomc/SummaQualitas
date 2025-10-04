@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ProjectKPIs } from '@/components/analytics/ProjectKPIs';
+import ProjectKPIs from '@/components/analytics/ProjectKPIs';
 import { withAuth } from '@/components/auth/withAuth';
 import { UserRoleType, Project } from '@/lib/types';
 import { projectService } from '@/lib/supabase/database';
@@ -14,7 +14,6 @@ import { toast } from 'sonner';
 
 function AnalyticsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,17 +21,16 @@ function AnalyticsPage() {
     const fetchProjects = async () => {
       try {
         setLoading(true);
-        const projectsData = await projectService.getAllProjects();
-        setProjects(projectsData);
+        const allProjects = await projectService.getAllProjects();
+        setProjects(allProjects);
         
-        // Seleccionar el primer proyecto por defecto
-        if (projectsData.length > 0) {
-          setSelectedProjectId(projectsData[0].id);
-          setSelectedProject(projectsData[0]);
+        // Seleccionar el primer proyecto por defecto si hay proyectos disponibles
+        if (allProjects.length > 0) {
+          setSelectedProject(allProjects[0]);
         }
       } catch (error) {
-        console.error('Error al cargar proyectos:', error);
-        toast.error('Error al cargar la lista de proyectos');
+        console.error('Error fetching projects:', error);
+        toast.error('Error al cargar los proyectos');
       } finally {
         setLoading(false);
       }
@@ -46,6 +44,19 @@ function AnalyticsPage() {
     const project = projects.find(p => p.id === projectId);
     setSelectedProject(project || null);
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Cargando proyectos...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -104,7 +115,10 @@ function AnalyticsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <Select value={selectedProjectId} onValueChange={handleProjectChange}>
+              <Select value={selectedProject?.id || ''} onValueChange={(value) => {
+                const project = projects.find(p => p.id === value);
+                setSelectedProject(project || null);
+              }}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecciona un proyecto para analizar" />
                 </SelectTrigger>
@@ -153,14 +167,13 @@ function AnalyticsPage() {
       </Card>
       
       {/* KPIs del Proyecto Seleccionado */}
-      {selectedProjectId && selectedProject && (
+      {selectedProject && (
         <ProjectKPIs 
-          projectId={selectedProjectId} 
           project={selectedProject}
         />
       )}
       
-      {!selectedProjectId && !loading && (
+      {!selectedProject && !loading && (
         <Card>
           <CardContent className="text-center py-12">
             <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />

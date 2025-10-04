@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     
     let query = supabase
-      .from('equipment_rental')
+      .from('equipment_rentals')
       .select(`
         *,
         equipment:equipment_id(id, name, category, status, daily_rental_rate),
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     };
     
     const { data: rental, error } = await supabase
-      .from('equipment_rental')
+      .from('equipment_rentals')
       .insert([rentalData])
       .select(`
         *,

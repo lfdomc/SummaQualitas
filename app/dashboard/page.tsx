@@ -51,7 +51,9 @@ export default function DashboardPage() {
     totalInvoices: 0,
     pendingPayments: 0,
     availableEquipment: 0,
-    totalUsers: 0
+    totalUsers: 0,
+    totalBudget: 0,
+    totalExpenses: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -168,27 +170,27 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center space-x-3">
-              <Building2 className="h-8 w-8 text-blue-600" />
+              <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               <div>
-                <h1 className="text-xl font-bold text-foreground">SummaQualitas</h1>
-                <p className="text-sm text-muted-foreground">Sistema de Gestión</p>
+                <h1 className="text-lg sm:text-xl font-bold text-foreground">SummaQualitas</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">Sistema de Gestión</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-foreground">
+                <p className="hidden sm:block text-sm font-medium text-foreground">
                   {profile?.name || user?.email}
                 </p>
-                <div className="flex items-center space-x-2">
-                  <Badge variant={profile?.role === 'gerencia' ? 'default' : 'secondary'}>
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <Badge variant={profile?.role === 'gerencia' ? 'default' : 'secondary'} className="text-xs px-1 py-0 sm:px-2 sm:py-1">
                     {profile?.role === 'gerencia' ? 'Gerencia' :
                      profile?.role === 'administrativo' ? 'Administrativo' : 'Cliente'}
                   </Badge>
                   {profile?.role === 'gerencia' && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="hidden sm:inline-flex text-xs">
                       Administrador
                     </Badge>
                   )}
@@ -199,10 +201,10 @@ export default function DashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleSignOut}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Salir</span>
+                <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Salir</span>
               </Button>
             </div>
           </div>
@@ -210,28 +212,28 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-foreground mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
             Bienvenido, {profile?.name?.split(' ')[0] || user?.email?.split('@')[0]}
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Aquí tienes un resumen de tu sistema de gestión de construcción.
           </p>
         </div>
       
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           {/* Proyectos */}
           {permissions.canViewAllProjects && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Proyectos</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-xs sm:text-sm font-medium">Proyectos</CardTitle>
+                <Building2 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="pt-0">
+                <div className="text-lg sm:text-2xl font-bold">
                   {loadingStats ? '...' : stats.totalProjects}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -241,17 +243,15 @@ export default function DashboardPage() {
             </Card>
           )}
 
-
-
           {/* Equipos */}
           {permissions.canEditEquipment && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Equipos</CardTitle>
-                <Wrench className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-xs sm:text-sm font-medium">Equipos</CardTitle>
+                <Wrench className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="pt-0">
+                <div className="text-lg sm:text-2xl font-bold">
                   {loadingStats ? '...' : stats.availableEquipment}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -263,17 +263,17 @@ export default function DashboardPage() {
 
           {/* Presupuesto Total */}
           {permissions.canViewFinancials && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Presupuesto Total</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-xs sm:text-sm font-medium">Presupuesto</CardTitle>
+                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="pt-0">
+                <div className="text-lg sm:text-2xl font-bold">
                   {loadingStats ? '...' : `$${(stats.totalBudget / 1000000).toFixed(1)}M`}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Todos los proyectos
+                  Total proyectos
                 </p>
               </CardContent>
             </Card>
@@ -281,17 +281,17 @@ export default function DashboardPage() {
 
           {/* Gastos Totales */}
           {permissions.canViewFinancials && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Gastos Totales</CardTitle>
-                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-xs sm:text-sm font-medium">Gastos</CardTitle>
+                <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="pt-0">
+                <div className="text-lg sm:text-2xl font-bold">
                   {loadingStats ? '...' : `$${stats.totalExpenses.toLocaleString()}`}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Gastos registrados
+                  Registrados
                 </p>
               </CardContent>
             </Card>
@@ -299,13 +299,13 @@ export default function DashboardPage() {
 
           {/* Usuarios (solo para admins) */}
           {permissions.canEditUsers && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Usuarios</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-xs sm:text-sm font-medium">Usuarios</CardTitle>
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="pt-0">
+                <div className="text-lg sm:text-2xl font-bold">
                   {loadingStats ? '...' : stats.totalUsers}
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -317,38 +317,38 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
           {/* Acciones Principales */}
           <Card>
             <CardHeader>
-              <CardTitle>Acciones Rápidas</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base sm:text-lg">Acciones Rápidas</CardTitle>
+              <CardDescription className="text-sm">
                 Accede rápidamente a las funciones principales del sistema
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Proyectos */}
               {permissions.canViewAllProjects && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Building2 className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                     <div>
-                      <p className="font-medium">Proyectos</p>
-                      <p className="text-sm text-gray-500">Gestionar proyectos de construcción</p>
+                      <p className="font-medium text-sm sm:text-base">Proyectos</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Gestionar proyectos de construcción</p>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1 sm:space-x-2">
                     <Link href="/projects">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Ver</span>
                       </Button>
                     </Link>
                     {permissions.canCreateProjects && (
                       <Link href="/projects/new">
-                        <Button size="sm">
-                          <Plus className="h-4 w-4 mr-1" />
-                          Nuevo
+                        <Button size="sm" className="px-2 sm:px-3">
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Nuevo</span>
                         </Button>
                       </Link>
                     )}
@@ -356,30 +356,28 @@ export default function DashboardPage() {
                 </div>
               )}
 
-
-
               {/* Equipos */}
               {permissions.canEditEquipment && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Wrench className="h-5 w-5 text-orange-600" />
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
                     <div>
-                      <p className="font-medium">Equipos</p>
-                      <p className="text-sm text-gray-500">Gestionar alquiler de equipos</p>
+                      <p className="font-medium text-sm sm:text-base">Equipos</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Gestionar alquiler de equipos</p>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1 sm:space-x-2">
                     <Link href="/equipment">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Ver</span>
                       </Button>
                     </Link>
                     {permissions.canCreateEquipment && (
                       <Link href="/equipment/new">
-                        <Button size="sm">
-                          <Plus className="h-4 w-4 mr-1" />
-                          Nuevo
+                        <Button size="sm" className="px-2 sm:px-3">
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Nuevo</span>
                         </Button>
                       </Link>
                     )}
@@ -387,31 +385,83 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Pagos */}
-              {permissions.canManagePayments && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <CreditCard className="h-5 w-5 text-purple-600" />
+              {/* Gastos */}
+              {permissions.canViewFinancials && (
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
                     <div>
-                      <p className="font-medium">Pagos</p>
-                      <p className="text-sm text-gray-500">Gestionar pagos de clientes y proveedores</p>
+                      <p className="font-medium text-sm sm:text-base">Gastos</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Gestionar gastos del proyecto</p>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Link href="/payments">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Ver
+                  <div className="flex space-x-1 sm:space-x-2">
+                    <Link href="/expenses">
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Ver</span>
                       </Button>
                     </Link>
-                    {permissions.canManagePayments && (
-                      <Link href="/payments/new">
-                        <Button size="sm">
-                          <Plus className="h-4 w-4 mr-1" />
-                          Nuevo
-                        </Button>
-                      </Link>
-                    )}
+                    <Link href="/expenses/new">
+                      <Button size="sm" className="px-2 sm:px-3">
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Nuevo</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Ingresos */}
+              {permissions.canViewFinancials && (
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-sm sm:text-base">Ingresos</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Gestionar ingresos del proyecto</p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-1 sm:space-x-2">
+                    <Link href="/incomes">
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Ver</span>
+                      </Button>
+                    </Link>
+                    <Link href="/incomes/new">
+                      <Button size="sm" className="px-2 sm:px-3">
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Nuevo</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Proveedores */}
+              {permissions.canViewAllProjects && (
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                    <div>
+                      <p className="font-medium text-sm sm:text-base">Proveedores</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Gestionar proveedores</p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-1 sm:space-x-2">
+                    <Link href="/suppliers">
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Ver</span>
+                      </Button>
+                    </Link>
+                    <Link href="/suppliers/new">
+                      <Button size="sm" className="px-2 sm:px-3">
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Nuevo</span>
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               )}
@@ -421,27 +471,27 @@ export default function DashboardPage() {
           {/* Administración */}
           <Card>
             <CardHeader>
-              <CardTitle>Administración</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base sm:text-lg">Administración</CardTitle>
+              <CardDescription className="text-sm">
                 Herramientas de administración y configuración
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Usuarios */}
               {permissions.canEditUsers && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Users className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                     <div>
-                      <p className="font-medium">Usuarios</p>
-                      <p className="text-sm text-gray-500">Gestionar usuarios del sistema</p>
+                      <p className="font-medium text-sm sm:text-base">Usuarios</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Gestionar usuarios</p>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Link href="/admin/users">
-                      <Button variant="outline" size="sm">
-                        <Settings className="h-4 w-4 mr-1" />
-                        Gestionar
+                  <div className="flex space-x-1 sm:space-x-2">
+                    <Link href="/users">
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Gestionar</span>
                       </Button>
                     </Link>
                   </div>
@@ -450,19 +500,19 @@ export default function DashboardPage() {
 
               {/* Reportes */}
               {permissions.canViewReports && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <BarChart3 className="h-5 w-5 text-green-600" />
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                     <div>
-                      <p className="font-medium">Reportes</p>
-                      <p className="text-sm text-gray-500">Ver reportes y estadísticas</p>
+                      <p className="font-medium text-sm sm:text-base">Reportes</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Ver reportes</p>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1 sm:space-x-2">
                     <Link href="/reports">
-                      <Button variant="outline" size="sm">
-                        <BarChart3 className="h-4 w-4 mr-1" />
-                        Ver
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Ver</span>
                       </Button>
                     </Link>
                   </div>
@@ -471,19 +521,19 @@ export default function DashboardPage() {
 
               {/* Configuración */}
               {permissions.canAccessAdmin && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Settings className="h-5 w-5 text-gray-600" />
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
                     <div>
-                      <p className="font-medium">Configuración</p>
-                      <p className="text-sm text-gray-500">Configuración del sistema</p>
+                      <p className="font-medium text-sm sm:text-base">Configuración</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Config. sistema</p>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Link href="/admin/settings">
-                      <Button variant="outline" size="sm">
-                        <Settings className="h-4 w-4 mr-1" />
-                        Configurar
+                  <div className="flex space-x-1 sm:space-x-2">
+                    <Link href="/settings">
+                      <Button variant="outline" size="sm" className="px-2 sm:px-3">
+                        <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Configurar</span>
                       </Button>
                     </Link>
                   </div>

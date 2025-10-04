@@ -787,16 +787,23 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestión de Gastos</h1>
-          <p className="text-gray-600 mt-1">Control y seguimiento de gastos por proyecto</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+        <div className="text-center sm:text-left">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
+            <span className="sm:hidden">Gastos</span>
+            <span className="hidden sm:inline">Gestión de Gastos</span>
+          </h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
+            <span className="sm:hidden">Control de gastos</span>
+            <span className="hidden sm:inline">Control y seguimiento de gastos por proyecto</span>
+          </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              Agregar Gasto
+              <span className="sm:hidden">Agregar</span>
+              <span className="hidden sm:inline">Agregar Gasto</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -1325,19 +1332,23 @@ export default function ExpensesPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Gastos</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">
+              <span className="sm:hidden">Total</span>
+              <span className="hidden sm:inline">Total Gastos</span>
+            </CardTitle>
+            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0 pb-3">
             <div className="space-y-1">
-              <div className="text-xl font-bold">₡{totalExpenses.toLocaleString()}</div>
-              <div className="text-lg font-semibold text-green-600">${totalExpensesUSD.toLocaleString()}</div>
+              <div className="text-lg sm:text-xl font-bold">₡{totalExpenses.toLocaleString()}</div>
+              <div className="text-base sm:text-lg font-semibold text-green-600">${totalExpensesUSD.toLocaleString()}</div>
             </div>
             <p className="text-xs text-muted-foreground">
-              {filteredExpenses.length} expenses registered
+              <span className="sm:hidden">{filteredExpenses.length} gastos</span>
+              <span className="hidden sm:inline">{filteredExpenses.length} expenses registered</span>
             </p>
           </CardContent>
         </Card>
@@ -1345,17 +1356,18 @@ export default function ExpensesPage() {
         {projectSummary.slice(0, 3).map((summary, index) => {
           return (
             <Card key={summary.project_id}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{summary.project_name}</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium truncate pr-2">{summary.project_name}</CardTitle>
+                <Building2 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0 pb-3">
                 <div className="space-y-1">
-                  <div className="text-xl font-bold">₡{summary.total.toLocaleString()}</div>
-                  <div className="text-lg font-semibold text-green-600">${summary.totalUSD.toLocaleString()}</div>
+                  <div className="text-lg sm:text-xl font-bold">₡{summary.total.toLocaleString()}</div>
+                  <div className="text-base sm:text-lg font-semibold text-green-600">${summary.totalUSD.toLocaleString()}</div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {summary.percentage.toFixed(1)}% del presupuesto • {summary.count} gastos
+                  <span className="sm:hidden">{summary.percentage.toFixed(1)}% • {summary.count}</span>
+                  <span className="hidden sm:inline">{summary.percentage.toFixed(1)}% del presupuesto • {summary.count} gastos</span>
                 </p>
               </CardContent>
             </Card>
@@ -1365,18 +1377,24 @@ export default function ExpensesPage() {
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">
+            <span className="sm:hidden">Filtros</span>
+            <span className="hidden sm:inline">Filters</span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="space-y-2">
-                <Label>Search</Label>
+                <Label className="text-sm">
+                  <span className="sm:hidden">Buscar</span>
+                  <span className="hidden sm:inline">Search</span>
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search expenses..."
+                    placeholder="Buscar gastos..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -1384,7 +1402,7 @@ export default function ExpensesPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Proyecto</Label>
+                <Label className="text-sm">Proyecto</Label>
                 <Select value={selectedProject} onValueChange={setSelectedProject}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1400,7 +1418,7 @@ export default function ExpensesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Categoría</Label>
+                <Label className="text-sm">Categoría</Label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1416,7 +1434,7 @@ export default function ExpensesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Subcategoría</Label>
+                <Label className="text-sm">Subcategoría</Label>
                 <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1451,7 +1469,7 @@ export default function ExpensesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Proveedor</Label>
+                <Label className="text-sm">Proveedor</Label>
                 <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
                   <SelectTrigger>
                     <SelectValue />
@@ -1476,9 +1494,10 @@ export default function ExpensesPage() {
                   setDateFilter('all');
                   setStartDate('');
                   setEndDate('');
-                }}>
+                }} className="w-full sm:w-auto">
                   <Filter className="h-4 w-4 mr-2" />
-                  Clear Filters
+                  <span className="sm:hidden">Limpiar</span>
+                  <span className="hidden sm:inline">Clear Filters</span>
                 </Button>
               </div>
             </div>
@@ -1535,39 +1554,143 @@ export default function ExpensesPage() {
 
       {/* Expenses Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Expense List</CardTitle>
-          <CardDescription>
-            {filteredExpenses.length} expenses found
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">
+            <span className="sm:hidden">Gastos</span>
+            <span className="hidden sm:inline">Expense List</span>
+          </CardTitle>
+          <CardDescription className="text-sm">
+            {filteredExpenses.length} 
+            <span className="sm:hidden"> gastos encontrados</span>
+            <span className="hidden sm:inline"> expenses found</span>
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {filteredExpenses.length === 0 ? (
             <div className="text-center py-8">
-              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No expenses registered</h3>
-              <p className="text-gray-600 mb-4">Start by adding the first expense for this project</p>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Building2 className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+                <span className="sm:hidden">No hay gastos registrados</span>
+                <span className="hidden sm:inline">No expenses registered</span>
+              </h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-4">
+                <span className="sm:hidden">Comienza agregando el primer gasto</span>
+                <span className="hidden sm:inline">Start by adding the first expense for this project</span>
+              </p>
+              <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
-                Add First Expense
+                <span className="sm:hidden">Agregar Gasto</span>
+                <span className="hidden sm:inline">Add First Expense</span>
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-center">Gasto</TableHead>
-                  <TableHead className="text-center">Referencia</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile View */}
+              <div className="block sm:hidden space-y-4">
+                {filteredExpenses.map((expense) => {
+                  const project = projects.find(p => p.id === expense.project_id);
+                  const category = EXPENSE_CATEGORIES.find(cat => cat.value === expense.category);
+                  const categoryColors = getCategoryColors(expense.category);
+                  
+                  return (
+                    <Card key={expense.id} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium text-sm">{project?.name || 'Proyecto no encontrado'}</div>
+                            <div className="text-xs text-gray-500">{expense.expense_date.split('-').reverse().join('/')}</div>
+                          </div>
+                          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${categoryColors.color} ${categoryColors.bgColor} ${categoryColors.borderColor}`}>
+                            {category?.label}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="font-medium text-sm">{expense.description}</div>
+                          {expense.notes && (
+                            <div className="text-xs text-gray-500 mt-1">{expense.notes}</div>
+                          )}
+                        </div>
+                        
+                        {expense.supplier?.name && (
+                          <div className="text-xs text-gray-600">
+                            <span className="font-medium">Proveedor:</span> {expense.supplier.name}
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-between items-center">
+                          <div className="text-right">
+                            {expense.currency === 'USD' ? (
+                              <>
+                                <div className="text-green-600 font-medium">${expense.amount.toLocaleString()}</div>
+                                <div className="text-xs text-gray-500">
+                                  ₡{(expense.amount * (expense.exchange_rate_usd || 600)).toLocaleString()}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="font-medium">₡{expense.amount.toLocaleString()}</div>
+                                <div className="text-xs text-green-600">
+                                  ${(expense.amount / (expense.exchange_rate_usd || 600)).toLocaleString()}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            {expense.receipt_url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(expense.receipt_url, '_blank')}
+                                className="h-8 px-2 text-xs"
+                              >
+                                Gasto
+                              </Button>
+                            )}
+                            {expense.reference_attachment_url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(expense.reference_attachment_url, '_blank')}
+                                className="h-8 px-2 text-xs"
+                              >
+                                Ref
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditExpense(expense)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Project</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-center">Gasto</TableHead>
+                      <TableHead className="text-center">Referencia</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                 {filteredExpenses.map((expense) => {
                   const project = projects.find(p => p.id === expense.project_id);
                   const category = EXPENSE_CATEGORIES.find(cat => cat.value === expense.category);
@@ -1657,8 +1780,10 @@ export default function ExpensesPage() {
                     </TableRow>
                   );
                 })}
-              </TableBody>
-            </Table>
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { LazyPieChart } from '@/components/ui/lazy-chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart as PieChartIcon } from 'lucide-react';
 import { Project } from '@/lib/types';
@@ -165,7 +166,7 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
       <CardContent>
         <div className="w-full h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <LazyPieChart>
               <Pie
                 data={chartData}
                 cx="50%"
@@ -181,7 +182,7 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-            </PieChart>
+            </LazyPieChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

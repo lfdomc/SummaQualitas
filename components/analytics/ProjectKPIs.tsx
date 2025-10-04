@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ProjectKPIs as ProjectKPIsType, Project } from '@/lib/types';
-import { projectService, expenseService, incomeService } from '@/lib/supabase/database';
-import { toast } from 'sonner';
+
 import {
   TrendingUp,
   TrendingDown,
@@ -20,212 +18,51 @@ import {
   BarChart3,
   PieChart
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, LabelList } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, LabelList, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AnalyticsLoader } from './AnalyticsLoader';
+import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import type { Project } from '@/types/database';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 interface ProjectKPIsProps {
-  projectId: string;
-  project?: Project;
+  project: Project | null;
 }
 
-interface EVMData {
-  plannedValue: number;
-  earnedValue: number;
-  actualCost: number;
-  budgetAtCompletion: number;
-  estimateAtCompletion: number;
-  costVariance: number;
-  scheduleVariance: number;
-  costPerformanceIndex: number;
-  schedulePerformanceIndex: number;
-  estimateToComplete: number;
-  varianceAtCompletion: number;
-}
+export default function ProjectKPIs({ project }: ProjectKPIsProps) {
+  const { kpis, evmData, chartData, loading, error } = useAnalyticsData(project);
 
-interface ChartData {
-  month: string;
-  planned: number;
-  earned: number;
-  actual: number;
-}
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
-
-export function ProjectKPIs({ projectId, project }: ProjectKPIsProps) {
-  const [kpis, setKpis] = useState<ProjectKPIsType | null>(null);
-  const [evmData, setEvmData] = useState<EVMData | null>(null);
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchKPIs = async () => {
-      try {
-        setLoading(true);
-        
-        if (projectId === 'default' || !project) {
-          // Mostrar mensaje para seleccionar un proyecto
-          setKpis(null);
-          setEvmData(null);
-          setChartData([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Obtener datos financieros reales del proyecto
-        const [projectExpenses, projectIncomes] = await Promise.all([
-          expenseService.getProjectExpenses(projectId),
-          incomeService.getProjectIncomes(projectId)
-        ]);
-        
-        // Calcular datos reales del proyecto
-        const projectBudget = project.budget || 0;
-        const actualCost = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-        const totalIncomes = projectIncomes.reduce((sum, income) => sum + income.amount, 0);
-        const projectProgress = project.progress || 0;
-        const earnedValue = projectBudget * (projectProgress / 100);
-        
-        // Calcular valor planeado basado en las fechas del proyecto
-        const calculatePlannedValue = (): number => {
-          const startDate = project?.estimated_start_date || project?.actual_start_date;
-          const endDate = project?.estimated_end_date || project?.actual_end_date;
-          
-          if (!startDate || !endDate) {
-            // Si no hay fechas, usar el progreso actual como fallback
-            return projectBudget * (projectProgress / 100);
-          }
-          
-          const start = new Date(startDate);
-          const end = new Date(endDate);
-          const now = new Date();
-          
-          // Si el proyecto no ha comenzado, planned value = 0
-          if (now < start) {
-            return 0;
-          }
-          
-          // Si el proyecto ya terminó, planned value = presupuesto total
-          if (now >= end) {
-            return projectBudget;
-          }
-          
-          // Calcular el porcentaje de tiempo transcurrido
-          const totalDuration = end.getTime() - start.getTime();
-          const elapsedTime = now.getTime() - start.getTime();
-          const timeProgress = Math.min(100, Math.max(0, (elapsedTime / totalDuration) * 100));
-          
-          return projectBudget * (timeProgress / 100);
-        };
-        
-        const plannedValue = calculatePlannedValue();
-        
-        // Calcular métricas EVM específicas del proyecto
-        const costPerformanceIndex = actualCost > 0 ? earnedValue / actualCost : 0;
-        const schedulePerformanceIndex = plannedValue > 0 ? earnedValue / plannedValue : 0;
-        const costVariance = earnedValue - actualCost;
-        const scheduleVariance = earnedValue - plannedValue;
-        const estimateAtCompletion = actualCost > 0 && earnedValue > 0 ? projectBudget * (actualCost / earnedValue) : projectBudget;
-        const estimateToComplete = estimateAtCompletion - actualCost;
-        const varianceAtCompletion = projectBudget - estimateAtCompletion;
-        
-        const calculatedKPIs: ProjectKPIsType = {
-          id: `calc-${projectId}`,
-          project_id: projectId,
-          planned_value: plannedValue,
-          earned_value: earnedValue,
-          actual_cost: actualCost,
-          cost_performance_index: costPerformanceIndex,
-          schedule_performance_index: schedulePerformanceIndex,
-          budget_at_completion: projectBudget,
-          estimate_at_completion: estimateAtCompletion,
-          cost_variance: costVariance,
-          schedule_variance: scheduleVariance,
-          estimate_to_complete: estimateToComplete,
-          variance_at_completion: varianceAtCompletion,
-          completion_percentage: projectProgress,
-          quality_score: 8.5,
-          safety_incidents: projectExpenses.filter(e => e.category === 'seguridad').length,
-          productivity_index: earnedValue > 0 && actualCost > 0 ? earnedValue / actualCost : 1.0,
-          resource_utilization: Math.min(100, (actualCost / projectBudget) * 100),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        setKpis(calculatedKPIs);
-        
-        const evm: EVMData = {
-          plannedValue: calculatedKPIs.planned_value || 0,
-          earnedValue: calculatedKPIs.earned_value || 0,
-          actualCost: calculatedKPIs.actual_cost || 0,
-          budgetAtCompletion: calculatedKPIs.budget_at_completion || 0,
-          estimateAtCompletion: calculatedKPIs.estimate_at_completion || 0,
-          costVariance: calculatedKPIs.cost_variance || 0,
-          scheduleVariance: calculatedKPIs.schedule_variance || 0,
-          costPerformanceIndex: calculatedKPIs.cost_performance_index || 0,
-          schedulePerformanceIndex: calculatedKPIs.schedule_performance_index || 0,
-          estimateToComplete: calculatedKPIs.estimate_to_complete || 0,
-          varianceAtCompletion: calculatedKPIs.variance_at_completion || 0
-        };
-        
-        setEvmData(evm);
-        
-        // Generar datos de gráfico basados en el progreso del proyecto específico
-        const monthlyData: ChartData[] = [
-          { month: 'Ene', planned: (calculatedKPIs.planned_value || 0) * 0.2, earned: (calculatedKPIs.earned_value || 0) * 0.2, actual: (calculatedKPIs.actual_cost || 0) * 0.2 },
-          { month: 'Feb', planned: (calculatedKPIs.planned_value || 0) * 0.4, earned: (calculatedKPIs.earned_value || 0) * 0.4, actual: (calculatedKPIs.actual_cost || 0) * 0.4 },
-          { month: 'Mar', planned: (calculatedKPIs.planned_value || 0) * 0.6, earned: (calculatedKPIs.earned_value || 0) * 0.6, actual: (calculatedKPIs.actual_cost || 0) * 0.6 },
-          { month: 'Abr', planned: (calculatedKPIs.planned_value || 0) * 0.8, earned: (calculatedKPIs.earned_value || 0) * 0.8, actual: (calculatedKPIs.actual_cost || 0) * 0.8 },
-          { month: 'May', planned: calculatedKPIs.planned_value || 0, earned: calculatedKPIs.earned_value || 0, actual: calculatedKPIs.actual_cost || 0 }
-        ];
-        setChartData(monthlyData);
-        
-      } catch (error) {
-        console.error('Error fetching KPIs:', error);
-        toast.error('Error al cargar los KPIs del proyecto');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (projectId) {
-      fetchKPIs();
-    }
-  }, [projectId, project]);
-
-  const getPerformanceStatus = (value: number, threshold: number = 1) => {
+  const getPerformanceStatus = useCallback((value: number, threshold: number = 1) => {
     if (value >= threshold) return { status: 'good', color: 'text-green-600', icon: TrendingUp };
     if (value >= threshold * 0.9) return { status: 'warning', color: 'text-yellow-600', icon: Clock };
     return { status: 'poor', color: 'text-red-600', icon: TrendingDown };
-  };
+  }, []);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-PE', {
+  const formatCurrency = useCallback((amount: number) => {
+    return new Intl.NumberFormat('es-CR', {
       style: 'currency',
-      currency: 'PEN'
+      currency: 'CRC',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
-  };
+  }, []);
 
-  const formatPercentage = (value: number) => {
-    return `${(value * 100).toFixed(1)}%`;
-  };
+  const formatPercentage = useCallback((value: number) => {
+    return `${value.toFixed(1)}%`;
+  }, []);
+
+  // Memoizar los estados de rendimiento para evitar recálculos innecesarios
+  const cpiStatus = useMemo(() => 
+    evmData ? getPerformanceStatus(evmData.costPerformanceIndex) : { status: 'poor', color: 'text-gray-400', icon: Clock }
+  , [evmData, getPerformanceStatus]);
+
+  const spiStatus = useMemo(() => 
+    evmData ? getPerformanceStatus(evmData.schedulePerformanceIndex) : { status: 'poor', color: 'text-gray-400', icon: Clock }
+  , [evmData, getPerformanceStatus]);
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="pb-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-full"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+    return <AnalyticsLoader />;
   }
 
   if (!kpis || !evmData) {
@@ -241,9 +78,6 @@ export function ProjectKPIs({ projectId, project }: ProjectKPIsProps) {
       </div>
     );
   }
-
-  const cpiStatus = getPerformanceStatus(evmData.costPerformanceIndex);
-  const spiStatus = getPerformanceStatus(evmData.schedulePerformanceIndex);
 
   return (
     <div className="space-y-6">
@@ -541,3 +375,5 @@ export function ProjectKPIs({ projectId, project }: ProjectKPIsProps) {
     </div>
   );
 }
+
+export { ProjectKPIs };
