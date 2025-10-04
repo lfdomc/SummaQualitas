@@ -341,7 +341,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(0)}
+              {formatCurrency(summary?.total_canceled_amount || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Ingresos cancelados

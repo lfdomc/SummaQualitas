@@ -7,6 +7,12 @@ interface RouteParams {
   };
 }
 
+interface ProjectUpdateData {
+  presupuesto_final: number;
+  updated_at: string;
+  estimated_end_date?: string;
+}
+
 // POST - Implementar una orden de cambio
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -101,7 +107,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     
     // Actualizar el proyecto con el nuevo presupuesto y fechas
-    const projectUpdateData: any = {
+    const projectUpdateData: ProjectUpdateData = {
       presupuesto_final: newBudget,
       updated_at: new Date().toISOString()
     };

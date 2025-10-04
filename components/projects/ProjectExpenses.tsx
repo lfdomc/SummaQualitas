@@ -381,7 +381,7 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                       <Label htmlFor="category">Categoría *</Label>
                       <Select
                         value={expenseForm.category}
-                        onValueChange={(value: any) => {
+                        onValueChange={(value: string) => {
                           setExpenseForm({ 
                             ...expenseForm, 
                             category: value,
@@ -407,7 +407,7 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                         <Label htmlFor="subcategory_direct">Subcategoría *</Label>
                         <Select
                           value={expenseForm.subcategory_direct || ''}
-                          onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_direct: value })}
+                          onValueChange={(value: string) => setExpenseForm({ ...expenseForm, subcategory_direct: value as 'subcontratos' | 'materiales' | 'otros' })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccionar subcategoría" />
@@ -427,7 +427,7 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                         <Label htmlFor="subcategory_indirect">Subcategoría *</Label>
                         <Select
                           value={expenseForm.subcategory_indirect || ''}
-                          onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_indirect: value })}
+                          onValueChange={(value: string) => setExpenseForm({ ...expenseForm, subcategory_indirect: value as 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros' })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccionar subcategoría" />
@@ -783,7 +783,7 @@ Equivalent in dollars
                 <Label htmlFor="edit-category">Categoría *</Label>
                 <Select
                   value={expenseForm.category}
-                  onValueChange={(value: any) => {
+                  onValueChange={(value: string) => {
                     setExpenseForm({ 
                       ...expenseForm, 
                       category: value,
@@ -809,7 +809,7 @@ Equivalent in dollars
                   <Label htmlFor="edit-subcategory_direct">Subcategoría *</Label>
                   <Select
                     value={expenseForm.subcategory_direct || ''}
-                    onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_direct: value })}
+                    onValueChange={(value: string) => setExpenseForm({ ...expenseForm, subcategory_direct: value as 'subcontratos' | 'materiales' | 'otros' })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar subcategoría" />
@@ -829,7 +829,7 @@ Equivalent in dollars
                   <Label htmlFor="edit-subcategory_indirect">Subcategoría *</Label>
                   <Select
                     value={expenseForm.subcategory_indirect || ''}
-                    onValueChange={(value: any) => setExpenseForm({ ...expenseForm, subcategory_indirect: value })}
+                    onValueChange={(value: string) => setExpenseForm({ ...expenseForm, subcategory_indirect: value as 'cargas_sociales' | 'alquiler' | 'control_calidad' | 'servicios_basicos' | 'transporte' | 'polizas' | 'inspeccion_ingenieros' | 'viaticos' | 'garantias' | 'equipos' | 'otros' })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar subcategoría" />

@@ -1051,64 +1051,70 @@ export class IncomeService {
         return rpcData[0];
       }
 
-      // Fallback a consulta optimizada con agregación en la base de datos
-      const { data: summaryData, error: summaryError } = await this.supabase
-        .from('incomes')
-        .select(`
-          project_id,
-          status,
-          currency,
-          count(*)::integer as income_count,
-          sum(amount)::decimal as total_amount,
-          min(received_date) as first_received_date,
-          max(received_date) as last_received_date,
-          projects!inner(name, status, clients(name))
-        `)
-        .eq('project_id', projectId)
-        .group('project_id, status, currency, projects.name, projects.status, projects.clients.name');
+      // Fallback: obtener datos del proyecto y todos los ingresos
+      const [projectResult, incomesResult] = await Promise.all([
+        this.supabase
+          .from('projects')
+          .select(`
+            id,
+            name,
+            status,
+            clients(name)
+          `)
+          .eq('id', projectId)
+          .single(),
+        
+        this.supabase
+          .from('incomes')
+          .select('*')
+          .eq('project_id', projectId)
+      ]);
 
-      if (summaryError) {
-        console.error('Error getting incomes summary:', summaryError);
-        throw new Error(`Error al obtener resumen de ingresos: ${summaryError.message}`);
+      if (projectResult.error) {
+        console.error('Error getting project:', projectResult.error);
+        throw new Error(`Error al obtener proyecto: ${projectResult.error.message}`);
       }
 
-      // Procesar datos agregados
-      const summaryRows = summaryData || [];
-      let totalIncomes = 0;
+      if (incomesResult.error) {
+        console.error('Error getting incomes:', incomesResult.error);
+        throw new Error(`Error al obtener ingresos: ${incomesResult.error.message}`);
+      }
+
+      const project = projectResult.data;
+      const incomes = incomesResult.data || [];
+
+      // Procesar datos de ingresos individuales
+      let totalIncomes = incomes.length;
       let totalAmount = 0;
       let confirmedAmount = 0;
       let pendingAmount = 0;
+      let canceledAmount = 0;
       let confirmedUSD = 0;
       let confirmedCRC = 0;
       let firstReceivedDate: string | undefined;
       let lastReceivedDate: string | undefined;
-      let projectName = '';
-      let projectStatus = '';
-      let clientName = '';
 
-      summaryRows.forEach(row => {
-        const count = parseInt(row.income_count) || 0;
-        const amount = parseFloat(row.total_amount) || 0;
-        const status = row.status;
-        const currency = row.currency;
+      // Obtener información del proyecto
+      const projectName = project.name || '';
+      const projectStatus = project.status || '';
+      const clientName = project.clients?.name || '';
 
-        totalIncomes += count;
+      incomes.forEach(income => {
+        const amount = parseFloat(income.amount) || 0;
+        const status = income.status;
+        const currency = income.currency;
+        const receivedDate = income.received_date;
+
         totalAmount += amount;
 
-        // Obtener información del proyecto (solo una vez)
-        if (!projectName && row.projects) {
-          const project = row.projects as any;
-          projectName = project.name || '';
-          projectStatus = project.status || '';
-          clientName = project.clients?.name || '';
-        }
-
         // Fechas de primer y último ingreso
-        if (row.first_received_date && (!firstReceivedDate || row.first_received_date < firstReceivedDate)) {
-          firstReceivedDate = row.first_received_date;
-        }
-        if (row.last_received_date && (!lastReceivedDate || row.last_received_date > lastReceivedDate)) {
-          lastReceivedDate = row.last_received_date;
+        if (receivedDate) {
+          if (!firstReceivedDate || receivedDate < firstReceivedDate) {
+            firstReceivedDate = receivedDate;
+          }
+          if (!lastReceivedDate || receivedDate > lastReceivedDate) {
+            lastReceivedDate = receivedDate;
+          }
         }
 
         // Calcular montos por status
@@ -1121,6 +1127,8 @@ export class IncomeService {
           }
         } else if (status === 'pending' || status === 'pendiente') {
           pendingAmount += amount;
+        } else if (status === 'canceled' || status === 'cancelado') {
+          canceledAmount += amount;
         }
       });
 
@@ -1134,6 +1142,7 @@ export class IncomeService {
         confirmed_amount: confirmedAmount,
         total_confirmed_amount: confirmedAmount,
         total_pending_amount: pendingAmount,
+        total_canceled_amount: canceledAmount,
         total_confirmed_usd: confirmedUSD,
         total_confirmed_crc: confirmedCRC,
         first_received_date: firstReceivedDate,
@@ -1152,6 +1161,7 @@ export class IncomeService {
         confirmed_amount: 0,
         total_confirmed_amount: 0,
         total_pending_amount: 0,
+        total_canceled_amount: 0,
         total_confirmed_usd: 0,
         total_confirmed_crc: 0
       };

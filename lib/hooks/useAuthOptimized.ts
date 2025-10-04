@@ -19,13 +19,24 @@ export interface AuthState {
   error: string | null;
 }
 
+interface AuthError {
+  message: string;
+  code?: string;
+}
+
+interface SignUpData {
+  name: string;
+  role?: string;
+  [key: string]: string | undefined;
+}
+
 export interface UseAuthReturn extends AuthState {
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, userData: SignUpData) => Promise<{ error: AuthError | null }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: AuthError | null }>;
   refreshAuth: () => Promise<void>;
   hasRole: (role: UserRole) => boolean;
   hasAnyRole: (roles: UserRole[]) => boolean;
@@ -212,7 +223,7 @@ export function useAuthOptimized(): UseAuthReturn {
   }, [supabase, authState.user?.id]);
 
   // Función de registro
-  const signUp = useCallback(async (email: string, password: string, userData: any) => {
+  const signUp = useCallback(async (email: string, password: string, userData: SignUpData) => {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
 

@@ -4,9 +4,16 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 interface AuthState {
   user: User | null;
-  profile: any | null;
+  profile: UserProfile | null;
   loading: boolean;
   isAuthenticated: boolean;
 }

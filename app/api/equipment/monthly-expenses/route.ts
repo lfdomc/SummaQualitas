@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+interface MonthlyExpenseUpdateData {
+  updated_at: string;
+  maintenance_cost?: number;
+  fuel_cost?: number;
+  insurance_cost?: number;
+  other_costs?: number;
+  notes?: string;
+  total_amount: number;
+}
+
 // GET - Obtener gastos mensuales de equipos
 export async function GET(request: NextRequest) {
   try {
@@ -235,7 +245,7 @@ export async function PUT(request: NextRequest) {
     // Calcular nuevo total
     const total_amount = (maintenance_cost || 0) + (fuel_cost || 0) + (insurance_cost || 0) + (other_costs || 0);
     
-    const updateData: any = {
+    const updateData: Partial<MonthlyExpenseUpdateData> = {
       updated_at: new Date().toISOString()
     };
     

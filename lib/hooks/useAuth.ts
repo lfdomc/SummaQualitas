@@ -11,6 +11,17 @@ interface UserProfile {
   role: string;
 }
 
+interface AuthError {
+  message: string;
+  code?: string;
+}
+
+interface SignUpData {
+  name: string;
+  role?: string;
+  [key: string]: string | undefined;
+}
+
 export interface AuthState {
   user: User | null;
   profile: UserProfile | null;
@@ -20,11 +31,11 @@ export interface AuthState {
 
 export interface UseAuthReturn extends AuthState {
   isAuthenticated: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, userData: SignUpData) => Promise<{ error: AuthError | null }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: AuthError | null }>;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -134,7 +145,7 @@ export function useAuth(): UseAuthReturn {
     return { error: { message: 'Usar formulario de login' } };
   };
 
-  const signUp = async (email: string, password: string, userData: any) => {
+  const signUp = async (email: string, password: string, userData: SignUpData) => {
     // Implementación simplificada - redirigir a API
     return { error: { message: 'Usar formulario de registro' } };
   };

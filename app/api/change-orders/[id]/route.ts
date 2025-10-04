@@ -8,6 +8,19 @@ interface RouteParams {
   };
 }
 
+interface ChangeOrderUpdateRequest {
+  project_id?: string;
+  title?: string;
+  description?: string;
+  amount?: number;
+  currency?: string;
+  status?: string;
+  requested_by?: string;
+  approved_by?: string;
+  request_date?: string;
+  approval_date?: string;
+}
+
 // GET - Obtener una orden de cambio específica
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -92,11 +105,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       role: user.role
     });
     
-    const body = await request.json();
+    const body: ChangeOrderUpdateRequest = await request.json();
     console.log('Request body:', body);
     
     // Preparar datos de actualización
-    const updateData: any = {};
+    const updateData: Partial<UpdateChangeOrderData> = {};
     
     // Mapear solo los campos que existen en el esquema actual de la tabla change_orders
     if (body.project_id !== undefined) updateData.project_id = body.project_id;

@@ -14,6 +14,15 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+// Unión de tipos para los datos de reportes
+type CustomReportData = 
+  | DirectExpensesByProjectMonth[]
+  | ProjectTotalIncome[]
+  | SupplierExpensesByYear[]
+  | MonthlyExpensesByCategory[]
+  | ProjectProfitabilityAnalysis[]
+  | SupplierPaymentAnalysis[];
+
 export class CustomPDFGenerator {
   private doc: jsPDF;
   private pageHeight: number;
@@ -377,7 +386,7 @@ export class CustomPDFGenerator {
     });
   }
 
-  public async generateCustomReport(config: CustomReportConfig, data: any): Promise<void> {
+  public async generateCustomReport(config: CustomReportConfig, data: CustomReportData): Promise<void> {
     try {
       // Encabezado
       this.addHeader(config.title);
@@ -431,7 +440,7 @@ export class CustomPDFGenerator {
   }
 }
 
-export const generateCustomPDFReport = async (config: CustomReportConfig, data: any): Promise<void> => {
+export const generateCustomPDFReport = async (config: CustomReportConfig, data: CustomReportData): Promise<void> => {
   const generator = new CustomPDFGenerator();
   await generator.generateCustomReport(config, data);
 };

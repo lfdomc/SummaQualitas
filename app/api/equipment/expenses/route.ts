@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 
+interface MonthlyExpenseData {
+  total_amount: number;
+  total_days: number;
+  expenses: any[];
+}
+
 // GET - Obtener gastos mensuales
 export async function GET(request: NextRequest) {
   try {
@@ -75,7 +81,7 @@ export async function GET(request: NextRequest) {
       acc[monthKey].total_days += expense.total_days || 0;
       acc[monthKey].expenses.push(expense);
       return acc;
-    }, {} as Record<string, any>) || {};
+    }, {} as Record<string, MonthlyExpenseData>) || {};
     
     return NextResponse.json({
       success: true,

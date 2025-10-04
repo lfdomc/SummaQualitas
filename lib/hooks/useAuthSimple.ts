@@ -4,9 +4,16 @@ import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 export function useAuthSimple() {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   
   console.log('🚀 [useAuthSimple] Hook inicializado');

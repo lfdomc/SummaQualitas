@@ -18,6 +18,65 @@ import {
   ExpenseTrendAnalysis
 } from '@/lib/types/custom-reports';
 
+// Interfaces para datos de Supabase
+interface ExpenseData {
+  id: string;
+  amount: number;
+  expense_date: string;
+  category: string;
+  subcategory_direct?: string;
+  currency: string;
+  exchange_rate?: number;
+  project_id: string;
+  supplier_id?: string;
+  project?: {
+    id: string;
+    name: string;
+    client?: {
+      name: string;
+    };
+  };
+  supplier?: {
+    name: string;
+  };
+}
+
+interface IncomeData {
+  id: string;
+  amount: number;
+  income_date: string;
+  currency: string;
+  exchange_rate?: number;
+  project_id: string;
+  project?: {
+    id: string;
+    name: string;
+    client?: {
+      name: string;
+    };
+  };
+}
+
+interface ProjectGroup {
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  expenses: ExpenseData[];
+}
+
+interface IncomeGroup {
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  incomes: IncomeData[];
+}
+
+interface SupplierGroup {
+  supplierId: string;
+  supplierName: string;
+  expenses: ExpenseData[];
+}
+
 export class CustomReportsService {
   
   // Obtener gastos directos por proyecto y mes
@@ -67,10 +126,10 @@ export class CustomReportsService {
         }
         acc[projectId].expenses.push(expense);
         return acc;
-      }, {} as any) || {};
+      }, {} as Record<string, ProjectGroup>) || {};
 
       // Procesar datos por proyecto
-      const result: DirectExpensesByProjectMonth[] = Object.values(projectGroups).map((group: any) => {
+      const result: DirectExpensesByProjectMonth[] = Object.values(projectGroups).map((group: ProjectGroup) => {
         const directExpenses = {
           subcontratos: 0,
           materiales: 0,
@@ -82,7 +141,7 @@ export class CustomReportsService {
         let totalInUSD = 0;
         let exchangeRate = 1;
 
-        group.expenses.forEach((expense: any) => {
+        group.expenses.forEach((expense: ExpenseData) => {
           const amount = expense.amount;
           const subcategory = expense.subcategory_direct || 'otros';
           
@@ -169,17 +228,18 @@ export class CustomReportsService {
         const projectId = income.project_id;
         if (!acc[projectId]) {
           acc[projectId] = {
-            project: income.project,
-            client: income.client,
+            projectId,
+            projectName: income.project?.name || 'Proyecto Desconocido',
+            clientName: income.project?.client?.name || 'Cliente Desconocido',
             incomes: []
           };
         }
         acc[projectId].incomes.push(income);
         return acc;
-      }, {} as any) || {};
+      }, {} as Record<string, IncomeGroup>) || {};
 
       // Procesar datos por proyecto
-      const result: ProjectTotalIncome[] = Object.values(projectGroups).map((group: any) => {
+      const result: ProjectTotalIncome[] = Object.values(projectGroups).map((group: IncomeGroup) => {
         let totalIncome = 0;
         let totalIncomeCRC = 0;
         let totalIncomeUSD = 0;
@@ -188,7 +248,7 @@ export class CustomReportsService {
         let firstIncomeDate: string | undefined;
         let lastIncomeDate: string | undefined;
 
-        group.incomes.forEach((income: any) => {
+        group.incomes.forEach((income: IncomeData) => {
           const amount = income.amount;
           totalIncome += amount;
 
@@ -298,16 +358,17 @@ export class CustomReportsService {
 
         if (!acc[supplierId]) {
           acc[supplierId] = {
-            supplier: expense.supplier,
+            supplierId,
+            supplierName: expense.supplier.name || 'Proveedor Desconocido',
             expenses: []
           };
         }
         acc[supplierId].expenses.push(expense);
         return acc;
-      }, {} as any) || {};
+      }, {} as Record<string, SupplierGroup>) || {};
 
       // Procesar datos por proveedor
-      const result: SupplierExpensesByYear[] = Object.values(supplierGroups).map((group: any) => {
+      const result: SupplierExpensesByYear[] = Object.values(supplierGroups).map((group: SupplierGroup) => {
         let totalExpenses = 0;
         let totalExpensesCRC = 0;
         let totalExpensesUSD = 0;
@@ -316,7 +377,7 @@ export class CustomReportsService {
         const monthlyMap = new Map();
         const projectsMap = new Map();
 
-        group.expenses.forEach((expense: any) => {
+        group.expenses.forEach((expense: ExpenseData) => {
           const amount = expense.amount;
           totalExpenses += amount;
 
@@ -565,7 +626,7 @@ export class CustomReportsService {
           }
           acc[category] += expense.amount;
           return acc;
-        }, {} as any) || {};
+        }, {} as Record<string, number>) || {};
 
         const expenseBreakdownArray = Object.entries(expenseBreakdown).map(([category, amount]) => ({
           category,
@@ -605,7 +666,7 @@ export class CustomReportsService {
   }
 
   // Método auxiliar para desglose mensual
-  private static getMonthlyBreakdown(data: any[], dateField: string) {
+  private static getMonthlyBreakdown(data: (ExpenseData | IncomeData)[], dateField: string) {
     const monthlyMap = new Map();
     
     data.forEach((item) => {
@@ -655,15 +716,16 @@ export class CustomReportsService {
 
         if (!acc[supplierId]) {
           acc[supplierId] = {
-            supplier: expense.supplier,
+            supplierId,
+            supplierName: expense.supplier?.name || 'Proveedor Desconocido',
             expenses: []
           };
         }
         acc[supplierId].expenses.push(expense);
         return acc;
-      }, {} as any) || {};
+      }, {} as Record<string, SupplierGroup>) || {};
 
-      const result: SupplierPaymentAnalysis[] = Object.values(supplierGroups).map((group: any) => {
+      const result: SupplierPaymentAnalysis[] = Object.values(supplierGroups).map((group: SupplierGroup) => {
         let totalAmount = 0;
         let paidAmount = 0;
         let pendingAmount = 0;
@@ -674,7 +736,7 @@ export class CustomReportsService {
         const projectsMap = new Map();
         const monthlyMap = new Map();
 
-        group.expenses.forEach((expense: any) => {
+        group.expenses.forEach((expense: ExpenseData) => {
           const amount = expense.amount;
           totalAmount += amount;
 

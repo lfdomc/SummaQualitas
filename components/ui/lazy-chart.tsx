@@ -1,8 +1,48 @@
 'use client';
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+
+// Interfaces para los datos de los gráficos
+interface ChartDataPoint {
+  [key: string]: string | number;
+}
+
+// Props base para todos los gráficos
+interface BaseChartProps {
+  children?: ReactNode;
+  data?: ChartDataPoint[];
+  width?: number | string;
+  height?: number | string;
+  margin?: {
+    top?: number;
+    right?: number;
+    bottom?: number;
+    left?: number;
+  };
+}
+
+// Props específicos para LineChart
+interface LineChartProps extends BaseChartProps {
+  syncId?: string;
+}
+
+// Props específicos para BarChart
+interface BarChartProps extends BaseChartProps {
+  layout?: 'horizontal' | 'vertical';
+  stackOffset?: 'expand' | 'none' | 'wiggle' | 'silhouette';
+}
+
+// Props específicos para PieChart
+interface PieChartProps extends Omit<BaseChartProps, 'data'> {
+  data?: ChartDataPoint[];
+}
+
+// Props específicos para AreaChart
+interface AreaChartProps extends BaseChartProps {
+  stackOffset?: 'expand' | 'none' | 'wiggle' | 'silhouette';
+}
 
 // Lazy load de todos los componentes de Recharts
 const LineChart = lazy(() => import('recharts').then(module => ({ default: module.LineChart })));
@@ -32,7 +72,7 @@ const ChartLoader = () => (
 );
 
 // Wrapper para LineChart
-export const LazyLineChart = ({ children, data, ...props }: any) => (
+export const LazyLineChart = ({ children, data, ...props }: LineChartProps) => (
   <Suspense fallback={<ChartLoader />}>
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} {...props}>
@@ -43,7 +83,7 @@ export const LazyLineChart = ({ children, data, ...props }: any) => (
 );
 
 // Wrapper para BarChart
-export const LazyBarChart = ({ children, data, ...props }: any) => (
+export const LazyBarChart = ({ children, data, ...props }: BarChartProps) => (
   <Suspense fallback={<ChartLoader />}>
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} {...props}>
@@ -54,7 +94,7 @@ export const LazyBarChart = ({ children, data, ...props }: any) => (
 );
 
 // Wrapper para PieChart
-export const LazyPieChart = ({ children, data, ...props }: any) => (
+export const LazyPieChart = ({ children, data, ...props }: PieChartProps) => (
   <Suspense fallback={<ChartLoader />}>
     <ResponsiveContainer width="100%" height="100%">
       <PieChart {...props}>
@@ -65,7 +105,7 @@ export const LazyPieChart = ({ children, data, ...props }: any) => (
 );
 
 // Wrapper para AreaChart
-export const LazyAreaChart = ({ children, data, ...props }: any) => (
+export const LazyAreaChart = ({ children, data, ...props }: AreaChartProps) => (
   <Suspense fallback={<ChartLoader />}>
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data} {...props}>
@@ -90,8 +130,16 @@ export {
   Area
 };
 
+// Interface para el wrapper principal
+interface LazyChartProps {
+  type: 'line' | 'bar' | 'pie' | 'area';
+  children: ReactNode;
+  data?: ChartDataPoint[];
+  [key: string]: unknown;
+}
+
 // Wrapper principal para cualquier gráfico
-export const LazyChart = ({ type, children, ...props }: { type: 'line' | 'bar' | 'pie' | 'area'; children: React.ReactNode; [key: string]: any }) => {
+export const LazyChart = ({ type, children, ...props }: LazyChartProps) => {
   const ChartComponent = {
     line: LazyLineChart,
     bar: LazyBarChart,

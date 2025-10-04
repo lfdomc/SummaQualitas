@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ProjectService } from '@/lib/supabase/database';
-import type { ProjectFilters, PaginationParams } from '@/lib/types';
+import { ProjectService } from '@/lib/services/projectService';
+import { ProjectFilters, PaginationParams, ProjectStatus } from '@/lib/types';
 
 // GET /api/projects/admin - Obtener proyectos usando cliente administrativo
 export async function GET(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     
     if (status && status !== 'all') {
-      filters.status = [status as any];
+      filters.status = [status as ProjectStatus];
     }
     if (clientId && clientId !== 'all') {
       filters.client_id = clientId;

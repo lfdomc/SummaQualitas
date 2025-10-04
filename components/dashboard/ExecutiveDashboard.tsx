@@ -908,7 +908,7 @@ export default function ExecutiveDashboard() {
                         formatter={(value: number) => `$${(value / 1000000).toFixed(1)}M`}
                       />
                     </Bar>
-                  </LazyBarChart>
+                  </LazyAreaChart>
                 </div>
               </CardContent>
             </Card>

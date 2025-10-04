@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { CreateChangeOrderData } from '@/types/database';
 
+interface ChangeOrderRequestData {
+  project_id: string;
+  title: string;
+  description: string;
+  designer: string;
+  change_type: string;
+  impact_type: string;
+  cost_impact: string | number;
+  currency?: string;
+  exchange_rate?: string | number;
+  cost_impact_crc?: string | number;
+  schedule_impact_days?: string | number;
+  cost_impact_details?: string;
+  cost_comments?: string;
+  quality_impact?: string;
+  quality_comments?: string;
+  schedule_details?: string;
+  schedule_comments?: string;
+  risk_assessment?: string;
+  risk_comments?: string;
+  additional_comments?: string;
+  general_comments?: string;
+}
+
 // Cache headers para optimizar rendimiento
 const CACHE_HEADERS = {
   'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
@@ -119,8 +143,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const body = await request.json();
-    const changeOrderData: any = {
+    const body: ChangeOrderRequestData = await request.json();
+    const changeOrderData: Partial<CreateChangeOrderData> = {
       project_id: body.project_id,
       title: body.title,
       description: body.description,

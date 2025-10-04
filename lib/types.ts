@@ -600,6 +600,7 @@ export interface ProjectIncomesSummary {
   total_incomes: number;
   total_confirmed_amount: number;
   total_pending_amount: number;
+  total_canceled_amount?: number;
   total_confirmed_usd: number;
   total_confirmed_crc: number;
   total_amount: number;

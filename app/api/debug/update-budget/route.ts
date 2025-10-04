@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/client';
 
+interface OrderDetail {
+  id: string;
+  title: string;
+  impact_amount: number;
+  impact_type: string;
+  calculated_impact: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = createAdminClient();
@@ -51,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Calcular el impacto total de las órdenes de cambio
     let totalImpact = 0;
-    const orderDetails: any[] = [];
+    const orderDetails: OrderDetail[] = [];
 
     if (changeOrders && changeOrders.length > 0) {
       for (const order of changeOrders) {
