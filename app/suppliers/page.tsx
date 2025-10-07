@@ -91,16 +91,28 @@ function SuppliersPage() {
 
   const fetchSuppliers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSuppliers(data || []);
+      setLoading(true);
+      
+      // Usar el endpoint de API para mejor manejo de errores
+      const response = await fetch('/api/suppliers');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setSuppliers(result.data || []);
+        console.log(`Cargados ${result.count} proveedores`);
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
     } catch (error) {
       console.error('Error fetching suppliers:', error);
-      toast.error('Error al cargar proveedores');
+      toast.error(`Error al cargar proveedores: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      setSuppliers([]);
     } finally {
       setLoading(false);
     }
