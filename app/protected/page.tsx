@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { InfoIcon } from "lucide-react";
 import { FetchDataSteps } from "@/components/tutorial/fetch-data-steps";
 
+// Ensure this page is always dynamically rendered (uses cookies/session)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ProtectedPage() {
   const supabase = await createClient();
 

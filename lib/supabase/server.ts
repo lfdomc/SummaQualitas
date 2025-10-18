@@ -18,20 +18,15 @@ export function createClient(request?: NextRequest, response?: NextResponse) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        async getAll() {
+        getAll() {
           if (response) {
             return response.cookies.getAll();
           }
           // Fallback para server components
-          try {
-            const cookieStore = await cookies();
-            return cookieStore.getAll();
-          } catch (error) {
-            console.warn('Failed to get cookies:', error);
-            return [];
-          }
+          const cookieStore = cookies();
+          return cookieStore.getAll();
         },
-        async setAll(cookiesToSet) {
+        setAll(cookiesToSet) {
           if (response) {
             cookiesToSet.forEach(({ name, value, options }) => {
               try {
@@ -47,19 +42,19 @@ export function createClient(request?: NextRequest, response?: NextResponse) {
             });
           } else {
             // Fallback para server components
-            try {
-              const cookieStore = await cookies();
-              cookiesToSet.forEach(({ name, value, options }) => {
+            const cookieStore = cookies();
+            cookiesToSet.forEach(({ name, value, options }) => {
+              try {
                 cookieStore.set(name, value, {
                   ...options,
                   httpOnly: true,
                   secure: process.env.NODE_ENV === 'production',
                   sameSite: 'lax'
                 });
-              });
-            } catch (error) {
-              console.warn('Failed to set cookies in server component:', error);
-            }
+              } catch (error) {
+                console.warn(`Failed to set cookie ${name} in server component:`, error);
+              }
+            });
           }
         },
       },

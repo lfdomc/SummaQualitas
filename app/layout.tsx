@@ -29,6 +29,11 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
+  // Set base URL to resolve social images and avoid warnings
+  metadataBase: new URL(defaultUrl),
+  alternates: {
+    canonical: defaultUrl,
+  },
 };
 
 export const viewport: Viewport = {
@@ -82,26 +87,17 @@ export default function RootLayout({
               <GlobalSidebar>
                 <div className="flex flex-col flex-1 min-w-0 w-full lg:w-auto">
                   <ConditionalHeader />
-                  
-                  <main className="flex-1 w-full">
-                    <div className="w-full max-w-none">
-                      {children}
-                    </div>
-                  </main>
+                  {children}
+                  <ConditionalFooter />
                 </div>
               </GlobalSidebar>
-              
-              <ConditionalFooter />
-                </SessionTimeoutProvider>
-              </AuthProvider>
-            </LoginStateProvider>
-          {/* Toaster para el sistema de notificaciones interno */}
-          <Toaster />
-          {/* Toaster de Sonner para notificaciones usando `toast` de 'sonner' */}
-          <SonnerToaster />
+              {/* Toast containers */}
+              <Toaster />
+              <SonnerToaster richColors position="top-right" />
+              </SessionTimeoutProvider>
+            </AuthProvider>
+          </LoginStateProvider>
         </ThemeProvider>
-        
-
       </body>
     </html>
   );
