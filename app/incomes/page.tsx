@@ -10,10 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, DollarSign, TrendingUp, Calendar, Filter, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, TrendingUp, Calendar, Filter, Search, Download, Paperclip, ExternalLink } from 'lucide-react';
 import { incomeService } from '@/lib/supabase/database';
 import { projectService } from '@/lib/supabase/database';
-import type { Income, CreateIncomeData, UpdateIncomeData, Project, Client } from '@/types/database';
+import type { Income, CreateIncomeData, UpdateIncomeData, Project, Client } from '@/lib/types';
 import { INCOME_STATUSES, INCOME_CATEGORIES, mapIncomeCategory, mapIncomeStatus, reverseMapIncomeCategory, reverseMapIncomeStatus } from '@/types/database';
 import { toast } from 'sonner';
 import { FileUpload } from '@/components/ui/file-upload';
@@ -22,6 +22,9 @@ import { fileService } from '@/lib/services/fileService';
 type IncomeWithRelations = Income & { project?: Project; client?: Client };
 
 export default function IncomesPage() {
+  // Cache keys for exchange rate to avoid repeated fetches/toasts on mount
+  const EXCHANGE_RATE_CACHE_KEY = 'exchange_rate_crc_usd';
+  const EXCHANGE_RATE_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
   const [incomes, setIncomes] = useState<IncomeWithRelations[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +61,26 @@ export default function IncomesPage() {
 
   useEffect(() => {
     loadData();
-    fetchDailyExchangeRate();
+    // Try to use a cached exchange rate to avoid showing multiple toasts on mount
+    try {
+      const cached = typeof window !== 'undefined' ? localStorage.getItem(EXCHANGE_RATE_CACHE_KEY) : null;
+      if (cached) {
+        const parsed = JSON.parse(cached) as { value: number; ts: number };
+        const isFresh = Date.now() - parsed.ts < EXCHANGE_RATE_CACHE_TTL_MS;
+        if (parsed?.value && isFresh) {
+          setExchangeRate(parsed.value);
+        } else {
+          // Fetch silently on mount (no toast) to refresh stale cache
+          fetchDailyExchangeRate({ showToast: false });
+        }
+      } else {
+        // No cache, fetch silently on mount (no toast) to prevent duplicate toasts in StrictMode
+        fetchDailyExchangeRate({ showToast: false });
+      }
+    } catch {
+      // If any error occurs reading cache, fetch silently
+      fetchDailyExchangeRate({ showToast: false });
+    }
   }, []);
 
   // useEffect para recalcular automáticamente cuando cambien amountInUSD o exchangeRate
@@ -68,7 +90,8 @@ export default function IncomesPage() {
   }, [amountInUSD, exchangeRate]);
 
   // Función para obtener el tipo de cambio del día
-  const fetchDailyExchangeRate = async () => {
+  const fetchDailyExchangeRate = async (opts?: { showToast?: boolean }) => {
+    const showToast = opts?.showToast ?? false;
     try {
       setIsLoadingExchangeRate(true);
       
@@ -80,8 +103,14 @@ export default function IncomesPage() {
         const crcRate = data.rates.CRC;
         if (crcRate) {
           setExchangeRate(crcRate);
+          // Guardar en caché para próximas visitas
+          try {
+            localStorage.setItem(EXCHANGE_RATE_CACHE_KEY, JSON.stringify({ value: crcRate, ts: Date.now() }));
+          } catch {}
           // El useEffect se encargará de recalcular automáticamente
-          toast.success(`Tipo de cambio actualizado: ₡${crcRate.toFixed(2)} por USD`);
+          if (showToast) {
+            toast.success(`Tipo de cambio actualizado: ₡${crcRate.toFixed(2)} por USD`);
+          }
           return;
         }
       }
@@ -93,18 +122,27 @@ export default function IncomesPage() {
         const crcRate = fallbackData.rates.CRC;
         if (crcRate) {
           setExchangeRate(crcRate);
+          // Guardar en caché para próximas visitas
+          try {
+            localStorage.setItem(EXCHANGE_RATE_CACHE_KEY, JSON.stringify({ value: crcRate, ts: Date.now() }));
+          } catch {}
           // El useEffect se encargará de recalcular automáticamente
-          toast.success(`Tipo de cambio actualizado: ₡${crcRate.toFixed(2)} por USD`);
+          if (showToast) {
+            toast.success(`Tipo de cambio actualizado: ₡${crcRate.toFixed(2)} por USD`);
+          }
           return;
         }
       }
       
       // Si ambas APIs fallan, mantener el valor por defecto
-      toast.info('Usando tipo de cambio por defecto. Puedes actualizarlo manualmente.');
+      if (showToast) {
+        toast.info('Usando tipo de cambio por defecto. Puedes actualizarlo manualmente.');
+      }
       
     } catch (error) {
-      console.error('Error fetching exchange rate:', error);
-      toast.info('No se pudo obtener el tipo de cambio automáticamente. Usando valor por defecto.');
+      if (showToast) {
+        toast.info('No se pudo obtener el tipo de cambio automáticamente. Usando valor por defecto.');
+      }
     } finally {
       setIsLoadingExchangeRate(false);
     }
@@ -113,30 +151,25 @@ export default function IncomesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Iniciando carga de datos...');
       
       const [incomesData, projectsData] = await Promise.all([
         incomeService.getIncomes(),
         projectService.getAllProjects()
       ]);
       
-      console.log('📊 Datos cargados:', {
-        incomesCount: incomesData?.length || 0,
-        projectsCount: projectsData?.length || 0,
-        projects: projectsData
-      });
-      
       // Convertir categorías y status de español (BD) a inglés (frontend)
       const mappedIncomes = incomesData.map(income => ({
         ...income,
-        category: reverseMapIncomeCategory(income.category),
-        status: reverseMapIncomeStatus(income.status)
+        // Asegurar compatibilidad de categorías desde cualquier esquema
+        category: reverseMapIncomeCategory((income as any).category),
+        status: reverseMapIncomeStatus((income as any).status),
+        // Compatibilidad de referencia: usar reference si existe, si no, reference_number
+        reference: (income as any).reference ?? (income as any).reference_number ?? undefined
       }));
       
       setIncomes(mappedIncomes);
       setProjects(projectsData);
     } catch (error) {
-      console.error('❌ Error loading data:', error);
       toast.error(`Error al cargar los datos: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
@@ -177,7 +210,6 @@ export default function IncomesPage() {
       resetForm();
       loadData();
     } catch (error) {
-      console.error('Error creating income:', error);
       toast.error(`Error al crear el ingreso: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
@@ -196,8 +228,8 @@ export default function IncomesPage() {
         received_date: incomeForm.received_date,
         category: mapIncomeCategory(incomeForm.category),
         status: mapIncomeStatus(incomeForm.status),
-        reference: incomeForm.reference,
-        notes: incomeForm.notes,
+        reference: incomeForm.reference?.trim() || undefined,
+        notes: incomeForm.notes?.trim() || undefined,
         receipt_url: incomeForm.receipt_url
       };
 
@@ -208,7 +240,6 @@ export default function IncomesPage() {
       resetForm();
       loadData();
     } catch (error) {
-      console.error('Error updating income:', error);
       toast.error('Error al actualizar el ingreso');
     }
   };
@@ -223,14 +254,27 @@ export default function IncomesPage() {
       toast.success('Ingreso eliminado exitosamente');
       loadData();
     } catch (error) {
-      console.error('Error deleting income:', error);
       toast.error('Error al eliminar el ingreso');
     }
   };
 
   // Funciones para manejar la conversión de moneda
   const handleCurrencyChange = (currency: string) => {
-    setIncomeForm({ ...incomeForm, currency });
+    // Si el usuario cambia la moneda, convertir el monto para mantener el mismo valor real
+    const prevCurrency = incomeForm.currency;
+    let newAmount = incomeForm.amount;
+
+    if (prevCurrency !== currency) {
+      if (prevCurrency === 'USD' && currency === 'CRC') {
+        // Convertir de USD a CRC
+        newAmount = incomeForm.amount * (exchangeRate || 0);
+      } else if (prevCurrency === 'CRC' && currency === 'USD') {
+        // Convertir de CRC a USD
+        newAmount = incomeForm.amount / (exchangeRate || 1);
+      }
+    }
+
+    setIncomeForm({ ...incomeForm, currency, amount: Number.isFinite(newAmount) ? Number(newAmount) : incomeForm.amount });
     // No llamar calculateEquivalentAmount aquí para evitar conflictos con useEffect
   };
 
@@ -238,6 +282,13 @@ export default function IncomesPage() {
     const amount = Number(e.target.value);
     setAmountInUSD(amount);
     // El useEffect se encargará de recalcular automáticamente
+  };
+
+  // Handler específico para el formulario de edición: actualiza incomeForm.amount
+  const handleEditAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const amount = Number(e.target.value);
+    setIncomeForm({ ...incomeForm, amount });
+    // El equivalente para la edición se calcula directamente al renderizar según currency y exchangeRate
   };
 
   const handleExchangeRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,7 +319,8 @@ export default function IncomesPage() {
       received_date: income.received_date,
       category: income.category,
       status: income.status,
-      reference: income.reference || '',
+      // Compatibilidad de referencia según esquema (reference vs reference_number)
+      reference: (income as any).reference ?? (income as any).reference_number ?? '',
       notes: income.notes || '',
       receipt_url: income.receipt_url
     });
@@ -303,7 +355,6 @@ export default function IncomesPage() {
       });
       return result;
     } catch (error) {
-      console.error('Error uploading file:', error);
       toast.error('Error al subir el archivo');
       throw error;
     }
@@ -384,6 +435,85 @@ export default function IncomesPage() {
     const amountInCRC = income.currency === 'USD' ? income.amount * exchangeRate : income.amount;
     return sum + amountInCRC;
   }, 0);
+
+  // Función para exportar a Excel
+  const exportToExcel = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      // Preparar los datos para exportar
+      const dataToExport = filteredIncomes.map(income => {
+        const amountInCRC = income.currency === 'USD' ? income.amount * exchangeRate : income.amount;
+        const amountInUSD = income.currency === 'CRC' ? income.amount / exchangeRate : income.amount;
+        
+        return {
+          'Proyecto': income.project?.name || 'N/A',
+          'Cliente': income.client?.name || 'N/A',
+          'Descripción': income.description,
+          'Monto Original': income.amount,
+          'Moneda Original': income.currency,
+          'Monto en CRC': amountInCRC,
+          'Monto en USD': amountInUSD,
+          'Tipo de Cambio USD': exchangeRate,
+          'Fecha de Ingreso': new Date(income.received_date).toLocaleDateString('es-ES'),
+          'Categoría': getCategoryLabel(income.category),
+          'Estado': getStatusLabel(income.status),
+          'Referencia': income.reference || '',
+          'Notas': income.notes || '',
+          'Adjunto de Comprobante': income.receipt_url || ''
+        };
+      });
+
+      // Crear el libro de trabajo
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+      // Ajustar el ancho de las columnas
+      const columnWidths = [
+        { wch: 20 }, // Proyecto
+        { wch: 20 }, // Cliente
+        { wch: 30 }, // Descripción
+        { wch: 15 }, // Monto Original
+        { wch: 12 }, // Moneda Original
+        { wch: 15 }, // Monto en CRC
+        { wch: 15 }, // Monto en USD
+        { wch: 15 }, // Tipo de Cambio USD
+        { wch: 15 }, // Fecha de Ingreso
+        { wch: 15 }, // Categoría
+        { wch: 12 }, // Estado
+        { wch: 15 }, // Referencia
+        { wch: 30 }, // Notas
+        { wch: 40 }  // Adjunto de Comprobante
+      ];
+      ws['!cols'] = columnWidths;
+
+      // Agregar la hoja al libro
+      XLSX.utils.book_append_sheet(wb, ws, 'Ingresos');
+
+      // Generar el nombre del archivo
+      const currentDate = new Date().toISOString().split('T')[0];
+      let fileName = `ingresos_${currentDate}.xlsx`;
+      
+      // Si hay un proyecto específico seleccionado, incluirlo en el nombre
+      if (selectedProject !== 'all') {
+        const selectedProjectData = projects.find(p => p.id === selectedProject);
+        if (selectedProjectData) {
+          const projectName = selectedProjectData.name
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Remover caracteres especiales
+            .replace(/\s+/g, '_') // Reemplazar espacios con guiones bajos
+            .substring(0, 30); // Limitar longitud
+          fileName = `ingresos_${projectName}_${currentDate}.xlsx`;
+        }
+      }
+
+      // Descargar el archivo
+      XLSX.writeFile(wb, fileName);
+      
+      toast.success(`Archivo Excel exportado: ${fileName}`);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Error al exportar a Excel');
+    }
+  };
 
   if (loading) {
     return (
@@ -589,15 +719,37 @@ export default function IncomesPage() {
       {/* Incomes Table */}
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl">
-            <span className="sm:hidden">Lista de Ingresos</span>
-            <span className="hidden sm:inline">Income List</span>
-          </CardTitle>
-          <CardDescription className="text-sm">
-            {filteredIncomes.length} 
-            <span className="sm:hidden"> ingresos</span>
-            <span className="hidden sm:inline"> incomes found</span>
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg sm:text-xl">
+                <span className="sm:hidden">Lista de Ingresos</span>
+                <span className="hidden sm:inline">Income List</span>
+              </CardTitle>
+              <CardDescription className="text-sm">
+                {filteredIncomes.length} 
+                <span className="sm:hidden"> ingresos</span>
+                <span className="hidden sm:inline"> incomes found</span>
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={exportToExcel}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                disabled={filteredIncomes.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                <span className="sm:hidden">Exportar</span>
+                <span className="hidden sm:inline">Export to Excel</span>
+              </Button>
+              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="sm:hidden">Agregar</span>
+                <span className="hidden sm:inline">Add Income</span>
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {filteredIncomes.length === 0 ? (
@@ -669,6 +821,21 @@ export default function IncomesPage() {
                             }
                           </div>
                         </div>
+
+                        {income.receipt_url && (
+                          <div>
+                            <div className="text-xs text-muted-foreground">Comprobante</div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(income.receipt_url, '_blank')}
+                              className="text-blue-600 hover:text-blue-700 h-8"
+                            >
+                              <Paperclip className="h-4 w-4 mr-2" />
+                              Ver adjunto
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex space-x-2 pt-2">
@@ -708,6 +875,7 @@ export default function IncomesPage() {
                       <TableHead>Category</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-center">Attachments</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -751,6 +919,23 @@ export default function IncomesPage() {
                           <Badge variant={getStatusBadgeVariant(income.status)}>
                             {getStatusLabel(income.status)}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center">
+                            {income.receipt_url ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(income.receipt_url, '_blank')}
+                                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                                title="Ver comprobante"
+                              >
+                                <Paperclip className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <span className="text-gray-400 text-sm">-</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center space-x-2">
@@ -799,14 +984,11 @@ export default function IncomesPage() {
                   <SelectValue placeholder="Seleccionar proyecto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(() => {
-                    console.log('🎯 Renderizando proyectos en select:', projects);
-                    return projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ));
-                  })()}
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -856,7 +1038,7 @@ export default function IncomesPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={fetchDailyExchangeRate}
+                  onClick={() => fetchDailyExchangeRate({ showToast: true })}
                   disabled={isLoadingExchangeRate}
                   className="text-xs"
                 >
@@ -928,7 +1110,7 @@ export default function IncomesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="status">Estado</Label>
-              <Select value={incomeForm.status} onValueChange={(value) => setIncomeForm({ ...incomeForm, status: value })}>
+              <Select value={incomeForm.status} onValueChange={(value) => setIncomeForm({ ...incomeForm, status: value as Income['status'] })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1043,30 +1225,38 @@ export default function IncomesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit_amount">Monto *</Label>
-              <Input
-                id="edit_amount"
-                type="number"
-                step="0.01"
-                value={incomeForm.amount === 0 ? '' : incomeForm.amount}
-                onChange={handleAmountChange}
-                onFocus={() => {
-                  if (incomeForm.amount === 0) {
-                    setIncomeForm({ ...incomeForm, amount: 0 });
-                  }
-                }}
-                placeholder="0.00"
-              />
+              <Label htmlFor="edit_amount">Monto ({incomeForm.currency}) *</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  {incomeForm.currency === 'USD' ? '$' : '₡'}
+                </span>
+                <Input
+                  id="edit_amount"
+                  type="number"
+                  step="0.01"
+                  value={incomeForm.amount === 0 ? '' : incomeForm.amount}
+                  onChange={handleEditAmountChange}
+                  onFocus={() => {
+                    if (incomeForm.amount === 0) {
+                      setIncomeForm({ ...incomeForm, amount: 0 });
+                    }
+                  }}
+                  placeholder="0.00"
+                  className="pl-8"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Ingresa el monto en {incomeForm.currency === 'USD' ? 'dólares (USD)' : 'colones (CRC)'}.
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label>Equivalente en {incomeForm.currency === 'CRC' ? 'USD' : 'CRC'}</Label>
               <div className="p-3 bg-gray-50 rounded-md border">
                 <div className="text-lg font-semibold text-green-600">
-                  {incomeForm.currency === 'CRC' 
-                     ? `$${equivalentAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
-                     : `₡${equivalentAmount.toLocaleString('es-CR')} CRC`
-                   }
+                  {incomeForm.currency === 'CRC'
+                    ? `$${(incomeForm.amount / (exchangeRate || 1)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+                    : `₡${(incomeForm.amount * (exchangeRate || 0)).toLocaleString('es-CR')} CRC`}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
                   Calculado con tipo de cambio: {exchangeRate.toLocaleString('es-CR', { minimumFractionDigits: 2 })} CRC por USD
@@ -1104,7 +1294,7 @@ export default function IncomesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="edit_status">Estado</Label>
-              <Select value={incomeForm.status} onValueChange={(value) => setIncomeForm({ ...incomeForm, status: value })}>
+              <Select value={incomeForm.status} onValueChange={(value) => setIncomeForm({ ...incomeForm, status: value as Income['status'] })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

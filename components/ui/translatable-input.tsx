@@ -90,8 +90,6 @@ export const TranslatableInput: React.FC<TranslatableInputProps> = ({
       setShowTranslation(true);
       toast.success('Texto traducido exitosamente');
     } catch (error) {
-      console.error('Error translating text:', error);
-      
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           toast.error('La traducción tardó demasiado. Intenta de nuevo.');

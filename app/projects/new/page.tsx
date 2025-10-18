@@ -5,7 +5,7 @@ import { ArrowLeft, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { withAuth } from '@/lib/auth/withAuth';
-import { UserRole, Project } from '@/lib/types';
+import { Project } from '@/lib/types';
 import ProjectForm from '@/components/projects/ProjectForm';
 
 function NewProjectPage() {
@@ -42,4 +42,4 @@ function NewProjectPage() {
   );
 }
 
-export default withAuth(NewProjectPage, [UserRole.GERENCIA, UserRole.ADMINISTRATIVO]);
+export default withAuth(NewProjectPage, ['gerencia', 'administrativo']);

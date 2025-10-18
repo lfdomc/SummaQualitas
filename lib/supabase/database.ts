@@ -98,7 +98,7 @@ export class ProjectService {
       let totalExpenses = 0;
       
       if (project.expenses && Array.isArray(project.expenses)) {
-        totalExpenses = project.expenses.reduce((sum: number, expense: any) => {
+        totalExpenses = project.expenses.reduce((sum: number, expense: { amount?: number; currency?: string }) => {
           let amountInCRC = expense.amount || 0;
           // Convertir USD a CRC si es necesario
           if (expense.currency === 'USD') {
@@ -301,7 +301,46 @@ export class ProjectService {
 
     console.log('📊 Has budget fields:', hasbudgetFields);
 
-    let updatesToApply = { ...updates };
+    let updatesToApply: UpdateProjectDTO = { ...updates };
+
+    // Remover claves con valores undefined para evitar errores de PostgREST
+    Object.keys(updatesToApply as Record<string, unknown>).forEach((k) => {
+      const v = (updatesToApply as Record<string, unknown>)[k];
+      if (v === undefined) {
+        delete (updatesToApply as Record<string, unknown>)[k];
+      }
+    });
+
+    // Normalizar tipos numéricos para evitar enviar strings a columnas numéricas
+    const numericKeys = [
+      'total_area',
+      'exchange_rate_usd',
+      'presupuesto_inicial',
+      'presupuesto_original',
+      'presupuesto_final',
+      'costos_directos',
+      'costos_indirectos',
+      'administracion',
+      'mano_obra',
+      'imprevistos',
+      'utilidad',
+      'costos_directos_porcentaje',
+      'costos_indirectos_porcentaje',
+      'mano_obra_porcentaje',
+      'administracion_porcentaje',
+      'imprevistos_porcentaje',
+      'utilidad_porcentaje',
+    ] as const;
+
+    for (const key of numericKeys) {
+      const v = (updatesToApply as any)[key];
+      if (typeof v === 'string') {
+        const parsed = v.trim() === '' ? undefined : Number(v);
+        (updatesToApply as any)[key] = Number.isFinite(parsed as number) ? parsed : undefined;
+      }
+    }
+
+    // Los campos de porcentaje ahora existen en DB; no se requiere pre-sanitización.
 
     if (hasbudgetFields) {
       // Obtener el proyecto actual para tener todos los valores
@@ -325,16 +364,16 @@ export class ProjectService {
       }
 
       // Combinar valores actuales con las actualizaciones
-      const combinedData = { ...currentProject, ...updates };
+      const combinedData = { ...currentProject, ...updates } as Record<string, number | string | undefined>;
 
       // Calcular el nuevo presupuesto total
       const totalBudget = (
-        (combinedData.costos_directos || 0) +
-        (combinedData.costos_indirectos || 0) +
-        (combinedData.administracion || 0) +
-        (combinedData.mano_obra || 0) +
-        (combinedData.imprevistos || 0) +
-        (combinedData.utilidad || 0)
+        (Number(combinedData.costos_directos) || 0) +
+        (Number(combinedData.costos_indirectos) || 0) +
+        (Number(combinedData.administracion) || 0) +
+        (Number(combinedData.mano_obra) || 0) +
+        (Number(combinedData.imprevistos) || 0) +
+        (Number(combinedData.utilidad) || 0)
       );
 
       // Actualizar el presupuesto si hay un total calculado
@@ -343,22 +382,123 @@ export class ProjectService {
       }
     }
 
-    console.log('💾 Applying updates to database:', updatesToApply);
+    console.log('💾 Applying updates to database (sanitized & normalized):', updatesToApply);
 
-    const { data, error } = await this.supabase
+    // Intento 1: aplicar tal cual SIN .select() para evitar 406 cuando no hay filas afectadas
+    let { error } = await this.supabase
       .from('projects')
       .update(updatesToApply)
-      .eq('id', id)
-      .select()
-      .single();
+      .eq('id', id);
 
+    // Si hubo error, intentamos limpiar columnas desconocidas y reintentar, también SIN .select()
     if (error) {
-      console.error('❌ Database update error:', error);
-      throw error;
+      const supaErr: any = error as any;
+      const serialized = {
+        message: supaErr?.message,
+        details: supaErr?.details,
+        hint: supaErr?.hint,
+        code: supaErr?.code
+      };
+      console.error('❌ Database update error (primer intento):', serialized);
+
+      // Función auxiliar para extraer el nombre de la columna desconocida del error
+      const extractUnknownColumnFromError = (err: any): string | null => {
+        const text = [err?.message, err?.details, err?.hint].filter(Boolean).join(' | ');
+        const m1 = text.match(/column "?([a-zA-Z0-9_]+)"? does not exist/i);
+        const m2 = text.match(/Could not find the '([^']+)' column/i);
+        const m3 = text.match(/unknown column:? "?([a-zA-Z0-9_]+)"?/i);
+        return (m1?.[1] || m2?.[1] || m3?.[1]) ?? null;
+      };
+
+      // Reintentar eliminando únicamente las columnas desconocidas reportadas (o por fallback las llaves 'porcentaje')
+      let attempts = 0;
+      let retryPayload: Record<string, any> = { ...(updatesToApply as Record<string, any>) };
+      let lastError: any = error;
+
+      while (attempts < 10 && lastError) {
+        const unknownColumn = extractUnknownColumnFromError(lastError);
+
+        if (!unknownColumn) {
+          const looksUnknownColumn =
+            !!lastError?.message?.toLowerCase?.().includes('column') ||
+            !!lastError?.details?.toLowerCase?.().includes('column') ||
+            lastError?.code === 'PGRST204';
+
+          if (!looksUnknownColumn) break;
+
+          // Fallback: eliminar todas las llaves que contengan 'porcentaje'
+          const removedKeys: string[] = [];
+          Object.keys(retryPayload).forEach((k) => {
+            if (k.toLowerCase().includes('porcentaje')) {
+              delete retryPayload[k];
+              removedKeys.push(k);
+            }
+          });
+          if (removedKeys.length) {
+            console.warn(`🧹 Removing porcentaje keys from payload and retrying: ${removedKeys.join(', ')}`);
+          } else {
+            break;
+          }
+        } else {
+          console.warn(`🧹 Removing unknown column from payload and retrying: ${unknownColumn}`);
+          delete retryPayload[unknownColumn];
+        }
+
+        const retry = await this.supabase
+          .from('projects')
+          .update(retryPayload)
+          .eq('id', id);
+
+        lastError = retry.error as any;
+
+        if (!lastError) {
+          error = null as any;
+          break;
+        }
+
+        attempts++;
+      }
     }
 
-    console.log('✅ Project updated successfully:', data);
-    return data;
+    // Independientemente del resultado de la actualización (204 si no hubo cambios), recuperar el proyecto actualizado
+    if (!error) {
+      const { data: fetched, error: fetchErr } = await this.supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (fetchErr) {
+        const serialized = {
+          message: fetchErr?.message,
+          details: fetchErr?.details,
+          hint: fetchErr?.hint,
+          code: fetchErr?.code
+        } as any;
+        console.error('❌ Database fetch error after update:', serialized);
+        throw new Error(
+          `Supabase fetch after update failed: ${serialized.message || 'Unknown error'} | details: ${serialized.details || ''} | hint: ${serialized.hint || ''} | code: ${serialized.code || ''}`
+        );
+      }
+      console.log('✅ Project updated successfully:', fetched);
+      return fetched as Project;
+    }
+
+    // Si llegamos aquí, hubo error que no pudimos resolver
+    {
+      const supaErr: any = error as any;
+      const serialized = {
+        message: supaErr?.message,
+        details: supaErr?.details,
+        hint: supaErr?.hint,
+        code: supaErr?.code
+      };
+      console.error('❌ Database update error (después de reintentos eliminando columnas desconocidas):', serialized);
+      throw new Error(`Supabase update failed: ${serialized.message || 'Unknown error'} | details: ${serialized.details || ''} | hint: ${serialized.hint || ''} | code: ${serialized.code || ''}`);
+    }
+
+    // Nota: el flujo anterior ya retorna el proyecto actualizado o lanza error, por lo que no se debería llegar aquí.
+    // Este bloque se mantiene por seguridad, pero no usa ninguna variable fuera de alcance.
+    throw new Error('Unexpected state after project update');
   }
 
   // Eliminar un proyecto
@@ -975,6 +1115,100 @@ export class IncomeService {
     this.supabase = isServer ? createAdminClient() : createBrowserClient();
   }
 
+  // Helper: build a consolidated lowercased error text from Supabase/PostgREST error
+  private getErrorText(err: any): string {
+    const parts = [err?.message, err?.details, err?.hint]
+      .filter(Boolean)
+      .map((x) => String(x).toLowerCase());
+    return parts.join(' | ');
+  }
+
+  // Helper: try to extract an unknown column name from Supabase/PostgREST error
+  private extractUnknownColumnFromError(err: any): string | null {
+    const text = [err?.message, err?.details, err?.hint]
+      .filter(Boolean)
+      .join(' | ');
+    const m1 = text.match(/column "?([a-zA-Z0-9_]+)"? does not exist/i);
+    const m2 = text.match(/Could not find the '([^']+)' column/i);
+    const m3 = text.match(/unknown column:? "?([a-zA-Z0-9_]+)"?/i);
+    return (m1?.[1] || m2?.[1] || m3?.[1]) ?? null;
+  }
+
+  /**
+   * Mapea los métodos de pago del UI (español) a los valores permitidos en la BD (inglés).
+   * La tabla incomes tiene una restricción CHECK que solo acepta:
+   * 'cash', 'check', 'bank_transfer', 'credit_card', 'other'
+   */
+  private mapPaymentMethodToDB(method?: string): string | undefined {
+    if (!method) return undefined;
+    const normalized = method.toLowerCase();
+    switch (normalized) {
+      case 'efectivo':
+        return 'cash';
+      case 'cheque':
+        return 'check';
+      case 'transferencia':
+        return 'bank_transfer';
+      case 'tarjeta':
+        return 'credit_card';
+      case 'deposito':
+      case 'depósito':
+        return 'other';
+      default:
+        // Si ya viene en inglés o no coincide, dejarlo igual
+        return method;
+    }
+  }
+
+  /**
+   * Normaliza la categoría de ingresos para cumplir con los valores del esquema remoto.
+   * Prioriza los valores en inglés utilizados en la tabla incomes por defecto:
+   * 'payment_received', 'advance_payment', 'final_payment', 'milestone_payment', 'other'.
+   * También convierte equivalentes del UI y valores en español si llegan.
+   */
+  private normalizeIncomeCategory(category?: string): string | undefined {
+    if (!category) return undefined;
+    const c = category.toLowerCase();
+    const map: Record<string, string> = {
+      // UI (inglés) -> DB (inglés)
+      'payment': 'payment_received',
+      'advance': 'advance_payment',
+      'bonus': 'final_payment',
+      'refund': 'milestone_payment', // mantener compatibilidad con UI actual
+      'other': 'other',
+      // Español -> DB (inglés)
+      'pago_proyecto': 'payment_received',
+      'anticipo': 'advance_payment',
+      'pago_final': 'final_payment',
+      'pago_parcial': 'milestone_payment',
+      'otros': 'other',
+      // Ya en inglés compatibles
+      'payment_received': 'payment_received',
+      'advance_payment': 'advance_payment',
+      'final_payment': 'final_payment',
+      'milestone_payment': 'milestone_payment'
+    };
+    return map[c] || category;
+  }
+
+  /**
+   * Normaliza el status de ingresos a los valores en inglés por defecto del esquema.
+   * Permite valores en español entrantes y los convierte.
+   */
+  private normalizeIncomeStatus(status?: string): string | undefined {
+    if (!status) return undefined;
+    const s = status.toLowerCase();
+    const map: Record<string, string> = {
+      'pending': 'pending',
+      'confirmed': 'confirmed',
+      'cancelled': 'cancelled',
+      'pendiente': 'pending',
+      'confirmado': 'confirmed',
+      'cancelado': 'cancelled'
+    };
+    return map[s] || status;
+  }
+
   async getIncomes(filters?: IncomeFilters): Promise<(Income & { project?: Project; client?: Client })[]> {
     let query = this.supabase
       .from('incomes')
@@ -1097,7 +1331,9 @@ export class IncomeService {
       // Obtener información del proyecto
       const projectName = project.name || '';
       const projectStatus = project.status || '';
-      const clientName = project.clients?.name || '';
+      const clientName = Array.isArray((project as any).clients)
+        ? ((project as any).clients[0]?.name ?? '')
+        : (((project as any).clients)?.name ?? '');
 
       incomes.forEach(income => {
         const amount = parseFloat(income.amount) || 0;
@@ -1169,33 +1405,202 @@ export class IncomeService {
   }
 
   async createIncome(incomeData: CreateIncomeData): Promise<Income> {
-    const { data, error } = await this.supabase
-      .from('incomes')
-      .insert({
-        ...incomeData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select('*')
-      .single();
+    // Preparar payload con compatibilidad de esquema
+    let payload: any = {
+      ...incomeData,
+      payment_method: this.mapPaymentMethodToDB(incomeData.payment_method),
+      reference_number: incomeData.reference,
+      // Normalizar categoría y status a valores compatibles
+      category: this.normalizeIncomeCategory(incomeData.category),
+      status: this.normalizeIncomeStatus(incomeData.status),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    delete payload.reference; // evitar columnas inexistentes en algunos esquemas
 
-    if (error) throw error;
-    return data;
+    // Sanear payload: eliminar claves con undefined para evitar errores al serializar
+    const sanitizePayload = (p: any) => {
+      const clone = { ...p };
+      for (const k of Object.keys(clone)) {
+        if (clone[k] === undefined) delete clone[k];
+      }
+      return clone;
+    };
+    payload = sanitizePayload(payload);
+
+    const tryInsert = async (p: any) => {
+      return this.supabase.from('incomes').insert(p).select('*').single();
+    };
+
+    let { data, error } = await tryInsert(payload);
+    if (error) {
+      // Fallbacks por compatibilidad de esquema (más robustos)
+      let retriedPayload = { ...payload };
+      let shouldRetry = false;
+      const errText = this.getErrorText(error);
+
+      // Si receipt_url no existe, usar attachment_url
+      if (errText.includes('receipt_url') && errText.match(/does not exist|unknown column|could not find/i)) {
+        delete retriedPayload.receipt_url;
+        if (incomeData.receipt_url) {
+          retriedPayload.attachment_url = incomeData.receipt_url;
+        }
+        shouldRetry = true;
+      }
+
+      // Si currency no existe
+      if (errText.includes('currency') && errText.match(/does not exist|unknown column|could not find/i)) {
+        delete retriedPayload.currency;
+        shouldRetry = true;
+      }
+
+      // Si reference_number no existe, intentar con reference
+      if (errText.includes('reference_number') && errText.match(/does not exist|unknown column|could not find/i)) {
+        delete retriedPayload.reference_number;
+        if (incomeData.reference) {
+          retriedPayload.reference = incomeData.reference;
+        }
+        shouldRetry = true;
+      }
+
+      // Intentar reintento con fallbacks específicos
+      if (shouldRetry) {
+        const result = await tryInsert(sanitizePayload(retriedPayload));
+        if (!result.error && result.data) {
+          return result.data as Income;
+        }
+        // Si falla, continuar con fallback genérico
+        error = result.error;
+      }
+
+      // Fallback genérico: eliminar columna desconocida y reintentar
+      const unknownColumn = this.extractUnknownColumnFromError(error);
+      if (unknownColumn && unknownColumn in retriedPayload) {
+        delete retriedPayload[unknownColumn];
+        const result = await tryInsert(sanitizePayload(retriedPayload));
+        if (!result.error && result.data) {
+          return result.data as Income;
+        }
+        console.error('Create income fallback (unknown column) failed:', result.error);
+        throw result.error;
+      }
+
+      // Log detallado y lanzar el error original
+      if (!error) {
+        console.error('Error creating income: error object is null after fallbacks');
+        throw new Error('Unknown error while creating income');
+      }
+      console.error('Error creating income:', { message: (error as any)?.message, details: (error as any)?.details });
+      throw error;
+    }
+    return data as Income;
   }
 
   async updateIncome(id: string, updates: UpdateIncomeData): Promise<Income> {
-    const { data, error } = await this.supabase
-      .from('incomes')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select('*')
-      .single();
+    // Preparar payload con mapeos y compatibilidad de columnas
+    let payload: any = {
+      ...updates,
+      payment_method: this.mapPaymentMethodToDB(updates.payment_method),
+      reference_number: updates.reference,
+      // Normalizar categoría y status
+      category: this.normalizeIncomeCategory(updates.category),
+      status: this.normalizeIncomeStatus(updates.status),
+      updated_at: new Date().toISOString()
+    };
+    delete payload.reference;
 
-    if (error) throw error;
-    return data;
+    // Sanear payload: eliminar claves con undefined
+    const sanitizeUpdatePayload = (p: any) => {
+      const clone = { ...p };
+      for (const k of Object.keys(clone)) {
+        if (clone[k] === undefined) delete clone[k];
+      }
+      return clone;
+    };
+    payload = sanitizeUpdatePayload(payload);
+
+    const tryUpdate = async (p: any) => {
+      return this.supabase
+        .from('incomes')
+        .update(p)
+        .eq('id', id)
+        .select('*')
+        .single();
+    };
+
+    let { data, error } = await tryUpdate(payload);
+    if (error) {
+      let retriedPayload = { ...payload };
+      let shouldRetry = false;
+      const errText = this.getErrorText(error);
+
+      // Compatibilidad: si la columna receipt_url no existe, usar attachment_url
+      if (errText.includes('receipt_url') && errText.match(/does not exist|unknown column|could not find/i)) {
+        delete retriedPayload.receipt_url;
+        if (updates.receipt_url) {
+          retriedPayload.attachment_url = updates.receipt_url;
+        }
+        shouldRetry = true;
+      }
+
+      // Compatibilidad: si la columna currency no existe
+      if (errText.includes('currency') && errText.match(/does not exist|unknown column|could not find/i)) {
+        delete retriedPayload.currency;
+        shouldRetry = true;
+      }
+
+      // Compatibilidad: si received_date vacío causa error, quitarlo
+      if (errText.includes('received_date') && (updates.received_date === '' || updates.received_date === undefined)) {
+        delete retriedPayload.received_date;
+        shouldRetry = true;
+      }
+
+      // Intentar reintento con fallbacks específicos
+      if (shouldRetry) {
+        const result = await tryUpdate(sanitizeUpdatePayload(retriedPayload));
+        if (!result.error && result.data) {
+          return result.data as Income;
+        }
+        // Si falla, continuar con análisis adicional
+        error = result.error;
+      }
+
+      // Compatibilidad: si reference_number no existe, intentar con reference
+      const errText2 = this.getErrorText(error);
+      if (errText2.includes('reference_number') && errText2.match(/does not exist|unknown column|could not find/i)) {
+        delete retriedPayload.reference_number;
+        if (updates.reference) {
+          retriedPayload.reference = updates.reference;
+        }
+        const result = await tryUpdate(sanitizeUpdatePayload(retriedPayload));
+        if (!result.error && result.data) {
+          return result.data as Income;
+        }
+        console.error('Update income fallback (reference) failed:', result.error);
+        throw result.error;
+      }
+
+      // Fallback genérico: eliminar columna desconocida y reintentar
+      const unknownColumn = this.extractUnknownColumnFromError(error);
+      if (unknownColumn && unknownColumn in retriedPayload) {
+        delete retriedPayload[unknownColumn];
+        const result = await tryUpdate(sanitizeUpdatePayload(retriedPayload));
+        if (!result.error && result.data) {
+          return result.data as Income;
+        }
+        console.error('Update income fallback (unknown column) failed:', result.error);
+        throw result.error;
+      }
+
+      // Log detallado y lanzar el error original
+      if (!error) {
+        console.error('Error updating income: error object is null after fallbacks');
+        throw new Error('Unknown error while updating income');
+      }
+      console.error('Error updating income:', { message: (error as any)?.message, details: (error as any)?.details });
+      throw error;
+    }
+    return data as Income;
   }
 
   async deleteIncome(id: string): Promise<void> {
@@ -1390,3 +1795,4 @@ export const equipmentService = new EquipmentService();
 export const supplierService = new SupplierService();
 export const incomeService = new IncomeService();
 export const expenseService = new ExpenseService();
+export { getActiveClients } from '../services/projectService';

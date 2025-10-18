@@ -2,7 +2,7 @@
 
 import { AlertCenter } from '@/components/alerts/AlertCenter';
 import { withAuth } from '@/components/auth/withAuth';
-import { UserRole, UserRoleType } from '@/lib/types';
+import { UserRoleType } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Bell, Settings, ArrowLeft } from 'lucide-react';

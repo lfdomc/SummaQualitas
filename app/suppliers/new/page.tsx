@@ -43,13 +43,12 @@ function NewSupplierPage() {
       
       const supplierData = {
         name: formData.name.trim(),
-        contact_name: formData.contact_name.trim() || null,
-        email: formData.email.trim() || null,
-        phone: formData.phone.trim() || null,
-        address: formData.address.trim() || null,
-        tax_id: formData.tax_id.trim() || null,
-        is_active: formData.is_active,
-        notes: formData.notes.trim() || null
+        contact_name: formData.contact_name.trim() || undefined,
+        email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        address: formData.address.trim() || undefined,
+        tax_id: formData.tax_id.trim() || undefined,
+        is_active: formData.is_active
       };
 
       await supplierService.createSupplier(supplierData);

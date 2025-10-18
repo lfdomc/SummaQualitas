@@ -11,8 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ProjectService } from '@/lib/supabase/database';
-import type { Client } from '@/lib/types';
+import type { Client } from '@/types/database';
 
 // Schema de validación para el formulario de cliente
 const clientSchema = z.object({
@@ -34,7 +33,6 @@ interface ClientFormProps {
 
 export default function ClientForm({ isOpen, onClose, onClientCreated }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const projectService = new ProjectService();
 
   const {
     register,
@@ -61,15 +59,28 @@ export default function ClientForm({ isOpen, onClose, onClientCreated }: ClientF
         Object.entries(data).filter(([_, value]) => value !== '' && value !== undefined)
       ) as Partial<ClientFormData>;
 
-      const newClient = await projectService.createClient(clientData);
-      
+      // Enviar al API del servidor para evitar problemas de RLS
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clientData)
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        const message = result?.details || result?.error || 'Error al crear el cliente';
+        toast.error(message);
+        return;
+      }
+
+      const newClient: Client = result.client;
       toast.success('Cliente creado exitosamente');
       onClientCreated(newClient);
       reset();
       onClose();
     } catch (error) {
-      console.error('Error creating client:', error);
-      toast.error('Error al crear el cliente');
+      const message = error instanceof Error ? error.message : 'Error al crear el cliente';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -153,8 +164,6 @@ export default function ClientForm({ isOpen, onClose, onClientCreated }: ClientF
               placeholder="San José, Costa Rica"
             />
           </div>
-
-
 
           <div>
             <Label htmlFor="notes">Notas</Label>

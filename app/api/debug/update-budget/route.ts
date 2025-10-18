@@ -21,79 +21,66 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🔄 Updating budget for project:', project_id);
-
-    // 1. Obtener el proyecto actual
+    // Updating budget for project
+    
+    // Obtener el proyecto
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, name, presupuesto_original, presupuesto_final, budget')
+      .select('*')
       .eq('id', project_id)
       .single();
-
+    
     if (projectError || !project) {
-      console.error('❌ Project fetch error:', projectError);
-      return NextResponse.json(
-        { error: 'Project not found', details: projectError },
-        { status: 404 }
-      );
+      return NextResponse.json({ 
+        error: 'Proyecto no encontrado',
+        details: projectError 
+      }, { status: 404 });
     }
-
-    console.log('📊 Current project:', project);
-
-    // 2. Obtener órdenes de cambio implementadas
+    
+    // Current project data retrieved
+    
+    // Obtener órdenes de cambio aprobadas
     const { data: changeOrders, error: changeOrdersError } = await supabase
       .from('change_orders')
-      .select('id, title, cost_impact_crc, cost_impact, impact_type, status')
+      .select('*')
       .eq('project_id', project_id)
-      .eq('status', 'implementado');
-
+      .eq('status', 'approved');
+    
     if (changeOrdersError) {
-      console.error('❌ Change orders fetch error:', changeOrdersError);
-      return NextResponse.json(
-        { error: 'Error fetching change orders', details: changeOrdersError },
-        { status: 500 }
-      );
+      return NextResponse.json({ 
+        error: 'Error al obtener órdenes de cambio',
+        details: changeOrdersError 
+      }, { status: 500 });
     }
-
-    console.log('📋 Change orders found:', changeOrders?.length || 0);
-
-    // 3. Calcular el impacto total de las órdenes de cambio
+    
+    // Change orders found
+    
+    // Calcular el impacto total de las órdenes de cambio
     let totalImpact = 0;
-    const orderDetails: OrderDetail[] = [];
-
+    
     if (changeOrders && changeOrders.length > 0) {
       for (const order of changeOrders) {
-        // Usar cost_impact_crc si está disponible, sino cost_impact
-        const impactAmount = order.cost_impact_crc || order.cost_impact || 0;
-        const impact = order.impact_type === 'positivo' ? impactAmount : -impactAmount;
+        let impact = 0;
+        
+        if (order.impact_type === 'increase') {
+          impact = order.cost_impact || 0;
+        } else if (order.impact_type === 'decrease') {
+          impact = -(order.cost_impact || 0);
+        }
+        
+        // Order impact calculated
         totalImpact += impact;
-
-        orderDetails.push({
-          id: order.id,
-          title: order.title,
-          impact_amount: impactAmount,
-          impact_type: order.impact_type,
-          calculated_impact: impact
-        });
-
-        console.log(`📋 Order "${order.title}": ${impact} (type: ${order.impact_type})`);
       }
     }
-
-    console.log('💰 Total change order impact:', totalImpact);
-
-    // 4. Calcular el nuevo presupuesto final
-    const originalBudget = project.presupuesto_original || project.budget || 0;
+    
+    // Total change order impact calculated
+    
+    const originalBudget = project.presupuesto_original || project.presupuesto_inicial || project.budget || 0;
     const newFinalBudget = originalBudget + totalImpact;
-
-    console.log('🧮 Budget calculation:', {
-      originalBudget,
-      totalImpact,
-      newFinalBudget,
-      currentFinalBudget: project.presupuesto_final
-    });
-
-    // 5. Actualizar el presupuesto final en la base de datos
+    
+    // Budget calculation completed
+    
+    // Actualizar el presupuesto final del proyecto
     const { data: updatedProject, error: updateError } = await supabase
       .from('projects')
       .update({
@@ -101,18 +88,17 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString()
       })
       .eq('id', project_id)
-      .select('id, name, presupuesto_original, presupuesto_final, budget')
+      .select()
       .single();
-
+    
     if (updateError) {
-      console.error('❌ Update error:', updateError);
-      return NextResponse.json(
-        { error: 'Error updating project budget', details: updateError },
-        { status: 500 }
-      );
+      return NextResponse.json({ 
+        error: 'Error al actualizar el presupuesto',
+        details: updateError 
+      }, { status: 500 });
     }
-
-    console.log('✅ Project budget updated successfully:', updatedProject);
+    
+    // Project budget updated successfully
 
     return NextResponse.json({
       success: true,
@@ -121,8 +107,7 @@ export async function POST(request: NextRequest) {
         after: updatedProject
       },
       changeOrders: {
-        total: changeOrders?.length || 0,
-        details: orderDetails
+        total: changeOrders?.length || 0
       },
       calculations: {
         originalBudget,
@@ -133,7 +118,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error },
       { status: 500 }

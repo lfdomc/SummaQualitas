@@ -43,6 +43,8 @@ interface ProjectSummary {
 }
 
 interface FinancialTrend {
+  // Index signature para compatibilidad con los componentes de gráficos
+  [key: string]: string | number;
   month: string;
   revenue: number;
   costs: number;
@@ -169,10 +171,11 @@ export default function ExecutiveDashboard() {
         
         // Calcular score de calidad basado en proyectos completados a tiempo y dentro del presupuesto
         const onTimeProjects = allProjects.filter(p => {
-          if (p.status !== 'completado' || !p.end_date) return false;
-          const endDate = new Date(p.end_date);
-          const today = new Date();
-          return endDate >= today;
+          // Consideramos a tiempo si existe fecha real y estimada y la real es <= estimada
+          if (p.status !== 'completado' || !p.actual_end_date || !p.estimated_end_date) return false;
+          const actualEnd = new Date(p.actual_end_date);
+          const estimatedEnd = new Date(p.estimated_end_date);
+          return actualEnd <= estimatedEnd;
         }).length;
         
         const onBudgetProjects = allProjects.filter(p => {
@@ -251,7 +254,7 @@ export default function ExecutiveDashboard() {
               id: project.id,
               name: project.name,
               status: project.status,
-              progress: project.progress_percentage || realProgress,
+              progress: typeof project.progress === 'number' ? project.progress : realProgress,
               budget: validBudget,
               spent: realSpent,
               variance: realVariance,
@@ -386,14 +389,15 @@ export default function ExecutiveDashboard() {
   };
 
   const getStatusColor = (status: ProjectStatus) => {
+    // Usar los estados en español alineados con la base de datos
     switch (status) {
-      case 'completed':
+      case 'completado':
         return 'bg-green-100 text-green-800';
-      case 'active':
+      case 'en_progreso':
         return 'bg-blue-100 text-blue-800';
-      case 'paused':
+      case 'pausado':
         return 'bg-orange-100 text-orange-800';
-      case 'cancelled':
+      case 'cancelado':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -402,16 +406,17 @@ export default function ExecutiveDashboard() {
 
   const getStatusLabel = (status: ProjectStatus) => {
     switch (status) {
-      case 'completed':
+      case 'completado':
         return 'Completado';
-      case 'active':
-        return 'Activo';
-      case 'paused':
+      case 'en_progreso':
+        return 'En Progreso';
+      case 'pausado':
         return 'Pausado';
-      case 'cancelled':
+      case 'cancelado':
         return 'Cancelado';
+      case 'planificacion':
       default:
-        return status;
+        return 'Planificación';
     }
   };
 

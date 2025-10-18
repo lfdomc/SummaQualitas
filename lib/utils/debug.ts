@@ -7,22 +7,22 @@ export const apiDebug = debug('app:api')
 export const uiDebug = debug('app:ui')
 
 // Helper function to log database operations
-export const logDbOperation = (operation: string, table: string, data?: any) => {
+export const logDbOperation = (operation: string, table: string, data?: unknown) => {
   dbDebug(`${operation} on ${table}:`, data)
 }
 
 // Helper function to log authentication events
-export const logAuthEvent = (event: string, user?: any) => {
+export const logAuthEvent = (event: string, user?: { id: string; email: string } | null) => {
   authDebug(`Auth event: ${event}`, user ? { id: user.id, email: user.email } : 'No user')
 }
 
 // Helper function to log API calls
-export const logApiCall = (method: string, endpoint: string, data?: any) => {
+export const logApiCall = (method: string, endpoint: string, data?: unknown) => {
   apiDebug(`${method} ${endpoint}`, data)
 }
 
 // Helper function to log UI events
-export const logUiEvent = (component: string, event: string, data?: any) => {
+export const logUiEvent = (component: string, event: string, data?: unknown) => {
   uiDebug(`${component}: ${event}`, data)
 }
 
@@ -36,7 +36,7 @@ export const logError = (context: string, error: unknown) => {
 }
 
 // Database schema validation helper
-export const validateDbSchema = (data: Record<string, any>, requiredFields: string[]) => {
+export const validateDbSchema = (data: Record<string, unknown>, requiredFields: string[]) => {
   const missingFields = requiredFields.filter(field => !(field in data))
   if (missingFields.length > 0) {
     throw new Error(`Missing required fields: ${missingFields.join(', ')}`)

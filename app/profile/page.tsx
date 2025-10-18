@@ -2,7 +2,7 @@
 
 import UserProfile from '@/components/profile/UserProfile';
 import { withAuth } from '@/components/auth/withAuth';
-import { UserRole } from '@/lib/types';
+// import { UserRole } from '@/lib/types';
 
 
 
@@ -24,4 +24,4 @@ function ProfilePage() {
 }
 
 // Protect this page - all authenticated users can access their profile
-export default withAuth(ProfilePage, [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE]);
+export default withAuth(ProfilePage, ['gerencia', 'administrativo', 'cliente']);

@@ -4,8 +4,11 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Calendar, MapPin, Ruler, User, Clock, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { projects } from "@/lib/projects-data"
+import { ProjectService } from "@/lib/supabase/database"
 import { notFound } from "next/navigation"
 import OptimizedImage from "@/components/OptimizedImage"
+export const revalidate = 0; // asegura datos frescos en cada request
+export const dynamic = 'force-dynamic';
 
 interface ProjectPageProps {
   params: {
@@ -14,12 +17,73 @@ interface ProjectPageProps {
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-  const { id } = await params
-  const project = projects.find((p) => p.id === id)
+  const { id } = params
 
-  if (!project) {
+  // Intentar obtener el proyecto desde la BD (Supabase)
+  const projectService = new ProjectService(true);
+  const dbProject = await projectService.getProjectById(id).catch(() => null);
+
+  // Fallback: usar dataset estático si no existe en BD
+  const staticProject = projects.find((p) => p.id === id) || null;
+
+  if (!dbProject && !staticProject) {
     notFound()
   }
+
+  // Preparar valores a mostrar combinando BD y estáticos
+  const title = dbProject?.name ?? staticProject?.title ?? 'Proyecto';
+  const location = dbProject?.location ?? staticProject?.location ?? 'Ubicación no definida';
+  const clientName = (() => {
+    const c = dbProject?.client as unknown;
+    if (typeof c === 'string') return c;
+    return (c as any)?.name ?? staticProject?.client ?? 'Cliente no definido';
+  })();
+  const statusLabel = (() => {
+    const s = dbProject?.status;
+    if (!s) return staticProject?.category ?? 'Proyecto';
+    switch (s) {
+      case 'planificacion': return 'Planificación';
+      case 'en_progreso': return 'En Progreso';
+      case 'pausado': return 'Pausado';
+      case 'completado': return 'Completado';
+      case 'cancelado': return 'Cancelado';
+      default: return s;
+    }
+  })();
+  const areaDisplay = dbProject?.total_area != null && !Number.isNaN(dbProject.total_area)
+    ? `${Number(dbProject.total_area).toLocaleString()} m²`
+    : staticProject?.area ?? 'Área no definida';
+  const year = (() => {
+    const d = dbProject?.estimated_start_date || dbProject?.actual_start_date || dbProject?.created_at;
+    if (d) {
+      const y = new Date(d).getFullYear();
+      return Number.isFinite(y) ? String(y) : staticProject?.year ?? '';
+    }
+    return staticProject?.year ?? '';
+  })();
+  const duration = staticProject?.duration ?? '';
+  const image = staticProject?.image || "/placeholder.svg";
+  const gallery = staticProject?.gallery || [];
+
+  // Asegurar un objeto "project" mínimo para las secciones que requieren campos del dataset estático.
+  // Cuando no existe staticProject, usamos valores calculados y defaults seguros.
+  const project: {
+    features: string[];
+    description: string;
+    category: string;
+    location: string;
+    year: string;
+    client: string;
+    duration: string;
+  } = {
+    features: staticProject?.features ?? [],
+    description: staticProject?.description ?? '',
+    category: staticProject?.category ?? statusLabel,
+    location,
+    year,
+    client: clientName,
+    duration,
+  };
 
   return (
     <div className="min-h-screen">
@@ -39,27 +103,27 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
             <div className="order-2 lg:order-1">
               <Badge variant="secondary" className="bg-blue-100 text-blue-800 mb-3 sm:mb-4 text-xs sm:text-sm">
-                {project.category}
+                {statusLabel}
               </Badge>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">{project.title}</h1>
-              <p className="text-sm sm:text-base lg:text-xl text-gray-600 leading-relaxed mb-6 sm:mb-8 text-justify">{project.description}</p>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">{title}</h1>
+              <p className="text-sm sm:text-base lg:text-xl text-gray-600 leading-relaxed mb-6 sm:mb-8 text-justify">{staticProject?.description || ''}</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-700 text-sm sm:text-base">{project.location}</span>
+                  <span className="text-gray-700 text-sm sm:text-base">{location}</span>
                 </div>
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <Ruler className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-700 text-sm sm:text-base">{project.area}</span>
+                  <span className="text-gray-700 text-sm sm:text-base">{areaDisplay}</span>
                 </div>
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-700 text-sm sm:text-base">{project.year}</span>
+                  <span className="text-gray-700 text-sm sm:text-base">{year}</span>
                 </div>
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <User className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-                  <span className="text-gray-700 text-sm sm:text-base">{project.client}</span>
+                  <span className="text-gray-700 text-sm sm:text-base">{clientName}</span>
                 </div>
                 <div className="flex items-center space-x-2 sm:space-x-3 sm:col-span-2">
                   <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
@@ -71,8 +135,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             <div className="relative order-1 lg:order-2">
               <div className="relative bg-gray-200 animate-pulse rounded-2xl">
                 <OptimizedImage
-                  src={project.image || "/placeholder.svg"}
-                  alt={project.title}
+                  src={image}
+                  alt={title}
                   width={600}
                   height={400}
                   className="rounded-2xl shadow-xl w-full h-auto"
@@ -90,11 +154,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <div className="container mx-auto px-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 sm:mb-10 lg:mb-12 text-center">Project Gallery</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {project.gallery.map((image, index) => (
+            {gallery.map((image, index) => (
               <div key={index} className="relative h-48 sm:h-56 lg:h-64 group overflow-hidden rounded-xl bg-gray-200 animate-pulse">
                 <OptimizedImage
                   src={image || "/placeholder.svg"}
-                  alt={`${project.title} - Image ${index + 1}`}
+                  alt={`${title} - Image ${index + 1}`}
                   fill
                   className="object-cover transition-all duration-300 group-hover:scale-110 rounded-xl"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
@@ -162,8 +226,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
                     <Badge variant="secondary" className="text-xs sm:text-sm">{project.category}</Badge>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600 text-sm sm:text-base">Area:</span>
-                    <span className="font-medium text-sm sm:text-base">{project.area}</span>
+                    <span className="text-gray-600 text-sm sm:text-base">Area total:</span>
+                    <span className="font-medium text-sm sm:text-base">{areaDisplay}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-gray-600 text-sm sm:text-base">Location:</span>
@@ -215,7 +279,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 sm:mb-10 lg:mb-12 text-center">Related Projects</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {projects
-              .filter((p) => p.id !== project.id && p.category === project.category)
+              .filter((p) => p.id !== id && p.category === project.category)
               .slice(0, 3)
               .map((relatedProject) => (
                 <Link key={relatedProject.id} href={`/proyecto/${relatedProject.id}`}>

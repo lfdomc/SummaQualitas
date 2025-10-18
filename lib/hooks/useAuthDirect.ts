@@ -4,14 +4,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { useLoginState } from '@/lib/contexts/LoginStateContext';
-import { UserRole, UserRoleType } from '@/lib/types';
+import { type UserRoleType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
 interface UserProfile {
   id: string;
   email: string;
   name: string;
-  role: string;
+  role: UserRoleType;
 }
 
 export interface AuthState {
@@ -28,7 +28,7 @@ interface AuthError {
 
 interface SignUpData {
   name: string;
-  role?: string;
+  role?: UserRoleType;
   [key: string]: string | undefined;
 }
 
@@ -40,8 +40,8 @@ export interface UseAuthReturn extends AuthState {
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: AuthError | null }>;
   refreshAuth: () => Promise<void>;
-  hasRole: (role: UserRole) => boolean;
-  hasAnyRole: (roles: UserRole[]) => boolean;
+  hasRole: (role: UserRoleType) => boolean;
+  hasAnyRole: (roles: UserRoleType[]) => boolean;
 }
 
 export function useAuthDirect(): UseAuthReturn {
@@ -90,7 +90,7 @@ export function useAuthDirect(): UseAuthReturn {
         
         // Configurar estado exitoso
         newAuthState.user = session.user;
-        newAuthState.profile = profile || null;
+        newAuthState.profile = (profile as unknown as UserProfile) || null;
       }
       
     } catch (error) {
@@ -191,12 +191,12 @@ export function useAuthDirect(): UseAuthReturn {
     return { error: { message: 'Usar formulario de perfil' } };
   };
 
-  const hasRole = (role: UserRole): boolean => {
-    return authState.profile?.role === role;
+  const hasRole = (role: UserRoleType): boolean => {
+    return (authState.profile?.role ?? null) === role;
   };
 
-  const hasAnyRole = (roles: UserRole[]): boolean => {
-    return authState.profile ? roles.includes(authState.profile.role as UserRole) : false;
+  const hasAnyRole = (roles: UserRoleType[]): boolean => {
+    return authState.profile?.role ? roles.includes(authState.profile.role) : false;
   };
 
   return {

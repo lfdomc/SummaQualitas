@@ -20,14 +20,13 @@ import {
   CreditCard,
   Wrench
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { UserRole } from '@/lib/types';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 
 interface NavigationItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles: UserRole[];
+  roles: string[]; // e.g., 'admin', 'project_manager', 'accountant', 'operator', 'master'
   description?: string;
 }
 
@@ -36,69 +35,69 @@ const navigationItems: NavigationItem[] = [
     title: 'Dashboard',
     href: '/dashboard',
     icon: Home,
-    roles: [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE],
+    roles: ['master', 'admin', 'project_manager', 'accountant', 'operator'],
     description: 'Panel principal'
   },
   {
     title: 'Proyectos',
     href: '/projects',
     icon: FolderOpen,
-    roles: [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE],
+    roles: ['master', 'admin', 'project_manager', 'accountant', 'operator'],
     description: 'Gestión de proyectos'
   },
   {
     title: 'Nuevo Proyecto',
     href: '/projects/new',
     icon: Building,
-    roles: [UserRole.GERENCIA],
+    roles: ['master', 'admin', 'project_manager'],
     description: 'Crear nuevo proyecto'
   },
   {
     title: 'Usuarios',
     href: '/users',
     icon: Users,
-    roles: [UserRole.GERENCIA],
+    roles: ['master', 'admin'],
     description: 'Gestión de usuarios'
   },
   {
     title: 'Equipos',
     href: '/equipment',
     icon: Wrench,
-    roles: [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
+    roles: ['master', 'admin', 'project_manager'],
     description: 'Gestión de equipos'
   },
   {
     title: 'Gastos',
     href: '/invoices',
     icon: CreditCard,
-    roles: [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE],
+    roles: ['master', 'admin', 'project_manager', 'accountant'],
     description: 'Gestión de gastos'
   },
   {
     title: 'Reportes',
     href: '/reports',
     icon: BarChart3,
-    roles: [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
+    roles: ['master', 'admin', 'project_manager', 'accountant'],
     description: 'Informes y análisis'
   },
   {
     title: 'Alertas',
     href: '/alerts',
     icon: AlertTriangle,
-    roles: [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
+    roles: ['master', 'admin', 'project_manager', 'accountant'],
     description: 'Notificaciones del sistema'
   },
   {
     title: 'Configuración',
     href: '/settings',
     icon: Settings,
-    roles: [UserRole.GERENCIA],
+    roles: ['master', 'admin'],
     description: 'Configuración del sistema'
   }
 ];
 
 interface SidebarContentProps {
-  userRole: UserRole | null;
+  userRole: string | null;
   onItemClick?: () => void;
 }
 
@@ -158,19 +157,8 @@ function SidebarContent({ userRole, onItemClick }: SidebarContentProps) {
           <div className="rounded-lg bg-muted p-3">
             <h3 className="text-sm font-medium mb-1">Tu Rol</h3>
             <p className="text-xs text-muted-foreground capitalize">
-              {userRole.toLowerCase()}
+              {userRole?.toLowerCase()}
             </p>
-            <div className="mt-2 text-xs text-muted-foreground">
-              {userRole === UserRole.GERENCIA && (
-                <span>Acceso completo al sistema</span>
-              )}
-              {userRole === UserRole.ADMINISTRATIVO && (
-                <span>Acceso de solo lectura a proyectos</span>
-              )}
-              {userRole === UserRole.CLIENTE && (
-                <span>Acceso a tus proyectos y gastos</span>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -183,10 +171,10 @@ interface RoleBasedSidebarProps {
 }
 
 export function RoleBasedSidebar({ className }: RoleBasedSidebarProps) {
-  const { user, userProfile } = useAuth();
+  const { profile } = useAuthContext();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   
-  const userRole = userProfile?.role as UserRole || null;
+  const userRole = profile?.role || null;
   
   return (
     <>

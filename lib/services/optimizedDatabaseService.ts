@@ -11,6 +11,7 @@ const supabase = createClient();
 export interface DashboardKPIs {
   total_projects: number;
   active_projects: number;
+  completed_projects?: number;
   total_expenses: number;
   total_incomes: number;
   pending_payments: number;

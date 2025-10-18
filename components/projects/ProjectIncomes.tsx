@@ -20,7 +20,7 @@ import { fileService } from '@/lib/services/fileService';
 
 interface ProjectIncomesProps {
   projectId: string;
-  clientId: string;
+  clientId?: string;
   projectName: string;
   canManage?: boolean;
 }
@@ -39,7 +39,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
 
   const [incomeForm, setIncomeForm] = useState<CreateIncomeData>({
     project_id: projectId,
-    client_id: clientId,
+    client_id: clientId ?? '',
     description: '',
     amount: 0,
     currency: 'CRC',
@@ -56,6 +56,23 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
     loadProjectIncomes();
   }, [projectId]);
 
+  const mapPaymentMethodToUI = (method?: string) => {
+    if (!method) return '';
+    const m = method.toLowerCase();
+    switch (m) {
+      case 'cash':
+        return 'efectivo';
+      case 'check':
+        return 'cheque';
+      case 'bank_transfer':
+        return 'transferencia';
+      case 'credit_card':
+        return 'tarjeta';
+      default:
+        return method; // ya viene en español u otro valor
+    }
+  };
+
   const loadProjectIncomes = async () => {
     try {
       setLoading(true);
@@ -67,7 +84,11 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
       const mappedIncomes = incomesData.map(income => ({
         ...income,
         category: reverseMapIncomeCategory(income.category),
-        status: reverseMapIncomeStatus(income.status)
+        status: reverseMapIncomeStatus(income.status),
+        // Compatibilidad: si solo existe reference_number en la BD, mostrarlo como reference en el UI
+        reference: (income as any).reference ?? (income as any).reference_number ?? '',
+        // Mostrar método de pago en español en el UI
+        payment_method: mapPaymentMethodToUI(income.payment_method)
       }));
       setIncomes(mappedIncomes);
       setSummary(summaryData);
@@ -99,6 +120,11 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
     try {
       if (!incomeForm.description || !incomeForm.amount) {
         toast.error('Por favor completa todos los campos requeridos');
+        return;
+      }
+
+      if (!incomeForm.client_id) {
+        toast.error('Este proyecto no tiene cliente asignado. Asigna un cliente antes de registrar ingresos.');
         return;
       }
 
@@ -177,7 +203,7 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
       amount: income.amount,
       currency: income.currency,
       received_date: income.received_date,
-      payment_method: income.payment_method,
+      payment_method: mapPaymentMethodToUI(income.payment_method),
       category: income.category,
       status: income.status,
       reference: income.reference || '',
@@ -190,14 +216,14 @@ export default function ProjectIncomes({ projectId, clientId, projectName, canMa
   const resetForm = () => {
     setIncomeForm({
       project_id: projectId,
-      client_id: clientId,
+      client_id: clientId ?? '',
       description: '',
       amount: 0,
       currency: 'CRC',
       received_date: new Date().toISOString().split('T')[0],
       payment_method: 'transferencia',
       category: 'pago_proyecto',
-      status: 'pending',
+      status: 'pendiente',
       reference: '',
       notes: '',
       receipt_url: undefined

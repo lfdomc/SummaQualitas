@@ -147,7 +147,7 @@ export interface Project {
   client?: Client;
   manager_id?: string;
   manager?: User;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'completed' | 'cancelled' | 'planificacion' | 'en_progreso' | 'pausado' | 'completado' | 'cancelado';
   location?: string;
   
   // Fechas
@@ -162,7 +162,8 @@ export interface Project {
   
   // Presupuesto detallado
   presupuesto_inicial: number;
-  presupuesto_original: number;
+  // Hacer opcional porque en la base de datos real puede llamarse 'budget'
+  presupuesto_original?: number;
   presupuesto_final: number;
   costos_directos: number;
   costos_indirectos: number;
@@ -170,6 +171,14 @@ export interface Project {
   mano_obra: number;
   imprevistos: number;
   utilidad: number;
+  
+  // Campos de porcentajes agregados para alinear con la BD (0-100)
+  costos_directos_porcentaje?: number;
+  costos_indirectos_porcentaje?: number;
+  mano_obra_porcentaje?: number;
+  administracion_porcentaje?: number;
+  imprevistos_porcentaje?: number;
+  utilidad_porcentaje?: number;
   
   // Totales calculados
   budget?: number;
@@ -187,7 +196,8 @@ export interface CreateProjectData {
   name: string;
   description?: string;
   client_id: string;
-  status?: 'active' | 'completed' | 'cancelled';
+  manager_id?: string;
+  status?: 'active' | 'completed' | 'cancelled' | 'planificacion' | 'en_progreso' | 'pausado' | 'completado' | 'cancelado';
   location?: string;
   
   // Fechas
@@ -211,6 +221,14 @@ export interface CreateProjectData {
   imprevistos?: number;
   utilidad?: number;
   
+  // Porcentajes (0-100)
+  costos_directos_porcentaje?: number;
+  costos_indirectos_porcentaje?: number;
+  mano_obra_porcentaje?: number;
+  administracion_porcentaje?: number;
+  imprevistos_porcentaje?: number;
+  utilidad_porcentaje?: number;
+  
   // Metadatos
   created_by?: string;
 }
@@ -220,7 +238,7 @@ export interface UpdateProjectData {
   description?: string;
   client_id?: string;
   manager_id?: string;
-  status?: 'active' | 'completed' | 'cancelled';
+  status?: 'active' | 'completed' | 'cancelled' | 'planificacion' | 'en_progreso' | 'pausado' | 'completado' | 'cancelado';
   location?: string;
   
   // Fechas
@@ -780,6 +798,11 @@ export interface UpdateIncomeData {
   receipt_url?: string;
 }
 
+// Shared unions for income status values used across DTOs and helpers
+export type IncomeStatus = 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado';
+export type IncomeEnglishStatus = 'pending' | 'confirmed' | 'cancelled';
+export type IncomeSpanishStatus = 'pendiente' | 'confirmado' | 'cancelado';
+
 export interface ProjectIncomesSummary {
   project_id: string;
   project_name: string;
@@ -852,6 +875,55 @@ export const PROJECT_STATUSES = [
   { value: 'cancelled', label: 'Cancelled' }
 ] as const;
 
+// Mapeo de estados de proyecto: inglés (frontend) <-> español (base de datos)
+export type ProjectEnglishStatus = 'planning' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+export type ProjectSpanishStatus = 'planificacion' | 'en_progreso' | 'pausado' | 'completado' | 'cancelado';
+
+export const PROJECT_STATUS_MAP: Record<ProjectEnglishStatus, ProjectSpanishStatus> = {
+  planning: 'planificacion',
+  in_progress: 'en_progreso',
+  on_hold: 'pausado',
+  completed: 'completado',
+  cancelled: 'cancelado',
+};
+
+export const PROJECT_STATUS_REVERSE_MAP: Record<ProjectSpanishStatus, ProjectEnglishStatus> = {
+  planificacion: 'planning',
+  en_progreso: 'in_progress',
+  pausado: 'on_hold',
+  completado: 'completed',
+  cancelado: 'cancelled',
+};
+
+export function mapProjectStatus(
+  status?: ProjectEnglishStatus | ProjectSpanishStatus | string
+): ProjectSpanishStatus | undefined {
+  if (!status) return undefined;
+  // Si ya viene en español, devolverlo tal cual
+  const spanishStatuses: readonly ProjectSpanishStatus[] = [
+    'planificacion', 'en_progreso', 'pausado', 'completado', 'cancelado'
+  ] as const;
+  if ((spanishStatuses as readonly string[]).includes(status)) {
+    return status as ProjectSpanishStatus;
+  }
+  // Intentar mapear desde inglés
+  const mapped = PROJECT_STATUS_MAP[status as ProjectEnglishStatus];
+  return mapped ?? undefined;
+}
+
+export function reverseMapProjectStatus(
+  status?: ProjectSpanishStatus | ProjectEnglishStatus | string
+): ProjectEnglishStatus | undefined {
+  if (!status) return undefined;
+  const englishStatuses: readonly ProjectEnglishStatus[] = [
+    'planning', 'in_progress', 'on_hold', 'completed', 'cancelled'
+  ] as const;
+  if ((englishStatuses as readonly string[]).includes(status)) {
+    return status as ProjectEnglishStatus;
+  }
+  const mapped = PROJECT_STATUS_REVERSE_MAP[status as ProjectSpanishStatus];
+  return mapped ?? undefined;
+}
 export const EQUIPMENT_STATUSES = [
   { value: 'available', label: 'Available' },
   { value: 'rented', label: 'Rented' },
@@ -951,7 +1023,7 @@ export const INCOME_CATEGORY_MAP: Record<string, string> = {
 };
 
 // Mapeo de status: inglés (frontend) -> español (base de datos)
-export const INCOME_STATUS_MAP: Record<string, string> = {
+export const INCOME_STATUS_MAP: Record<IncomeEnglishStatus, IncomeSpanishStatus> = {
   'pending': 'pendiente',
   'confirmed': 'confirmado',
   'cancelled': 'cancelado'
@@ -959,14 +1031,26 @@ export const INCOME_STATUS_MAP: Record<string, string> = {
 
 // Mapeo inverso: español (base de datos) -> inglés (frontend)
 export const INCOME_CATEGORY_REVERSE_MAP: Record<string, string> = {
+  // Español (BD) -> Inglés (UI)
   'pago_proyecto': 'payment',
   'anticipo': 'advance',
   'pago_final': 'bonus',
   'pago_parcial': 'refund',
-  'otros': 'other'
+  'otros': 'other',
+  // Inglés canónico (BD) -> Inglés (UI)
+  'payment_received': 'payment',
+  'advance_payment': 'advance',
+  'final_payment': 'bonus',
+  'milestone_payment': 'refund',
+  // Inglés alternativo (BD) -> Inglés (UI)
+  'payment': 'payment',
+  'advance': 'advance',
+  'bonus': 'bonus',
+  'refund': 'refund',
+  'other': 'other'
 };
 
-export const INCOME_STATUS_REVERSE_MAP: Record<string, string> = {
+export const INCOME_STATUS_REVERSE_MAP: Record<IncomeSpanishStatus, IncomeEnglishStatus> = {
   'pendiente': 'pending',
   'confirmado': 'confirmed',
   'cancelado': 'cancelled'
@@ -977,16 +1061,18 @@ export const mapIncomeCategory = (category: string): string => {
   return INCOME_CATEGORY_MAP[category] || category;
 };
 
-export const mapIncomeStatus = (status: string): string => {
-  return INCOME_STATUS_MAP[status] || status;
+// Narrow return type to IncomeStatus for better type safety in call sites
+export const mapIncomeStatus = (status: string): IncomeSpanishStatus => {
+  return (INCOME_STATUS_MAP[status as IncomeEnglishStatus] || status) as IncomeSpanishStatus;
 };
 
 export const reverseMapIncomeCategory = (category: string): string => {
   return INCOME_CATEGORY_REVERSE_MAP[category] || category;
 };
 
-export const reverseMapIncomeStatus = (status: string): string => {
-  return INCOME_STATUS_REVERSE_MAP[status] || status;
+// Narrow return type to IncomeStatus for better type safety in call sites
+export const reverseMapIncomeStatus = (status: string): IncomeEnglishStatus => {
+  return (INCOME_STATUS_REVERSE_MAP[status as IncomeSpanishStatus] || status) as IncomeEnglishStatus;
 };
 
 // =====================================================
@@ -1067,7 +1153,7 @@ export interface CreateChangeOrderData {
   quality_impact_level?: 'bajo' | 'medio' | 'alto';
   schedule_impact_level?: 'bajo' | 'medio' | 'alto';
   risk_impact_level?: 'bajo' | 'medio' | 'alto';
-  status?: string;
+  status?: 'pendiente' | 'aprobado' | 'rechazado' | 'implementado';
   request_date?: string;
   notes?: string;
   

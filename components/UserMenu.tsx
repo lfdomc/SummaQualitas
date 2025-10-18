@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useAuthContext } from "@/lib/contexts/AuthContext"
-import { UserRole } from "@/lib/types"
+import { type UserRoleType } from "@/lib/types"
 
 interface UserMenuProps {
   className?: string
@@ -39,26 +39,26 @@ export function UserMenu({ className = "" }: UserMenuProps) {
     await signOut()
   }
 
-  const getRoleDisplayName = (role: string) => {
+  const getRoleDisplayName = (role: UserRoleType | string) => {
     switch (role) {
-      case UserRole.GERENCIA:
+      case "gerencia":
         return "Gerencia"
-      case UserRole.ADMINISTRATIVO:
+      case "administrativo":
         return "Administrativo"
-      case UserRole.CLIENTE:
+      case "cliente":
         return "Cliente"
       default:
         return role
     }
   }
 
-  const getRoleBadgeVariant = (role: string) => {
+  const getRoleBadgeVariant = (role: UserRoleType | string) => {
     switch (role) {
-      case UserRole.GERENCIA:
+      case "gerencia":
         return "default" as const
-      case UserRole.ADMINISTRATIVO:
+      case "administrativo":
         return "secondary" as const
-      case UserRole.CLIENTE:
+      case "cliente":
         return "outline" as const
       default:
         return "outline" as const

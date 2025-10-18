@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { optimizedDatabaseService } from '@/lib/services/optimizedDatabaseService';
+import { cacheService } from '@/lib/services/cacheService';
 
 // Rutas que deberían invalidar el caché de proyectos
 const PROJECT_MUTATION_ROUTES = [
@@ -46,8 +47,10 @@ export async function cacheMiddleware(
       if (projectId) {
         optimizedDatabaseService.invalidateProjectCache(projectId);
       } else {
-        // Si no hay ID específico, invalidar todo el caché relacionado con proyectos
-        optimizedDatabaseService.invalidateFunction('get_projects_with_summary');
+        // Si no hay ID específico, invalidar el caché relacionado con proyectos
+        cacheService.invalidateFunction('get_projects_with_summary');
+        // También invalidar KPIs porque pueden verse afectados
+        cacheService.invalidateFunction('get_dashboard_kpis');
       }
     }
 

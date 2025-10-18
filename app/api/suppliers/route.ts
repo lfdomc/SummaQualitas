@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (suppliersError) {
-      console.error('Error fetching suppliers:', suppliersError);
       return NextResponse.json(
         { 
           error: 'Error al obtener proveedores',
@@ -40,7 +39,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error en API de suppliers:', error);
     return NextResponse.json(
       { 
         error: 'Error interno del servidor',

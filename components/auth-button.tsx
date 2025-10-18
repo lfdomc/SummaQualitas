@@ -62,11 +62,11 @@ export default function AuthButton() {
 
   const getRoleLabel = (role: string): string => {
     switch (role) {
-      case 'management':
+      case 'gerencia':
         return 'Gerencia';
-      case 'administrative':
+      case 'administrativo':
         return 'Administrativo';
-      case 'client':
+      case 'cliente':
         return 'Cliente';
       default:
         return role;

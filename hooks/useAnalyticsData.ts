@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { expenseService, incomeService } from '@/lib/supabase/database';
 import { toast } from 'sonner';
-import type { Project, ProjectKPIs as ProjectKPIsType, Expense, Income } from '@/types/database';
+import type { Project, ProjectKPIs as ProjectKPIsType, Expense, Income } from '@/lib/types';
 
 interface EVMData {
   plannedValue: number;
@@ -145,7 +145,8 @@ export function useAnalyticsData(project: Project | null): UseAnalyticsDataRetur
         variance_at_completion: varianceAtCompletion,
         completion_percentage: projectProgress,
         quality_score: 8.5,
-        safety_incidents: projectExpenses.filter(e => e.category === 'seguridad').length,
+        // No existe la categoría 'seguridad' en ExpenseCategory; usar subcategoría 'control_calidad' como aproximación
+        safety_incidents: projectExpenses.filter(e => e.subcategory_indirect === 'control_calidad').length,
         productivity_index: earnedValue > 0 && actualCost > 0 ? earnedValue / actualCost : 1.0,
         resource_utilization: Math.min(100, (actualCost / projectBudget) * 100),
         created_at: new Date().toISOString(),

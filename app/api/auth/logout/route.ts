@@ -9,7 +9,6 @@ export async function POST(request: NextRequest) {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError) {
-      console.error('❌ [API Auth Logout] Error al obtener sesión:', sessionError);
       return NextResponse.json({
         success: false,
         error: sessionError.message
@@ -28,7 +27,6 @@ export async function POST(request: NextRequest) {
     const { error: signOutError } = await supabase.auth.signOut();
 
     if (signOutError) {
-      console.error('❌ [API Auth Logout] Error al cerrar sesión:', signOutError);
       return NextResponse.json({
         success: false,
         error: signOutError.message
@@ -58,11 +56,11 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax'
     });
 
+    // Sesión cerrada exitosamente
     console.log('✅ [API Auth Logout] Sesión cerrada exitosamente');
     return response;
 
   } catch (error) {
-    console.error('❌ [API Auth Logout] Error general:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Error desconocido'

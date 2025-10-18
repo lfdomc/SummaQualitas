@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { CreateChangeOrderData } from '@/types/database';
+import type { ChangeOrder } from '@/types/database';
 
 interface ChangeOrderRequestData {
   project_id: string;
   title: string;
   description: string;
   designer: string;
-  change_type: string;
-  impact_type: string;
+  change_type?: 'accion_correctiva' | 'accion_preventiva' | 'extras';
+  impact_type?: 'positivo' | 'negativo';
   cost_impact: string | number;
-  currency?: string;
+  currency?: 'CRC' | 'USD';
   exchange_rate?: string | number;
   cost_impact_crc?: string | number;
   schedule_impact_days?: string | number;
@@ -24,6 +24,16 @@ interface ChangeOrderRequestData {
   risk_comments?: string;
   additional_comments?: string;
   general_comments?: string;
+  // Campos de clasificación de impacto
+  cost_impact_level?: 'bajo' | 'medio' | 'alto';
+  quality_impact_level?: 'bajo' | 'medio' | 'alto';
+  schedule_impact_level?: 'bajo' | 'medio' | 'alto';
+  risk_impact_level?: 'bajo' | 'medio' | 'alto';
+  // Estado y fechas
+  status?: 'pendiente' | 'aprobado' | 'rechazado' | 'implementado';
+  requested_date?: string;
+  // Compatibilidad legada
+  request_date?: string;
 }
 
 // Cache headers para optimizar rendimiento
@@ -144,19 +154,20 @@ export async function POST(request: NextRequest) {
     }
     
     const body: ChangeOrderRequestData = await request.json();
-    const changeOrderData: Partial<CreateChangeOrderData> = {
+    // Usamos Partial<ChangeOrder> para alinear con las columnas reales de la tabla
+    const changeOrderData: Partial<ChangeOrder> = {
       project_id: body.project_id,
       title: body.title,
       description: body.description,
       designer: body.designer,
       change_type: body.change_type,
       impact_type: body.impact_type,
-      cost_impact: parseFloat(body.cost_impact) || 0,
-      amount: parseFloat(body.cost_impact) || 0, // Campo requerido por la base de datos
+      cost_impact: Number(body.cost_impact) || 0,
       currency: body.currency || 'CRC',
-      exchange_rate: parseFloat(body.exchange_rate) || 500.00,
-      cost_impact_crc: parseFloat(body.cost_impact_crc) || 0,
-      schedule_impact_days: parseInt(body.schedule_impact_days) || 0,
+      exchange_rate: Number(body.exchange_rate) || 500.00,
+      cost_impact_crc: Number(body.cost_impact_crc) || 0,
+      schedule_impact_days: Number(body.schedule_impact_days) || 0,
+      // Mapeamos los posibles nombres del cliente hacia las columnas reales
       cost_comments: body.cost_impact_details || body.cost_comments || '',
       quality_comments: body.quality_impact || body.quality_comments || '',
       schedule_comments: body.schedule_details || body.schedule_comments || '',
@@ -167,7 +178,7 @@ export async function POST(request: NextRequest) {
       schedule_impact_level: body.schedule_impact_level || 'bajo',
       risk_impact_level: body.risk_impact_level || 'bajo',
       status: body.status || 'pendiente',
-      request_date: body.request_date || new Date().toISOString().split('T')[0],
+      requested_date: body.requested_date || body.request_date || new Date().toISOString().split('T')[0],
     };
     
     // Validaciones básicas

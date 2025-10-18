@@ -1,8 +1,23 @@
 'use client';
 
-import { Suspense, lazy, ReactNode } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { ReactNode } from 'react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  LabelList,
+  AreaChart,
+  Area
+} from 'recharts';
 
 // Interfaces para los datos de los gráficos
 interface ChartDataPoint {
@@ -13,6 +28,7 @@ interface ChartDataPoint {
 interface BaseChartProps {
   children?: ReactNode;
   data?: ChartDataPoint[];
+  // Notas: width/height se manejan por ResponsiveContainer
   width?: number | string;
   height?: number | string;
   margin?: {
@@ -24,96 +40,81 @@ interface BaseChartProps {
 }
 
 // Props específicos para LineChart
-interface LineChartProps extends BaseChartProps {
+interface LineChartProps extends Omit<BaseChartProps, 'width' | 'height'> {
   syncId?: string;
 }
 
 // Props específicos para BarChart
-interface BarChartProps extends BaseChartProps {
+interface BarChartProps extends Omit<BaseChartProps, 'width' | 'height'> {
   layout?: 'horizontal' | 'vertical';
   stackOffset?: 'expand' | 'none' | 'wiggle' | 'silhouette';
 }
 
 // Props específicos para PieChart
-interface PieChartProps extends Omit<BaseChartProps, 'data'> {
+interface PieChartProps extends Omit<BaseChartProps, 'data' | 'width' | 'height'> {
   data?: ChartDataPoint[];
 }
 
 // Props específicos para AreaChart
-interface AreaChartProps extends BaseChartProps {
+interface AreaChartProps extends Omit<BaseChartProps, 'width' | 'height'> {
   stackOffset?: 'expand' | 'none' | 'wiggle' | 'silhouette';
 }
 
-// Lazy load de todos los componentes de Recharts
-const LineChart = lazy(() => import('recharts').then(module => ({ default: module.LineChart })));
-const Line = lazy(() => import('recharts').then(module => ({ default: module.Line })));
-const XAxis = lazy(() => import('recharts').then(module => ({ default: module.XAxis })));
-const YAxis = lazy(() => import('recharts').then(module => ({ default: module.YAxis })));
-const CartesianGrid = lazy(() => import('recharts').then(module => ({ default: module.CartesianGrid })));
-const Tooltip = lazy(() => import('recharts').then(module => ({ default: module.Tooltip })));
-const ResponsiveContainer = lazy(() => import('recharts').then(module => ({ default: module.ResponsiveContainer })));
-const BarChart = lazy(() => import('recharts').then(module => ({ default: module.BarChart })));
-const Bar = lazy(() => import('recharts').then(module => ({ default: module.Bar })));
-const PieChart = lazy(() => import('recharts').then(module => ({ default: module.PieChart })));
-const Pie = lazy(() => import('recharts').then(module => ({ default: module.Pie })));
-const Cell = lazy(() => import('recharts').then(module => ({ default: module.Cell })));
-const LabelList = lazy(() => import('recharts').then(module => ({ default: module.LabelList })));
-const AreaChart = lazy(() => import('recharts').then(module => ({ default: module.AreaChart })));
-const Area = lazy(() => import('recharts').then(module => ({ default: module.Area })));
-
-// Componente de loading para gráficos
-const ChartLoader = () => (
-  <div className="flex items-center justify-center h-80">
-    <div className="flex flex-col items-center space-y-2">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      <p className="text-sm text-muted-foreground">Cargando gráfico...</p>
-    </div>
-  </div>
-);
+// Nota: Importamos directamente los componentes de recharts para evitar problemas de Suspense/lazy
+// en algunos entornos de desarrollo. Este módulo está marcado como "use client",
+// por lo que todo se renderiza en el cliente.
 
 // Wrapper para LineChart
-export const LazyLineChart = ({ children, data, ...props }: LineChartProps) => (
-  <Suspense fallback={<ChartLoader />}>
+export const LazyLineChart = ({ children, data, ...props }: LineChartProps) => {
+  const anyProps: any = props;
+  const { width: _w, height: _h, ...rest } = anyProps;
+  return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} {...props}>
+      <LineChart data={data} {...(rest as any)}>
         {children}
       </LineChart>
     </ResponsiveContainer>
-  </Suspense>
-);
+  );
+};
 
 // Wrapper para BarChart
-export const LazyBarChart = ({ children, data, ...props }: BarChartProps) => (
-  <Suspense fallback={<ChartLoader />}>
+export const LazyBarChart = ({ children, data, ...props }: BarChartProps) => {
+  const anyProps: any = props;
+  const { width: _w, height: _h, ...rest } = anyProps;
+  return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} {...props}>
+      <BarChart data={data} {...(rest as any)}>
         {children}
       </BarChart>
     </ResponsiveContainer>
-  </Suspense>
-);
+  );
+};
 
 // Wrapper para PieChart
-export const LazyPieChart = ({ children, data, ...props }: PieChartProps) => (
-  <Suspense fallback={<ChartLoader />}>
+export const LazyPieChart = ({ children, data, ...props }: PieChartProps) => {
+  const anyProps: any = props;
+  const { width: _w, height: _h, ...rest } = anyProps;
+  return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart {...props}>
+      <PieChart {...(rest as any)}>
         {children}
       </PieChart>
     </ResponsiveContainer>
-  </Suspense>
-);
+  );
+};
 
 // Wrapper para AreaChart
-export const LazyAreaChart = ({ children, data, ...props }: AreaChartProps) => (
-  <Suspense fallback={<ChartLoader />}>
+export const LazyAreaChart = ({ children, data, ...props }: AreaChartProps) => {
+  const anyProps: any = props;
+  const { width: _w, height: _h, ...rest } = anyProps;
+  return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} {...props}>
+      <AreaChart data={data} {...(rest as any)}>
         {children}
       </AreaChart>
     </ResponsiveContainer>
-  </Suspense>
-);
+  );
+};
 
 // Exportar componentes individuales con lazy loading
 export {

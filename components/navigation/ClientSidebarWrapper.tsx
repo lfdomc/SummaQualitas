@@ -1,19 +1,16 @@
 'use client';
 
-import { Suspense, lazy, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 
-// Lazy load del sidebar para forzar carga solo en el cliente
-const LazyIndependentSidebar = lazy(() => 
-  import('./IndependentSidebar').then(module => {
-    console.log('🚀 [LazyIndependentSidebar] Módulo cargado dinámicamente');
-    return { default: module.IndependentSidebar };
-  })
+const LazyIndependentSidebar = dynamic(
+  () => import('./IndependentSidebar').then(mod => ({ default: mod.IndependentSidebar })),
+  { 
+    ssr: false,
+    loading: () => <div className="w-64 bg-gray-900 animate-pulse" />
+  }
 );
 
-/**
- * Wrapper que usa React.lazy para cargar el sidebar solo en el cliente
- * Usa un patrón de hidratación consistente para evitar errores
- */
 export function ClientSidebarWrapper() {
   const [isClient, setIsClient] = useState(false);
 
@@ -21,25 +18,12 @@ export function ClientSidebarWrapper() {
     setIsClient(true);
   }, []);
 
-  console.log('🎯 [ClientSidebarWrapper] Renderizado:', {
-    isClient,
-    isServer: typeof window === 'undefined'
-  });
-
-  // Renderizar el mismo elemento tanto en servidor como en cliente inicialmente
   if (!isClient) {
-    console.log('🔄 [ClientSidebarWrapper] Hidratación pendiente - renderizando placeholder');
-    return <div style={{ display: 'none' }} />;
+    return <div className="w-64 bg-gray-900 animate-pulse" />;
   }
 
-  console.log('✅ [ClientSidebarWrapper] Cliente hidratado - renderizando LazyIndependentSidebar');
-  
   return (
-    <Suspense fallback={
-      <div style={{ display: 'none' }}>
-        {console.log('⏳ [ClientSidebarWrapper] Suspense fallback - cargando sidebar')}
-      </div>
-    }>
+    <Suspense fallback={<div className="w-64 bg-gray-900 animate-pulse" />}>
       <LazyIndependentSidebar />
     </Suspense>
   );

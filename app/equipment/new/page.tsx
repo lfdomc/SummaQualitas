@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { EquipmentForm } from '@/components/equipment/EquipmentForm';
 import { withAuth } from '@/components/auth/withAuth';
-import { UserRole } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 
 function NewEquipmentPage() {
@@ -39,4 +38,4 @@ function NewEquipmentPage() {
   );
 }
 
-export default withAuth(NewEquipmentPage, [UserRole.GERENCIA, UserRole.ADMINISTRATIVO]);
+export default withAuth(NewEquipmentPage, ['gerencia', 'administrativo']);

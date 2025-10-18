@@ -179,15 +179,15 @@ export default function ChangeOrderDetailPage() {
   };
 
   // Helper function to safely get field values with defaults
-  const getFieldValue = (value: any, defaultValue: string = 'N/A') => {
+  const getFieldValue = (value: unknown, defaultValue: string = 'N/A'): string => {
     if (value === null || value === undefined || value === '') {
       return defaultValue;
     }
-    return value;
+    return String(value);
   };
 
   // Helper function to safely get numeric values
-  const getNumericValue = (value: any, defaultValue: number = 0) => {
+  const getNumericValue = (value: unknown, defaultValue: number = 0) => {
     if (value === null || value === undefined || isNaN(Number(value))) {
       return defaultValue;
     }

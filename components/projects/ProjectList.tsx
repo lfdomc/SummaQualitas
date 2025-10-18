@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { ProjectService } from '@/lib/supabase/database';
-import { Project, ProjectStatus, UserRole, ProjectFilters, PaginationParams } from '@/lib/types';
+import { Project, ProjectStatus, ProjectFilters, PaginationParams } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,9 +42,10 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
   });
   const [totalCount, setTotalCount] = useState(0);
 
-  const canCreateProjects = hasRole(UserRole.GERENCIA);
-  const canEditProjects = hasRole(UserRole.GERENCIA) || hasRole(UserRole.ADMINISTRATIVO);
-  const canDeleteProjects = hasRole(UserRole.GERENCIA);
+  // Permissions using UserRoleType string literals
+  const canCreateProjects = hasRole('gerencia');
+  const canEditProjects = hasRole('gerencia') || hasRole('administrativo');
+  const canDeleteProjects = hasRole('gerencia');
 
   const loadProjects = useCallback(async () => {
     try {
@@ -83,11 +84,12 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
 
 
   const getStatusBadge = useMemo(() => (status: ProjectStatus) => {
-    const statusConfig = {
-      active: { label: 'Activo', variant: 'success' as const },
-      completed: { label: 'Completado', variant: 'default' as const },
-      paused: { label: 'Pausado', variant: 'outline' as const },
-      cancelled: { label: 'Cancelado', variant: 'destructive' as const }
+    const statusConfig: Record<ProjectStatus, { label: string; variant: 'success' | 'default' | 'outline' | 'destructive' }> = {
+      planificacion: { label: 'Planificación', variant: 'outline' },
+      en_progreso: { label: 'En progreso', variant: 'success' },
+      pausado: { label: 'Pausado', variant: 'outline' },
+      completado: { label: 'Completado', variant: 'default' },
+      cancelado: { label: 'Cancelado', variant: 'destructive' }
     };
 
     const config = statusConfig[status];
@@ -107,7 +109,7 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
     }).format(amount);
   }, []);
 
-  const formatDate = useMemo(() => (date: string) => {
+  const formatDate = useMemo(() => (date?: string) => {
     if (!date) return 'Sin definir';
     
     const dateObj = new Date(date);
@@ -268,10 +270,16 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Cliente:</span>
                       <span className="font-medium">
-                        {typeof project.client === 'string' 
-                          ? project.client 
-                          : project.client?.name || 'Sin asignar'
-                        }
+                        {(() => {
+                          const c: any = project.client;
+                          if (Array.isArray(c)) {
+                            return c[0]?.name ?? 'Sin asignar';
+                          }
+                          if (typeof c === 'object' && c !== null) {
+                            return c.name ?? 'Sin asignar';
+                          }
+                          return typeof c === 'string' ? c : 'Sin asignar';
+                        })()}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -281,10 +289,10 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
                         {(project.presupuesto_original || project.presupuesto_inicial) && project.presupuesto_final ? (
                           <>
                             <span className="font-medium text-green-600">{formatCurrency(project.presupuesto_final)}</span>
-                            <span className="text-xs text-muted-foreground">Final (Inicial: {formatCurrency(project.presupuesto_original || project.presupuesto_inicial)})</span>
+                            <span className="text-xs text-muted-foreground">Final (Inicial: {formatCurrency(project.presupuesto_original ?? project.presupuesto_inicial ?? 0)})</span>
                           </>
                         ) : (
-                          <span className="font-medium">{formatCurrency(project.presupuesto_final || project.presupuesto_original || project.presupuesto_inicial || project.budget)}</span>
+                          <span className="font-medium">{formatCurrency((project.presupuesto_final || project.presupuesto_original || project.presupuesto_inicial || project.budget || 0))}</span>
                         )}
                       </div>
                     </div>

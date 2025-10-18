@@ -18,14 +18,12 @@ import { toast } from 'sonner';
 import { 
   Plus, 
   Search, 
-  Filter, 
   DollarSign, 
   TrendingUp, 
   TrendingDown, 
   Calendar,
   Building2,
   User,
-  FileText,
   CreditCard,
   CheckCircle,
   Clock,
@@ -39,9 +37,7 @@ import type {
   SupplierPayment, 
   Project, 
   Client, 
-  Supplier,
-  CreateClientPaymentData,
-  CreateSupplierPaymentData
+  Supplier
 } from '@/types/database';
 
 // Interfaces para formularios
@@ -151,7 +147,7 @@ const mockClients: Client[] = [
   {
     id: '1',
     name: 'Corporativo ABC',
-    contact_name: 'Juan Pérez',
+    contact_person: 'Juan Pérez',
     email: 'juan.perez@abc.com',
     phone: '+52 55 1234 5678',
     address: 'Av. Reforma 123, CDMX',
@@ -163,7 +159,7 @@ const mockClients: Client[] = [
   {
     id: '2',
     name: 'Inmobiliaria XYZ',
-    contact_name: 'María González',
+    contact_person: 'María González',
     email: 'maria@xyz.com',
     phone: '+52 33 9876 5432',
     address: 'Av. Chapultepec 456, GDL',
@@ -178,24 +174,26 @@ const mockSuppliers: Supplier[] = [
   {
     id: '1',
     name: 'Materiales del Norte SA',
-    contact_name: 'Carlos Rodríguez',
+    contact_person: 'Carlos Rodríguez',
     email: 'carlos@materialnorte.com',
     phone: '+52 81 1111 2222',
     address: 'Industrial Norte 789, MTY',
     tax_id: 'MDN111222333',
-    is_active: true,
+    supplier_type: 'MATERIALES',
+    status: 'ACTIVO',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
   },
   {
     id: '2',
     name: 'Equipos y Herramientas SA',
-    contact_name: 'Ana López',
+    contact_person: 'Ana López',
     email: 'ana@equipos.com',
     phone: '+52 55 3333 4444',
     address: 'Zona Industrial 321, CDMX',
     tax_id: 'EQH333444555',
-    is_active: true,
+    supplier_type: 'EQUIPOS',
+    status: 'ACTIVO',
     created_at: '2024-01-10T00:00:00Z',
     updated_at: '2024-01-10T00:00:00Z'
   }
@@ -293,7 +291,7 @@ const mockSupplierPayments: SupplierPayment[] = [
 
 export default function PaymentsPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useRequireAuth();
+  const { isAuthenticated, profile, loading: authLoading } = useRequireAuth();
   const permissions = usePermissions();
 
   // Estados
@@ -320,10 +318,10 @@ export default function PaymentsPage() {
 
   // Cargar datos
   useEffect(() => {
-    if (user) {
+    if (isAuthenticated) {
       loadData();
     }
-  }, [user]);
+  }, [isAuthenticated]);
 
   const loadData = async () => {
     try {
@@ -508,7 +506,7 @@ export default function PaymentsPage() {
     );
   }
 
-  if (!permissions.canViewPayments) {
+  if (!permissions.canViewFinancials) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

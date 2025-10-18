@@ -6,7 +6,7 @@ import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { ProjectService } from '@/lib/supabase/database';
 
 const projectService = new ProjectService();
-import { Project, UserRole } from '@/lib/types';
+import { Project } from '@/lib/types';
 import ProjectForm from '@/components/projects/ProjectForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,10 +49,9 @@ function EditProjectPage() {
 
         setProject(projectData);
       } catch (error) {
-        console.error('Error loading project:', error);
-        toast.error('Error al cargar el proyecto');
-        router.push('/projects');
-      } finally {
+      toast.error('Error al cargar el proyecto');
+      router.push('/projects');
+    } finally {
         setLoading(false);
       }
     };

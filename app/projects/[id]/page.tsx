@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { ProjectService } from '@/lib/supabase/database';
-import { Project, ProjectFinancialSummary, UserRole } from '@/lib/types';
+import { ProjectFinancialSummary } from '@/lib/types';
+import type { Project } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,14 +25,26 @@ import {
   CheckCircle,
   Building2,
   FileText,
-  Settings
+  Settings,
+  Ruler
 } from 'lucide-react';
 import Link from 'next/link';
-import { BudgetBreakdown } from '@/components/projects/BudgetBreakdown';
-import { BudgetItemsBreakdown } from '@/components/projects/BudgetItemsBreakdown';
-import { BudgetPieChart } from '@/components/projects/BudgetPieChart';
-import { ProjectExpenses } from '@/components/projects/ProjectExpenses';
-import ProjectIncomes from '@/components/projects/ProjectIncomes';
+import { Suspense, lazy } from 'react';
+// Carga diferida de componentes pesados usando React.lazy en lugar de next/dynamic para evitar errores de app-dynamic
+// Mapeamos exports nombrados a default cuando es necesario
+const BudgetItemsBreakdown = lazy(
+  () => import('@/components/projects/BudgetItemsBreakdown').then(mod => ({ default: mod.BudgetItemsBreakdown }))
+);
+const BudgetPieChart = lazy(
+  () => import('@/components/projects/BudgetPieChart').then(mod => ({ default: mod.BudgetPieChart }))
+);
+const BudgetBreakdown = lazy(
+  () => import('@/components/projects/BudgetBreakdown').then(mod => ({ default: mod.BudgetBreakdown }))
+);
+const ProjectExpenses = lazy(
+  () => import('@/components/projects/ProjectExpenses').then(mod => ({ default: mod.ProjectExpenses }))
+);
+const ProjectIncomes = lazy(() => import('@/components/projects/ProjectIncomes'));
 import ProjectFinancialAnalysis from '@/components/projects/ProjectFinancialAnalysis';
 import ProjectChangeOrders from '@/components/projects/ProjectChangeOrders';
 import { withAuth } from '@/components/auth/withAuth';
@@ -44,6 +57,7 @@ function ProjectDetailPage() {
   const [financialSummary, setFinancialSummary] = useState<ProjectFinancialSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('overview');
 
   const projectId = params.id as string;
   const projectService = new ProjectService(false); // false para cliente
@@ -58,27 +72,35 @@ function ProjectDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      
-      const [projectData, financialData] = await Promise.all([
-        projectService.getProjectById(projectId),
-        projectService.getProjectFinancialSummary(projectId)
-      ]);
-      
+      const projectData = await projectService.getProjectById(projectId);
+
       if (!projectData) {
         throw new Error('Proyecto no encontrado');
       }
-      
+
       setProject(projectData);
-      // financialData puede ser null si el proyecto no tiene datos financieros
-      setFinancialSummary(financialData);
     } catch (error) {
-      console.error('Error loading project:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido al cargar el proyecto');
       toast.error('Error al cargar el proyecto');
     } finally {
       setLoading(false);
     }
   };
+
+  // Cargar resumen financiero sólo cuando el usuario abre la pestaña "Financiero"
+  useEffect(() => {
+    const loadFinancial = async () => {
+      if (activeTab === 'financial' && project && !financialSummary) {
+        try {
+          const financialData = await projectService.getProjectFinancialSummary(project.id);
+          setFinancialSummary(financialData);
+        } catch (e) {
+          console.warn('No se pudo cargar el resumen financiero:', e);
+        }
+      }
+    };
+    loadFinancial();
+  }, [activeTab, project, financialSummary]);
 
   const statusConfig = {
     planificacion: { label: 'Planificación', variant: 'secondary' as const, icon: Clock },
@@ -263,14 +285,14 @@ function ProjectDetailPage() {
         </div>
         
         <div className="flex space-x-2">
-          <Link href="/projects">
+          <Link href="/projects" prefetch={false}>
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Button>
           </Link>
           {canEdit && (
-            <Link href={`/projects/${project.id}/edit`}>
+            <Link href={`/projects/${project.id}/edit`} prefetch={false}>
               <Button>
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
@@ -280,7 +302,7 @@ function ProjectDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="financial">Financiero</TabsTrigger>
@@ -306,13 +328,13 @@ function ProjectDetailPage() {
                   <div>
                     <p className="text-sm text-gray-600 font-medium">Presupuesto Inicial</p>
                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
-                      {(project.presupuesto_original || project.presupuesto_inicial || project.budget) ? 
-                        formatCurrency(project.presupuesto_original || project.presupuesto_inicial || project.budget || 0) : 
+                      {(project.presupuesto_inicial || project.presupuesto_original || project.budget) ? 
+                        formatCurrency(project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) : 
                         'No definido'}
                     </div>
-                    {(project.presupuesto_original || project.presupuesto_inicial || project.budget) && (
+                    {(project.presupuesto_inicial || project.presupuesto_original || project.budget) && (
                       <p className="text-sm text-gray-500">
-                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_original || project.presupuesto_inicial || project.budget || 0))}
+                        {formatUSDCurrency(calculateUSDAmount(project.presupuesto_inicial || project.presupuesto_original || project.budget || 0))}
                       </p>
                     )}
                   </div>
@@ -333,20 +355,20 @@ function ProjectDetailPage() {
                   </div>
                   
                   {/* Diferencia */}
-                  {(project.presupuesto_original || project.presupuesto_inicial || project.budget) && 
+                  {(project.presupuesto_inicial || project.presupuesto_original || project.budget) && 
                    (project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget) && (
                     <div className="pt-2 border-t">
                       <p className="text-sm text-gray-600 font-medium">Variación por Órdenes de Cambio</p>
                       <div className={`text-lg font-bold ${
                         ((project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) - 
-                         (project.presupuesto_original || project.presupuesto_inicial || project.budget || 0)) >= 0 
+                         (project.presupuesto_inicial || project.presupuesto_original || project.budget || 0)) >= 0 
                           ? 'text-red-600' 
                           : 'text-green-600'
                       }`}>
                         {((project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) - 
-                          (project.presupuesto_original || project.presupuesto_inicial || project.budget || 0)) >= 0 ? '+' : ''}
+                          (project.presupuesto_inicial || project.presupuesto_original || project.budget || 0)) >= 0 ? '+' : ''}
                         {formatCurrency((project.presupuesto_final || project.presupuesto_inicial || project.presupuesto_original || project.budget || 0) - 
-                                       (project.presupuesto_original || project.presupuesto_inicial || project.budget || 0))}
+                                       (project.presupuesto_inicial || project.presupuesto_original || project.budget || 0))}
                       </div>
                     </div>
                   )}
@@ -365,7 +387,12 @@ function ProjectDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  <p className="font-medium">{typeof project.client === 'string' ? project.client : project.client?.name || 'Sin asignar'}</p>
+                  <p className="font-medium">{(() => {
+                    const c: any = project.client;
+                    if (Array.isArray(c)) return c[0]?.name ?? c[0] ?? 'Sin asignar';
+                    if (typeof c === 'object' && c !== null) return c.name ?? 'Sin asignar';
+                    return typeof c === 'string' ? c : 'Sin asignar';
+                  })()}</p>
                 </div>
               </CardContent>
             </Card>
@@ -377,12 +404,27 @@ function ProjectDetailPage() {
                 <CardTitle className="text-sm font-medium">Ubicación</CardTitle>
                 <MapPin className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {project.location || 'No especificada'}
-                </div>
-              </CardContent>
-            </Card>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {project.location || 'No especificada'}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Área Total */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Área Total</CardTitle>
+              <Ruler className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {typeof project.total_area === 'number' && isFinite(project.total_area)
+                  ? `${project.total_area} m²`
+                  : 'No especificada'}
+              </div>
+            </CardContent>
+          </Card>
           </div>
 
           {/* Detailed Dates Section */}
@@ -575,42 +617,56 @@ function ProjectDetailPage() {
 
         <TabsContent value="financial" className="space-y-6">
           {/* Partidas Presupuestarias */}
-          <BudgetItemsBreakdown 
-            project={project}
-            exchangeRate={project.exchange_rate_usd || 500}
-          />
+          {activeTab === 'financial' && (
+            <Suspense fallback={<div className="h-24 w-full animate-pulse" />}>
+              <BudgetItemsBreakdown 
+                project={project}
+                exchangeRate={project.exchange_rate_usd || 500}
+              />
+            </Suspense>
+          )}
           
           {/* Gráfico de Distribución del Presupuesto */}
-          <BudgetPieChart project={project} />
+          {activeTab === 'financial' && (
+            <Suspense fallback={<div className="h-24 w-full animate-pulse" />}>
+              <BudgetPieChart project={project} />
+            </Suspense>
+          )}
           
           {/* Desglose Detallado */}
-          {financialSummary && (
-            <BudgetBreakdown 
-              projectId={project.id}
-              totalBudget={totalBudget}
-              exchangeRate={project.exchange_rate_usd || 500}
-            />
+          {activeTab === 'financial' && financialSummary && (
+            <Suspense fallback={<div className="h-24 w-full animate-pulse" />}>
+              <BudgetBreakdown 
+                projectId={project.id}
+                totalBudget={totalBudget}
+                exchangeRate={project.exchange_rate_usd || 500}
+              />
+            </Suspense>
           )}
         </TabsContent>
 
         {canEdit && (
           <TabsContent value="expenses" className="space-y-6">
-            <ProjectExpenses 
-              project={project} 
-              canEdit={canEdit} 
-              showHeader={false} 
-            />
+            <Suspense fallback={<div className="h-24 w-full animate-pulse" />}>
+              <ProjectExpenses 
+                project={project} 
+                canEdit={canEdit} 
+                showHeader={false} 
+              />
+            </Suspense>
           </TabsContent>
         )}
 
         {canEdit && (
           <TabsContent value="incomes" className="space-y-6">
-            <ProjectIncomes 
-              projectId={project.id}
-              clientId={project.client_id}
-              projectName={project.name}
-              canManage={canEdit}
-            />
+            <Suspense fallback={<div className="h-24 w-full animate-pulse" />}>
+              <ProjectIncomes 
+                projectId={project.id}
+                clientId={project.client_id}
+                projectName={project.name}
+                canManage={canEdit}
+              />
+            </Suspense>
           </TabsContent>
         )}
 
@@ -620,10 +676,24 @@ function ProjectDetailPage() {
             projectBudget={totalBudget}
             projectExpenses={financialSummary?.expenses ? {
               total: financialSummary.expenses.total || 0,
-              byCategory: financialSummary.expenses.byCategory || {}
+              byCategory: financialSummary.expenses.byCategory || {
+                costos_directos: 0,
+                costos_indirectos: 0,
+                administracion: 0,
+                mano_obra: 0,
+                imprevistos: 0,
+                utilidad: 0,
+              }
             } : {
               total: 0,
-              byCategory: {}
+              byCategory: {
+                costos_directos: 0,
+                costos_indirectos: 0,
+                administracion: 0,
+                mano_obra: 0,
+                imprevistos: 0,
+                utilidad: 0,
+              }
             }}
           />
         </TabsContent>

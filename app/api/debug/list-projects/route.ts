@@ -7,20 +7,27 @@ export async function GET(request: NextRequest) {
 
     console.log('📋 Listing all projects...');
 
-    // Obtener todos los proyectos
+    // Listing all projects
     const { data: projects, error } = await supabase
       .from('projects')
-      .select('id, name, presupuesto_original, presupuesto_final, budget, created_at')
+      .select(`
+        id,
+        name,
+        description,
+        status,
+        budget,
+        presupuesto_inicial,
+        presupuesto_original,
+        presupuesto_final,
+        created_at
+      `)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ Projects fetch error:', error);
-      return NextResponse.json(
-        { error: 'Error fetching projects', details: error },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Found projects
     console.log(`✅ Found ${projects?.length || 0} projects`);
 
     return NextResponse.json({

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,55 +22,40 @@ export function SimpleLoginForm({ redirectTo = '/projects' }: SimpleLoginFormPro
   const [loading, setLoading] = useState(false);
   const [autoLogin, setAutoLogin] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Auto-login al cargar la página
   useEffect(() => {
     if (autoLogin) {
-      console.log('🚀 [SimpleLoginForm] Ejecutando auto-login...');
-      handleLogin();
-      setAutoLogin(false);
+      handleAutoLogin();
     }
   }, [autoLogin]);
 
-  const handleLogin = async () => {
+  const handleAutoLogin = async () => {
     if (!email || !password) {
-      setError('Por favor completa todos los campos');
+      setError('Email y contraseña son requeridos para auto-login');
       return;
     }
 
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
-      console.log('🔐 [SimpleLoginForm] Iniciando login...');
       const supabase = createClient();
-      
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) {
-        console.error('❌ [SimpleLoginForm] Error de autenticación:', authError.message);
-        setError(authError.message);
+      if (error) {
+        setError(error.message);
         return;
       }
 
-      if (data.user) {
-        console.log('✅ [SimpleLoginForm] Login exitoso:', data.user.email);
-        setSuccess('Login exitoso! Redirigiendo...');
-        
-        // Esperar un momento para que la sesión se propague
-        setTimeout(() => {
-          console.log('🔄 [SimpleLoginForm] Redirigiendo a:', redirectTo);
-          router.push(redirectTo);
-        }, 1500);
-      }
-
-    } catch (err: any) {
-      console.error('💥 [SimpleLoginForm] Error inesperado:', err);
-      setError(err.message || 'Error inesperado durante el login');
+      // Redirigir después del login exitoso
+      const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+      router.push(redirectTo);
+    } catch (err) {
+      setError('Error inesperado durante el auto-login');
     } finally {
       setLoading(false);
     }
@@ -78,7 +63,35 @@ export function SimpleLoginForm({ redirectTo = '/projects' }: SimpleLoginFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleLogin();
+    
+    if (!email || !password) {
+      setError('Email y contraseña son requeridos');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      // Redirigir después del login exitoso
+      const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+      router.push(redirectTo);
+    } catch (err) {
+      setError('Error inesperado durante el login');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

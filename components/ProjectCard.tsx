@@ -9,6 +9,10 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
+  const p: LegacyProject & { total_area?: number } = project as LegacyProject & { total_area?: number };
+  const areaDisplay = typeof p.total_area === 'number' && !Number.isNaN(p.total_area)
+    ? `${p.total_area.toLocaleString()} m²`
+    : project.area;
   return (
     <Link href={`/proyecto/${project.id}`}>
       <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer rounded-xl">
@@ -34,7 +38,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
           <p className="text-gray-700 mb-3 sm:mb-4 line-clamp-2 text-xs sm:text-sm">{project.description}</p>
           <div className="flex justify-between items-center text-xs sm:text-sm text-gray-500">
-            <span>Área: {project.area}</span>
+            <span>Área total: {areaDisplay}</span>
             <span>{project.year}</span>
           </div>
         </CardContent>

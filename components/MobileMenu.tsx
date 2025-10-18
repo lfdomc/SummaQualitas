@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserRole } from '@/lib/types';
 import {
   LayoutDashboard,
   FolderOpen,
@@ -23,6 +22,7 @@ import {
   FileEdit,
   X,
   Menu,
+  Package,
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -98,6 +98,12 @@ const navigationGroups: NavigationGroup[] = [
         title: 'Equipos',
         href: '/equipment',
         icon: Wrench,
+        roles: ['cliente', 'gerencia', 'administrativo'],
+      },
+      {
+        title: 'Sumitals',
+        href: '/sumitals',
+        icon: Package,
         roles: ['cliente', 'gerencia', 'administrativo'],
       },
     ],
@@ -187,12 +193,10 @@ export function MobileMenu({ userRole, userName, onLogout }: MobileMenuProps) {
   })).filter(group => group.items.length > 0);
 
   const toggleMenu = () => {
-    console.log('Toggle menu clicked, current state:', isOpen);
     setIsOpen(!isOpen);
   };
 
   const closeMenu = () => {
-    console.log('Close menu called');
     setIsOpen(false);
   };
 

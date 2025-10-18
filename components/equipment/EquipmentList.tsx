@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { projectService, equipmentService } from '@/lib/supabase/database';
-import { Equipment, Project, UserRole } from '@/lib/types';
+import { Equipment, Project } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

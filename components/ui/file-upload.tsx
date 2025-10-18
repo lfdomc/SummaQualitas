@@ -27,7 +27,10 @@ export interface FileUploadProps {
   onFileUpload: (file: File) => Promise<FileUploadResult>;
   onFileRemove: () => void;
   acceptedFileTypes?: string[];
-  maxFileSize?: number;
+  maxFileSize?: number; // tamaño máximo tradicional
+  maxSize?: number; // alias compatible
+  label?: string; // etiqueta opcional para mostrar título
+  description?: string; // descripción opcional
   existingFile?: ExistingFile;
   className?: string;
 }
@@ -37,6 +40,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   onFileRemove,
   acceptedFileTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
   maxFileSize = 10 * 1024 * 1024, // 10MB por defecto
+  maxSize, // alias
+  label,
+  description,
   existingFile,
   className = ''
 }) => {
@@ -44,6 +50,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Aceptar alias de tamaño máximo si se proporciona
+  const effectiveMaxSize = typeof maxSize === 'number' ? maxSize : maxFileSize;
 
   const validateFile = (file: File): boolean => {
     // Validar tipo de archivo
@@ -53,8 +62,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     }
 
     // Validar tamaño
-    if (file.size > maxFileSize) {
-      toast.error(`El archivo es demasiado grande. Tamaño máximo: ${(maxFileSize / 1024 / 1024).toFixed(1)}MB`);
+    if (file.size > effectiveMaxSize) {
+      toast.error(`El archivo es demasiado grande. Tamaño máximo: ${(effectiveMaxSize / 1024 / 1024).toFixed(1)}MB`);
       return false;
     }
 
@@ -76,7 +85,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       // Reset status after 3 seconds
       setTimeout(() => setUploadStatus('idle'), 3000);
     } catch (error) {
-      console.error('Error uploading file:', error);
       setUploadStatus('error');
       toast.error(`❌ Error al subir "${file.name}": ${error instanceof Error ? error.message : 'Error desconocido'}`);
       
@@ -139,6 +147,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   return (
     <div className={`space-y-2 ${className}`}>
+      {label && (
+        <Label className="text-sm font-medium">{label}</Label>
+      )}
+      {description && (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      )}
       {existingFile ? (
         <Card className="p-3">
           <div className="flex items-center justify-between">
@@ -207,7 +221,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 )}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Tipos permitidos: PDF, JPG, PNG (máx. {(maxFileSize / 1024 / 1024).toFixed(1)}MB)
+                Tipos permitidos: PDF, JPG, PNG (máx. {(effectiveMaxSize / 1024 / 1024).toFixed(1)}MB)
               </p>
             </div>
             <Button

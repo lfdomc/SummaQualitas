@@ -42,6 +42,12 @@ export default function OptimizedDashboard() {
     return `${value.toFixed(1)}%`;
   };
 
+  // Calcular métricas derivadas cuando haya datos de KPIs
+  const netProfit = (kpis?.total_incomes || 0) - (kpis?.total_expenses || 0);
+  const profitMargin = (kpis && kpis.total_incomes > 0)
+    ? (netProfit / kpis.total_incomes) * 100
+    : 0;
+
   if (kpisError || projectsError) {
     return (
       <div className="p-6">
@@ -126,10 +132,10 @@ export default function OptimizedDashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(kpis?.total_income || 0)}
+                  {formatCurrency(kpis?.total_incomes || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {kpis?.total_income_count || 0} transacciones
+                  Último mes: {formatCurrency(kpis?.monthly_incomes || 0)}
                 </p>
               </>
             )}
@@ -154,7 +160,7 @@ export default function OptimizedDashboard() {
                   {formatCurrency(kpis?.total_expenses || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {kpis?.total_expenses_count || 0} transacciones
+                  Último mes: {formatCurrency(kpis?.monthly_expenses || 0)}
                 </p>
               </>
             )}
@@ -176,12 +182,12 @@ export default function OptimizedDashboard() {
             ) : (
               <>
                 <div className={`text-2xl font-bold ${
-                  (kpis?.net_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  netProfit >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {formatCurrency(kpis?.net_profit || 0)}
+                  {formatCurrency(netProfit)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Margen: {formatPercentage(kpis?.profit_margin || 0)}
+                  Margen: {formatPercentage(profitMargin)}
                 </p>
               </>
             )}
@@ -221,29 +227,23 @@ export default function OptimizedDashboard() {
                 <div key={project.id} className="flex justify-between items-center p-4 border rounded hover:bg-gray-50 transition-colors">
                   <div>
                     <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {project.description || 'Sin descripción'}
-                    </p>
                     <div className="flex items-center mt-2 space-x-4">
-                      <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                      <Badge variant={project.status === 'en_progreso' ? 'default' : 'secondary'}>
                         {project.status}
                       </Badge>
                       <span className="text-xs text-gray-500">
-                        Creado: {new Date(project.created_at).toLocaleDateString('es-AR')}
+                        Ingresos: {formatCurrency(project.total_incomes || 0)} · Gastos: {formatCurrency(project.total_expenses || 0)}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-semibold text-green-600">
-                      {formatCurrency(project.total_income || 0)}
-                    </div>
-                    <div className="text-sm text-red-600">
-                      -{formatCurrency(project.total_expenses || 0)}
+                    <div className={"text-sm text-muted-foreground"}>
+                      Presupuesto: {formatCurrency(project.total_budget || 0)}
                     </div>
                     <div className={`text-sm font-medium ${
-                      (project.net_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                      ((project.total_incomes || 0) - (project.total_expenses || 0)) >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {formatCurrency(project.net_profit || 0)}
+                      Balance: {formatCurrency((project.total_incomes || 0) - (project.total_expenses || 0))}
                     </div>
                   </div>
                 </div>

@@ -8,18 +8,8 @@ interface RouteParams {
   };
 }
 
-interface ChangeOrderUpdateRequest {
-  project_id?: string;
-  title?: string;
-  description?: string;
-  amount?: number;
-  currency?: string;
-  status?: string;
-  requested_by?: string;
-  approved_by?: string;
-  request_date?: string;
-  approval_date?: string;
-}
+// Nota: Usamos UpdateChangeOrderData directamente en la construcción del objeto
+// de actualización para evitar desalineaciones con el esquema tipado.
 
 // GET - Obtener una orden de cambio específica
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -82,127 +72,115 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // PUT - Actualizar una orden de cambio
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  console.log('=== PUT REQUEST RECEIVED ===');
+  // PUT request received
   
   try {
     const supabase = createClient(request);
     const { id } = await params;
-    console.log('PUT request for ID:', id);
+    // PUT request for ID processed
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.log('Auth error or no user:', authError);
+      // Auth error or no user
       return NextResponse.json(
         { success: false, error: 'No autorizado' },
         { status: 401 }
       );
     }
+
+    // Authenticated user verified
     
-    console.log('Authenticated user:', {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    });
+  const body = await request.json();
+    // Request body processed
     
-    const body: ChangeOrderUpdateRequest = await request.json();
-    console.log('Request body:', body);
+    // Validar que el ID sea válido
+    if (!id || id === 'undefined' || id === 'null') {
+      return NextResponse.json(
+        { success: false, error: 'ID de orden de cambio inválido' },
+        { status: 400 }
+      );
+    }
+
+    // Construir objeto de actualización solo con campos definidos
+  const updateData: Partial<UpdateChangeOrderData> = {};
+  
+  if (body.project_id !== undefined) updateData.project_id = body.project_id;
+  if (body.title !== undefined) updateData.title = body.title;
+  if (body.description !== undefined) updateData.description = body.description;
+  if (body.cost_impact !== undefined) updateData.cost_impact = body.cost_impact;
+  if (body.currency !== undefined) updateData.currency = body.currency; // 'CRC' | 'USD'
+  if (body.status !== undefined) updateData.status = body.status; // 'pendiente' | 'aprobado' | 'rechazado' | 'implementado'
+  if (body.impact_type !== undefined) updateData.impact_type = body.impact_type; // 'positivo' | 'negativo'
+  if (body.change_type !== undefined) updateData.change_type = body.change_type; // 'accion_correctiva' | 'accion_preventiva' | 'extras'
+  if (body.designer !== undefined) updateData.designer = body.designer;
+  if (body.approved_by !== undefined) updateData.approved_by = body.approved_by;
+  // Aceptar ambos nombres por compatibilidad, pero mapear al nombre correcto del esquema
+  if (body.requested_date !== undefined) updateData.requested_date = body.requested_date;
+  if (body.request_date !== undefined) updateData.requested_date = body.request_date;
+  if (body.approved_at !== undefined) updateData.approved_at = body.approved_at;
+  if (body.approval_date !== undefined) updateData.approved_at = body.approval_date;
+  if (body.implementation_date !== undefined) updateData.implementation_date = body.implementation_date;
+  if (body.general_comments !== undefined) updateData.general_comments = body.general_comments;
+
+  // 'updated_at' es manejado por triggers en BD; no lo establecemos aquí para mantener el tipado
+
+    // Update data being prepared
     
-    // Preparar datos de actualización
-    const updateData: Partial<UpdateChangeOrderData> = {};
-    
-    // Mapear solo los campos que existen en el esquema actual de la tabla change_orders
-    if (body.project_id !== undefined) updateData.project_id = body.project_id;
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.amount !== undefined) updateData.amount = body.amount;
-    if (body.currency !== undefined) updateData.currency = body.currency;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.requested_by !== undefined) updateData.requested_by = body.requested_by;
-    if (body.approved_by !== undefined) updateData.approved_by = body.approved_by;
-    if (body.request_date !== undefined) updateData.request_date = body.request_date;
-    if (body.approval_date !== undefined) updateData.approval_date = body.approval_date;
-    if (body.implementation_date !== undefined) updateData.implementation_date = body.implementation_date;
-    if (body.notes !== undefined) updateData.notes = body.notes;
-    
-    // Campos de impacto (se agregarán una vez que se ejecute la migración)
-    if (body.cost_impact !== undefined) updateData.cost_impact = body.cost_impact;
-    if (body.cost_impact_crc !== undefined) updateData.cost_impact_crc = body.cost_impact_crc;
-    if (body.schedule_impact_days !== undefined) updateData.schedule_impact_days = body.schedule_impact_days;
-    if (body.cost_impact_level !== undefined) updateData.cost_impact_level = body.cost_impact_level;
-    if (body.schedule_impact_level !== undefined) updateData.schedule_impact_level = body.schedule_impact_level;
-    if (body.exchange_rate !== undefined) updateData.exchange_rate = body.exchange_rate;
-    if (body.designer !== undefined) updateData.designer = body.designer;
-    if (body.cost_comments !== undefined) updateData.cost_comments = body.cost_comments;
-    if (body.schedule_comments !== undefined) updateData.schedule_comments = body.schedule_comments;
-    
-    // Agregar timestamp de actualización
-    updateData.updated_at = new Date().toISOString();
-    
-    console.log('Update data being sent:', updateData);
-    
-    // Verificar que la orden de cambio existe
+    // Verificar que la orden existe antes de actualizar
     const { data: existingOrder, error: fetchError } = await supabase
       .from('change_orders')
-      .select('id, project_id, status')
+      .select('id')
       .eq('id', id)
       .single();
-    
-    console.log('Existing order fetch result:', { existingOrder, fetchError });
+
+    // Existing order fetch result processed
     
     if (fetchError || !existingOrder) {
-      console.log('Change order not found or fetch error:', fetchError);
+      // Change order not found or fetch error
       return NextResponse.json(
-        { success: false, error: 'Orden de cambio no encontrada', details: fetchError?.message },
-        { status: 404 }
-      );
-    }
-    
-    // Actualizar la orden de cambio
-    console.log('About to update with ID:', id);
-    console.log('Update data:', JSON.stringify(updateData, null, 2));
-    
-    const { data: updatedOrder, error: updateError } = await supabase
-      .from('change_orders')
-      .update(updateData)
-      .eq('id', id)
-      .select('*');
-    
-    console.log('Update result:', { updatedOrder, updateError });
-    
-    if (updateError) {
-      console.error('Error updating change order:', updateError);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Error al actualizar la orden de cambio',
-          details: updateError.message 
-        },
-        { status: 500 }
-      );
-    }
-    
-    // Verificar que se actualizó al menos una fila
-    if (!updatedOrder || updatedOrder.length === 0) {
-      console.log('No rows updated - this is causing the 404');
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'No se pudo actualizar la orden de cambio. Verifique que el ID sea correcto y que tenga permisos.' 
-        },
+        { success: false, error: 'Orden de cambio no encontrada' },
         { status: 404 }
       );
     }
 
-    console.log('Update successful:', updatedOrder[0]);
+    // About to update with validated ID
+    
+    // Realizar la actualización
+  const { data: updatedOrder, error: updateError } = await supabase
+      .from('change_orders')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    // Update result processed
+    
+    if (updateError) {
+      console.error('Error updating change order:', updateError);
+      return NextResponse.json(
+        { success: false, error: 'Error al actualizar la orden de cambio', details: updateError },
+        { status: 500 }
+      );
+    }
+
+    if (!updatedOrder) {
+      // No rows updated - this is causing the 404
+      return NextResponse.json(
+        { success: false, error: 'No se pudo actualizar la orden de cambio' },
+        { status: 404 }
+      );
+    }
+
+    // Update successful
+    
     return NextResponse.json({
       success: true,
-      data: updatedOrder[0],
-      message: 'Orden de cambio actualizada exitosamente'
+      data: updatedOrder
     });
-    
+
   } catch (error) {
-    console.error('Error in change order PUT API:', error);
+    console.error('Error in PUT /api/change-orders/[id]:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }

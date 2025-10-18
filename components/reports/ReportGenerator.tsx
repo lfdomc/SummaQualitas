@@ -25,6 +25,12 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CustomReportsService from '@/lib/services/custom-reports';
+import { 
+  DirectExpensesByProjectMonth,
+  ProjectTotalIncome,
+  SupplierExpensesByYear,
+  ProjectProfitabilityAnalysis
+} from '@/lib/types/custom-reports';
 
 // Tipos simplificados para reportes
 type SimpleReportType = 
@@ -42,6 +48,13 @@ interface SimpleReportConfig {
   format: 'pdf' | 'excel';
 }
 
+// Unimos directamente los tipos reales que devuelven los servicios
+ type ReportData = 
+  | DirectExpensesByProjectMonth 
+  | ProjectTotalIncome 
+  | SupplierExpensesByYear 
+  | ProjectProfitabilityAnalysis;
+
 const REPORT_TYPES = [
   {
     id: 'project_expenses' as SimpleReportType,
@@ -57,14 +70,14 @@ const REPORT_TYPES = [
   },
   {
     id: 'project_summary' as SimpleReportType,
-    name: 'Resumen de Proyecto',
-    description: 'Resumen general de proyectos seleccionados',
+    name: 'Resumen por Proveedor',
+    description: 'Gastos por proveedor durante el año',
     icon: <BarChart3 className="h-4 w-4" />
   },
   {
     id: 'monthly_overview' as SimpleReportType,
-    name: 'Vista Mensual',
-    description: 'Resumen mensual de actividades',
+    name: 'Análisis de Rentabilidad',
+    description: 'Resumen de ingresos/gastos y KPIs por proyecto',
     icon: <FileText className="h-4 w-4" />
   }
 ];
@@ -74,7 +87,7 @@ function ReportGenerator() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<ReportData[] | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   
   const [config, setConfig] = useState<SimpleReportConfig>({
@@ -161,43 +174,51 @@ function ReportGenerator() {
 
     setPreviewLoading(true);
     try {
-      let reportData;
+      let reportData: ReportData[];
       
       switch (config.type) {
-        case 'project_expenses':
+        case 'project_expenses': {
           const month = config.dateFrom.getMonth() + 1;
           const year = config.dateFrom.getFullYear();
-          reportData = await CustomReportsService.getDirectExpensesByProjectMonth(
+          const data = await CustomReportsService.getDirectExpensesByProjectMonth(
             config.projectIds,
             month,
             year
           );
+          reportData = data as DirectExpensesByProjectMonth[];
           break;
+        }
 
-        case 'project_income':
-          reportData = await CustomReportsService.getProjectTotalIncome(
+        case 'project_income': {
+          const data = await CustomReportsService.getProjectTotalIncome(
             config.projectIds,
             config.dateFrom.toISOString().split('T')[0],
             config.dateTo.toISOString().split('T')[0]
           );
+          reportData = data as ProjectTotalIncome[];
           break;
+        }
 
-        case 'project_summary':
+        case 'project_summary': {
           const reportYear = config.dateFrom.getFullYear();
-          reportData = await CustomReportsService.getSupplierExpensesByYear(
+          const data = await CustomReportsService.getSupplierExpensesByYear(
             reportYear,
             undefined,
             { projectIds: config.projectIds }
           );
+          reportData = data as SupplierExpensesByYear[];
           break;
+        }
 
-        case 'monthly_overview':
-          reportData = await CustomReportsService.getProjectProfitabilityAnalysis(
+        case 'monthly_overview': {
+          const data = await CustomReportsService.getProjectProfitabilityAnalysis(
             config.projectIds,
             config.dateFrom.toISOString().split('T')[0],
             config.dateTo.toISOString().split('T')[0]
           );
+          reportData = data as ProjectProfitabilityAnalysis[];
           break;
+        }
 
         default:
           alert('Tipo de reporte no implementado');
@@ -232,6 +253,12 @@ function ReportGenerator() {
       case 'cancelled': return 'Cancelado';
       default: return 'Desconocido';
     }
+  };
+
+  const getClientName = (client: any) => {
+    if (!client) return 'Sin cliente';
+    if (typeof client === 'string') return client;
+    return client.name || 'Sin cliente';
   };
 
   return (
@@ -362,7 +389,6 @@ function ReportGenerator() {
                 variant="outline" 
                 size="sm" 
                 onClick={handleSelectAllProjects}
-                disabled={loading}
               >
                 Seleccionar Todos
               </Button>
@@ -370,119 +396,62 @@ function ReportGenerator() {
                 variant="outline" 
                 size="sm" 
                 onClick={handleDeselectAllProjects}
-                disabled={loading}
               >
-                Deseleccionar Todos
+                Quitar Todos
               </Button>
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="text-gray-500">Cargando proyectos...</div>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-gray-500">No se encontraron proyectos</div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {projects.map((project) => (
-                <div key={project.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <Checkbox
-                    id={project.id}
-                    checked={config.projectIds.includes(project.id)}
-                    onCheckedChange={() => handleProjectToggle(project.id)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <Label htmlFor={project.id} className="font-medium cursor-pointer">
-                      {project.name}
-                    </Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge className={getStatusColor(project.status)}>
-                        {getStatusLabel(project.status)}
-                      </Badge>
-                      {project.budget && (
-                        <span className="text-sm text-gray-500">
-                          ${project.budget.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-72 overflow-auto">
+            {projects.map(project => (
+              <div key={project.id} className="flex items-center justify-between p-2 border rounded-lg">
+                <div>
+                  <div className="font-medium">{project.name}</div>
+                  <div className="text-sm text-gray-600">{getClientName(project.client)}</div>
+                  <div className="mt-1">
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(project.status)}`}>
+                      {getStatusLabel(project.status)}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <Checkbox 
+                  checked={config.projectIds.includes(project.id)} 
+                  onCheckedChange={() => handleProjectToggle(project.id)}
+                />
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Botones de Acción */}
-      <div className="flex justify-end gap-4">
+      {/* Acciones */}
+      <div className="flex gap-3">
         <Button 
-           variant="outline" 
-           onClick={handlePreview}
-           disabled={generating || loading || previewLoading || config.projectIds.length === 0}
-           className="flex items-center gap-2"
-         >
-          {previewLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-              Cargando...
-            </>
-          ) : (
-            <>
-              <Eye className="h-4 w-4" />
-              Vista Previa
-            </>
-          )}
+          variant="outline" 
+          onClick={handlePreview}
+          disabled={previewLoading || loading || config.projectIds.length === 0}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          {previewLoading ? 'Generando Vista Previa...' : 'Vista Previa'}
         </Button>
         <Button 
           onClick={generateReport}
           disabled={generating || loading || config.projectIds.length === 0}
-          className="flex items-center gap-2"
         >
-          {generating ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Generando...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4" />
-              Generar Reporte
-            </>
-          )}
+          <Download className="h-4 w-4 mr-2" />
+          {generating ? 'Generando...' : 'Generar Reporte'}
         </Button>
       </div>
 
-      {/* Información de Selección */}
-      {config.projectIds.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-sm text-gray-600">
-              <strong>Proyectos seleccionados:</strong> {config.projectIds.length} de {projects.length}
-            </div>
-            <div className="text-sm text-gray-600 mt-1">
-              <strong>Período:</strong> {format(config.dateFrom, "dd/MM/yyyy", { locale: es })} - {format(config.dateTo, "dd/MM/yyyy", { locale: es })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Dialog de Vista Previa */}
+      {/* Vista Previa */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Vista Previa del Reporte</DialogTitle>
+            <DialogTitle>Vista Previa: {config.title || 'Reporte'}</DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
-            {previewData && (
-               <ReportPreviewContent
-                 reportType={config.type}
-                 data={previewData}
-               />
-             )}
+          <div className="max-h-[70vh] overflow-auto">
+            <ReportPreviewContent type={config.type} data={previewData} />
           </div>
         </DialogContent>
       </Dialog>
@@ -490,248 +459,234 @@ function ReportGenerator() {
   );
 }
 
-// Componente para mostrar la vista previa del reporte
-interface ReportPreviewContentProps {
-  reportType: SimpleReportType;
-  data: any[];
-}
+// Formateo común
+const formatCurrency = (value: number) => new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC' }).format(value);
+const formatDate = (date: string | Date) => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium' }).format(d);
+};
 
-const ReportPreviewContent: React.FC<ReportPreviewContentProps> = ({ reportType, data }) => {
-  const formatCurrency = (amount: number, currency: string = 'CRC') => {
-    return new Intl.NumberFormat('es-CR', {
-      style: 'currency',
-      currency: currency === 'USD' ? 'USD' : 'CRC',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: es });
-  };
-
+// Render de vista previa por tipo
+const ReportPreviewContent: React.FC<{ type: SimpleReportType; data: ReportData[] | null }> = ({ type, data }) => {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        No se encontraron datos para mostrar
+        No hay datos disponibles para la vista previa
       </div>
     );
   }
 
-  switch (reportType) {
+  switch (type) {
     case 'project_expenses':
       return (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold">Gastos Directos por Proyecto</h3>
-          {data.map((projectData: any, index: number) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {projectData.project?.name || 'Proyecto sin nombre'}
-                  <span className="text-sm text-gray-500 ml-2">
-                    ({projectData.project?.client || 'Cliente no especificado'})
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Total en CRC:</span>
-                    <span className="font-semibold">
-                      {formatCurrency(projectData.totalInCRC || 0, 'CRC')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Total en USD:</span>
-                    <span className="font-semibold">
-                      {formatCurrency(projectData.totalInUSD || 0, 'USD')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Número de Gastos:</span>
-                    <span>{projectData.expenseCount || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Período:</span>
-                    <span>{projectData.month} {projectData.year}</span>
-                  </div>
-                  
-                  {/* Desglose de gastos directos */}
-                  {projectData.directExpenses && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium text-sm mb-2">Desglose de Gastos Directos:</h4>
+          {data.map((item, index) => {
+            const projectData = item as DirectExpensesByProjectMonth;
+            return (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {projectData.project.name}
+                    <span className="text-sm text-gray-500 ml-2">({projectData.project.client})</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Total en CRC:</span>
+                        <span className="font-semibold">{formatCurrency(projectData.totalInCRC)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total en USD:</span>
+                        <span className="font-semibold">${projectData.totalInUSD.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Número de Gastos:</span>
+                        <span className="font-semibold">{projectData.expenseCount}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-medium mb-2">Gastos Directos</div>
                       <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
-                          <span>Subcontratos:</span>
-                          <span>{formatCurrency(projectData.directExpenses.subcontratos || 0, 'CRC')}</span>
+                          <span>Subcontratos</span>
+                          <span>{formatCurrency(projectData.directExpenses.subcontratos)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Materiales:</span>
-                          <span>{formatCurrency(projectData.directExpenses.materiales || 0, 'CRC')}</span>
+                          <span>Materiales</span>
+                          <span>{formatCurrency(projectData.directExpenses.materiales)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Otros:</span>
-                          <span>{formatCurrency(projectData.directExpenses.otros || 0, 'CRC')}</span>
+                          <span>Otros</span>
+                          <span>{formatCurrency(projectData.directExpenses.otros)}</span>
                         </div>
-                        <div className="flex justify-between font-medium border-t pt-1">
-                          <span>Total:</span>
-                          <span>{formatCurrency(projectData.directExpenses.total || 0, 'CRC')}</span>
+                        <div className="flex justify-between border-t pt-1 font-medium">
+                          <span>Total</span>
+                          <span>{formatCurrency(projectData.directExpenses.total)}</span>
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       );
 
     case 'project_income':
       return (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold">Ingresos Totales por Proyecto</h3>
-          {data.map((projectData: any, index: number) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {projectData.project?.name || 'Proyecto sin nombre'}
-                  <span className="text-sm text-gray-500 ml-2">
-                    ({projectData.project?.client || 'Cliente no especificado'})
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Total de Ingresos:</span>
-                    <span className="font-semibold text-green-600">
-                      {formatCurrency(projectData.totalIncome || 0)}
-                    </span>
+          {data.map((item, index) => {
+            const incomeData = item as ProjectTotalIncome;
+            return (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {incomeData.project.name}
+                    <span className="text-sm text-gray-500 ml-2">({incomeData.project.client})</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Total de Ingresos:</span>
+                        <span className="font-semibold text-green-600">{formatCurrency(incomeData.totalIncome)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Ingresos Confirmados:</span>
+                        <span className="font-semibold">{formatCurrency(incomeData.confirmedIncome)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Ingresos Pendientes:</span>
+                        <span className="font-semibold">{formatCurrency(incomeData.pendingIncome)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600">Número de Ingresos</div>
+                        <div className="text-3xl font-bold">{incomeData.incomeCount}</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Número de Ingresos:</span>
-                    <span>{projectData.incomeCount || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Estado del Proyecto:</span>
-                    <span className="capitalize">{projectData.project?.status || 'Sin estado'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       );
 
     case 'project_summary':
       return (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold">Gastos por Proveedor</h3>
-          {data.map((supplierData: any, index: number) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {supplierData.supplier?.name || 'Proveedor sin nombre'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Total en CRC:</span>
-                    <span className="font-semibold">
-                      {formatCurrency(supplierData.totalExpensesCRC || 0, 'CRC')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Total en USD:</span>
-                    <span className="font-semibold">
-                      {formatCurrency(supplierData.totalExpensesUSD || 0, 'USD')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Número de Gastos:</span>
-                    <span>{supplierData.expenseCount || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Año:</span>
-                    <span>{supplierData.year}</span>
-                  </div>
-                  
-                  {/* Información de contacto */}
-                  {supplierData.supplier?.contactName && (
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Contacto:</span>
-                      <span>{supplierData.supplier.contactName}</span>
+          {data.map((item, index) => {
+            const supplierData = item as SupplierExpensesByYear;
+            return (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {supplierData.supplier.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Total de Gastos:</span>
+                        <span className="font-semibold">{formatCurrency(supplierData.totalExpenses)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Número de Gastos:</span>
+                        <span className="font-semibold">{supplierData.expenseCount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Año:</span>
+                        <span className="font-semibold">{supplierData.year}</span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    <div>
+                      <div className="font-medium mb-2">Por Proyecto</div>
+                      <div className="space-y-1">
+                        {supplierData.projects.map((proj, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span>{proj.projectName}</span>
+                            <span>{formatCurrency(proj.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       );
 
     case 'monthly_overview':
       return (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold">Análisis de Rentabilidad</h3>
-          {data.map((projectData: any, index: number) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {projectData.project?.name || 'Proyecto sin nombre'}
-                  <span className="text-sm text-gray-500 ml-2">
-                    ({projectData.project?.client || 'Cliente no especificado'})
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Ingresos Totales:</span>
-                      <span className="font-semibold text-green-600">
-                        {formatCurrency(projectData.totalIncome || 0)}
-                      </span>
+          {data.map((item, index) => {
+            const projectData = item as ProjectProfitabilityAnalysis;
+            return (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {projectData.project.name}
+                    <span className="text-sm text-gray-500 ml-2">
+                      ({projectData.project.client})
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Ingresos Totales:</span>
+                        <span className="font-semibold text-green-600">
+                          {formatCurrency(projectData.totalIncome || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Gastos Totales:</span>
+                        <span className="font-semibold text-red-600">
+                          {formatCurrency(projectData.totalExpenses || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span>Ganancia Bruta:</span>
+                        <span className={`font-semibold ${(projectData.grossProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(projectData.grossProfit || 0)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Gastos Totales:</span>
-                      <span className="font-semibold text-red-600">
-                        {formatCurrency(projectData.totalExpenses || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2">
-                      <span>Ganancia Bruta:</span>
-                      <span className={`font-semibold ${(projectData.grossProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(projectData.grossProfit || 0)}
-                      </span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Margen de Ganancia:</span>
+                        <span className={`font-semibold ${(projectData.profitMargin || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(projectData.profitMargin || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>ROI:</span>
+                        <span className={`font-semibold ${(projectData.roi || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(projectData.roi || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Uso del Presupuesto:</span>
+                        <span className="font-semibold">
+                          {(projectData.budgetUtilization || 0).toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Margen de Ganancia:</span>
-                      <span className={`font-semibold ${(projectData.profitMargin || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {(projectData.profitMargin || 0).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ROI:</span>
-                      <span className={`font-semibold ${(projectData.roi || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {(projectData.roi || 0).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Uso del Presupuesto:</span>
-                      <span className="font-semibold">
-                        {(projectData.budgetUtilization || 0).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       );
 

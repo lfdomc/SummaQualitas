@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError) {
-      console.error('❌ [API Auth Status] Error al obtener sesión:', sessionError);
       return NextResponse.json({
         user: null,
         profile: null,
@@ -46,8 +45,6 @@ export async function GET(request: NextRequest) {
         isAuthenticated: true
       });
     } catch (profileError) {
-      console.error('❌ [API Auth Status] Error al obtener perfil:', profileError);
-      
       // Devolver usuario sin perfil si hay error
       return NextResponse.json({
         user: {
@@ -63,7 +60,6 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('❌ [API Auth Status] Error general:', error);
     return NextResponse.json({
       user: null,
       profile: null,

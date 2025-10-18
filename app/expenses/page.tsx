@@ -12,19 +12,21 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileUpload } from '@/components/ui/file-upload';
 import { TranslatableInput } from '@/components/ui/translatable-input';
-import { Plus, Search, Filter, DollarSign, TrendingUp, TrendingDown, Calendar, Building2, Edit, Trash2, UserPlus, FileText, Upload, X, Calculator, Users, Truck, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, DollarSign, TrendingUp, TrendingDown, Calendar, Building2, Edit, Trash2, UserPlus, FileText, Upload, X, Calculator, Users, Truck, AlertTriangle, Download } from 'lucide-react';
 import { ProjectService } from '@/lib/supabase/database';
 import { Project, Supplier } from '@/types/database';
 import { 
   Expense, 
   CreateExpenseData, 
+  UpdateExpenseData,
   ExpenseForm as ExpenseFormType,
   ExpenseSummary,
   EXPENSE_CATEGORIES, 
   DIRECT_COST_SUBCATEGORIES, 
   INDIRECT_COST_SUBCATEGORIES,
   PAYMENT_STATUSES,
-  CURRENCIES
+  CURRENCIES,
+  ExpenseCategory
 } from '@/lib/types/expense';
 import { ExpenseService } from '@/lib/services/expenseService';
 import { toast } from 'sonner';
@@ -106,7 +108,7 @@ export default function ExpensesPage() {
           const rate = await getExchangeRate(expenseForm.date);
           setExpenseForm(prev => ({ ...prev, exchange_rate: rate.toString() }));
         } catch (error) {
-          console.error('Error updating exchange rate for currency change:', error);
+          // Error silently handled - exchange rate can be set manually
         }
       }
       // Removido el else if que limpiaba el exchange_rate para USD
@@ -126,7 +128,6 @@ export default function ExpensesPage() {
       toast.success('Archivo subido exitosamente');
       return result;
     } catch (error) {
-      console.error('Error uploading file:', error);
       toast.error('Error al subir el archivo');
       throw error;
     }
@@ -152,7 +153,6 @@ export default function ExpensesPage() {
       toast.success('Comprobante de referencia subido exitosamente');
       return result;
     } catch (error) {
-      console.error('Error uploading reference file:', error);
       toast.error('Error al subir el comprobante de referencia');
       throw error;
     }
@@ -195,7 +195,6 @@ export default function ExpensesPage() {
       
       // Manejar respuesta de proveedores
       if (suppliersResponse.error) {
-        console.error('Error loading suppliers:', suppliersResponse.error);
         toast.error('Error al cargar proveedores');
       } else {
         setSuppliers(suppliersResponse.data || []);
@@ -205,7 +204,6 @@ export default function ExpensesPage() {
       setExpenses(expensesResponse.data || []);
       
     } catch (error) {
-      console.error('Error loading data:', error);
       toast.error('Error al cargar los datos');
     } finally {
       setIsLoading(false);
@@ -226,7 +224,6 @@ export default function ExpensesPage() {
       
       return defaultRate + variation;
     } catch (error) {
-      console.error('Error calculating exchange rate:', error);
       return 500; // Valor por defecto
     }
   };
@@ -239,7 +236,7 @@ export default function ExpensesPage() {
         const rate = await getExchangeRate(date);
         setExpenseForm(prev => ({ ...prev, exchange_rate: rate.toString() }));
       } catch (error) {
-        console.error('Error updating exchange rate:', error);
+        // Error silently handled - exchange rate can be set manually
       }
     }
   };
@@ -305,7 +302,6 @@ export default function ExpensesPage() {
       resetExpenseForm();
       toast.success('Gasto agregado exitosamente');
     } catch (error) {
-      console.error('Error adding expense:', error);
       toast.error('Error al agregar el gasto');
     }
   };
@@ -348,7 +344,7 @@ export default function ExpensesPage() {
       amount: expense.amount.toString(),
       currency: expense.currency || 'CRC',
       exchange_rate: expense.exchange_rate_usd?.toString() || '',
-      date: expense.expense_date || expense.date || new Date().toISOString().split('T')[0],
+      date: expense.expense_date || new Date().toISOString().split('T')[0],
       supplier_id: expense.supplier_id || 'none',
       invoice_number: expense.invoice_number || '',
       payment_status: expense.payment_status || 'pendiente',
@@ -369,7 +365,7 @@ export default function ExpensesPage() {
     if (!editingExpense) return;
     
     // Preparar datos para la actualización (mover fuera del try para que esté disponible en catch)
-    let updateData: any = null;
+    let updateData: UpdateExpenseData | null = null;
     
     try {
       // Validaciones básicas
@@ -402,7 +398,6 @@ export default function ExpensesPage() {
       
       // Preparar datos para la actualización
       updateData = {
-        project_id: expenseForm.project_id,
         category: expenseForm.category,
         description: expenseForm.description.trim(),
         amount: inputAmount,
@@ -448,14 +443,6 @@ export default function ExpensesPage() {
       resetExpenseForm();
       toast.success('Gasto actualizado exitosamente');
     } catch (error) {
-      console.error('Error updating expense (catch block):', {
-        error,
-        message: error instanceof Error ? error.message : 'Error desconocido',
-        stack: error instanceof Error ? error.stack : undefined,
-        updateData: updateData || 'No updateData available',
-        expenseId: editingExpense?.id || 'No expense ID',
-        formData: expenseForm
-      });
       toast.error(`Error al actualizar el gasto: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
@@ -466,7 +453,7 @@ export default function ExpensesPage() {
     resetExpenseForm();
   };
 
-  const handleNewSupplierCreated = async (newSupplier: Supplier) => {
+  const handleNewSupplierCreated = async (newSupplier: { id: string }) => {
     // Recargar la lista de proveedores
     try {
       const { data: suppliersData, error: suppliersError } = await supabase
@@ -476,7 +463,6 @@ export default function ExpensesPage() {
         .order('name', { ascending: true });
       
       if (suppliersError) {
-        console.error('Error loading suppliers:', suppliersError);
         toast.error('Error al cargar proveedores');
       } else {
         setSuppliers(suppliersData || []);
@@ -485,7 +471,6 @@ export default function ExpensesPage() {
         toast.success('Proveedor creado y seleccionado exitosamente');
       }
     } catch (error) {
-      console.error('Error reloading suppliers:', error);
       toast.error('Error al recargar proveedores');
     }
     
@@ -579,12 +564,14 @@ export default function ExpensesPage() {
 
   // Función optimizada para calcular totales por categoría
   const calculateCategoryTotals = (expenses: Expense[]) => {
-    const totals = {
+    const totals: Record<ExpenseCategory, { total_crc: number; total_usd: number; count: number }> = {
       costos_directos: { total_crc: 0, total_usd: 0, count: 0 },
       costos_indirectos: { total_crc: 0, total_usd: 0, count: 0 },
       mano_obra: { total_crc: 0, total_usd: 0, count: 0 },
       administracion: { total_crc: 0, total_usd: 0, count: 0 },
-      imprevistos: { total_crc: 0, total_usd: 0, count: 0 }
+      imprevistos: { total_crc: 0, total_usd: 0, count: 0 },
+      gastos_administrativos: { total_crc: 0, total_usd: 0, count: 0 },
+      utilidad: { total_crc: 0, total_usd: 0, count: 0 }
     };
 
     expenses.forEach(expense => {
@@ -592,7 +579,7 @@ export default function ExpensesPage() {
       if (totals[category]) {
         totals[category].count++;
         
-        const exchangeRate = expense.exchange_rate_usd || expense.exchange_rate || 600;
+        const exchangeRate = expense.exchange_rate_usd || 600;
         
         if (expense.currency === 'USD') {
           totals[category].total_usd += expense.amount;
@@ -647,8 +634,121 @@ export default function ExpensesPage() {
     };
   };
 
+  // Función para exportar gastos a Excel
+  const exportToExcel = async () => {
+    try {
+      // Importar la librería de forma perezosa para evitar cargarla en SSR/initial render
+      const XLSX = await import('xlsx');
+      // Preparar los datos para exportar
+      const dataToExport = filteredExpenses.map(expense => {
+        const project = projects.find(p => p.id === expense.project_id);
+        const supplier = suppliers.find(s => s.id === expense.supplier_id);
+        const category = EXPENSE_CATEGORIES.find(cat => cat.value === expense.category);
+        
+        // Obtener la subcategoría correcta según el tipo
+        let subcategory = 'N/A';
+        if (expense.subcategory_direct) {
+          const directSubcat = DIRECT_COST_SUBCATEGORIES.find(sub => sub.value === expense.subcategory_direct);
+          subcategory = directSubcat?.label || expense.subcategory_direct;
+        } else if (expense.subcategory_indirect) {
+          const indirectSubcat = INDIRECT_COST_SUBCATEGORIES.find(sub => sub.value === expense.subcategory_indirect);
+          subcategory = indirectSubcat?.label || expense.subcategory_indirect;
+        }
+        
+        // Calcular el tipo de cambio para mostrar ambas monedas
+        const exchangeRate = expense.exchange_rate_usd || 500; // Usar el tipo de cambio real si está disponible
+        const amountCRC = expense.currency === 'USD' ? expense.amount * exchangeRate : expense.amount;
+        const amountUSD = expense.currency === 'CRC' ? expense.amount / exchangeRate : expense.amount;
+
+        return {
+          'Fecha': new Date(expense.expense_date).toLocaleDateString('es-CR'),
+          'Proyecto': project?.name || 'N/A',
+          'Descripción': expense.description,
+          'Categoría': category?.label || expense.category,
+          'Subcategoría': subcategory,
+          'Proveedor': supplier?.name || 'N/A',
+          'Referencia': expense.reference || 'N/A',
+          'Monto Original': expense.amount.toLocaleString('es-CR', { 
+            style: 'currency', 
+            currency: expense.currency 
+          }),
+          'Moneda': expense.currency,
+          'Tipo de Cambio USD': expense.exchange_rate_usd?.toFixed(2) || 'N/A',
+          'Monto CRC': amountCRC.toLocaleString('es-CR', { 
+            style: 'currency', 
+            currency: 'CRC' 
+          }),
+          'Monto USD': amountUSD.toLocaleString('en-US', { 
+            style: 'currency', 
+            currency: 'USD' 
+          }),
+          'Adjunto de Factura': expense.receipt_url || 'Sin adjunto',
+          'Adjunto de Referencia': expense.reference_attachment_url || 'Sin adjunto',
+          'Notas': expense.notes || '',
+          'Detalles': expense.details || ''
+        };
+      });
+
+      // Crear el libro de trabajo
+      const workbook = XLSX.utils.book_new();
+      
+      // Crear la hoja de trabajo con los datos
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      
+      // Ajustar el ancho de las columnas
+      const columnWidths = [
+        { wch: 12 }, // Fecha
+        { wch: 25 }, // Proyecto
+        { wch: 30 }, // Descripción
+        { wch: 20 }, // Categoría
+        { wch: 20 }, // Subcategoría
+        { wch: 25 }, // Proveedor
+        { wch: 20 }, // Referencia
+        { wch: 15 }, // Monto Original
+        { wch: 8 },  // Moneda
+        { wch: 15 }, // Tipo de Cambio USD
+        { wch: 15 }, // Monto CRC
+        { wch: 15 }, // Monto USD
+        { wch: 35 }, // Adjunto de Factura
+        { wch: 35 }, // Adjunto de Referencia
+        { wch: 30 }, // Notas
+        { wch: 30 }  // Detalles
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Agregar la hoja al libro
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Gastos');
+
+      // Crear el nombre del archivo con la fecha actual y el nombre del proyecto
+      const currentDate = new Date().toISOString().split('T')[0];
+      let fileName = `gastos_${currentDate}`;
+      
+      // Si hay un proyecto específico seleccionado, agregarlo al nombre
+      if (selectedProject !== 'all') {
+        const selectedProjectData = projects.find(p => p.id === selectedProject);
+        if (selectedProjectData) {
+          // Limpiar el nombre del proyecto para uso en nombre de archivo
+          const cleanProjectName = selectedProjectData.name
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Remover caracteres especiales
+            .replace(/\s+/g, '_') // Reemplazar espacios con guiones bajos
+            .substring(0, 30); // Limitar longitud
+          fileName = `gastos_${cleanProjectName}_${currentDate}`;
+        }
+      }
+      
+      fileName += '.xlsx';
+
+      // Descargar el archivo
+      XLSX.writeFile(workbook, fileName);
+      
+      toast.success(`Archivo ${fileName} descargado exitosamente`);
+    } catch (error) {
+      toast.error('Error al exportar los datos a Excel');
+    }
+  };
+
   // Componente de resumen por categorías
-  const ExpenseSummary = () => {
+  const CategorySummaryCard = () => {
     const categories = [
       {
         key: 'costos_directos' as const,
@@ -836,7 +936,7 @@ export default function ExpensesPage() {
                 <Label htmlFor="category">Categoría</Label>
                 <Select
                   value={expenseForm.category}
-                  onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value as any }))}
+                  onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value as ExpenseCategory }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1045,7 +1145,7 @@ export default function ExpensesPage() {
                   existingFile={expenseForm.reference_attachment_url ? {
                     name: expenseForm.reference_attachment_name || 'Comprobante de Referencia',
                     type: expenseForm.reference_attachment_type || 'application/pdf',
-                    size: expenseForm.reference_attachment_size || 0,
+                    size: expenseForm.reference_attachment_size ? parseInt(expenseForm.reference_attachment_size) : 0,
                     url: expenseForm.reference_attachment_url
                   } : undefined}
                 />
@@ -1095,7 +1195,7 @@ export default function ExpensesPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit_category">Categoría *</Label>
-                <Select value={expenseForm.category} onValueChange={(value: any) => setExpenseForm(prev => ({ ...prev, category: value }))}>
+                <Select value={expenseForm.category} onValueChange={(value: ExpenseCategory) => setExpenseForm(prev => ({ ...prev, category: value }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1307,7 +1407,7 @@ export default function ExpensesPage() {
                   existingFile={expenseForm.reference_attachment_url ? {
                     name: expenseForm.reference_attachment_name || 'Comprobante de Referencia',
                     type: expenseForm.reference_attachment_type || 'application/pdf',
-                    size: expenseForm.reference_attachment_size || 0,
+                    size: expenseForm.reference_attachment_size ? parseInt(expenseForm.reference_attachment_size) : 0,
                     url: expenseForm.reference_attachment_url
                   } : undefined}
                 />
@@ -1550,20 +1650,36 @@ export default function ExpensesPage() {
       </Card>
 
       {/* Expense Summary by Category */}
-      <ExpenseSummary categoryTotals={calculateCategoryTotals(filteredExpenses)} />
+      <CategorySummaryCard />
 
       {/* Expenses Table */}
       <Card>
         <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl">
-            <span className="sm:hidden">Gastos</span>
-            <span className="hidden sm:inline">Expense List</span>
-          </CardTitle>
-          <CardDescription className="text-sm">
-            {filteredExpenses.length} 
-            <span className="sm:hidden"> gastos encontrados</span>
-            <span className="hidden sm:inline"> expenses found</span>
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg sm:text-xl">
+                <span className="sm:hidden">Gastos</span>
+                <span className="hidden sm:inline">Expense List</span>
+              </CardTitle>
+              <CardDescription className="text-sm">
+                {filteredExpenses.length} 
+                <span className="sm:hidden"> gastos encontrados</span>
+                <span className="hidden sm:inline"> expenses found</span>
+              </CardDescription>
+            </div>
+            {filteredExpenses.length > 0 && (
+              <Button 
+                onClick={exportToExcel}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                <span className="sm:hidden">Exportar Excel</span>
+                <span className="hidden sm:inline">Export to Excel</span>
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {filteredExpenses.length === 0 ? (

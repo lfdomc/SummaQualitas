@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { EquipmentForm } from '@/components/equipment/EquipmentForm';
 import { withAuth } from '@/components/auth/withAuth';
-import { UserRole, Equipment } from '@/lib/types';
+import { Equipment } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EquipmentService } from '@/lib/supabase/database';
@@ -117,4 +117,4 @@ function EditEquipmentPage() {
   );
 }
 
-export default withAuth(EditEquipmentPage, [UserRole.GERENCIA, UserRole.ADMINISTRATIVO]);
+export default withAuth(EditEquipmentPage, ['gerencia', 'administrativo']);

@@ -1,8 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔧 Script para crear la tabla equipment_monthly_expenses');
-console.log('');
+// Script para crear la tabla equipment_monthly_expenses
 
 try {
   // Leer el archivo de migración
@@ -16,20 +15,18 @@ try {
   
   const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
   
-  console.log('📋 Para crear la tabla equipment_monthly_expenses:');
-  console.log('');
-  console.log('1. Ve a tu dashboard de Supabase');
-  console.log('2. Navega a SQL Editor');
-  console.log('3. Copia y pega el siguiente SQL:');
-  console.log('');
+  // Para crear la tabla equipment_monthly_expenses:
+  // 1. Ve a tu dashboard de Supabase
+  // 2. Navega a SQL Editor
+  // 3. Copia y pega el siguiente SQL:
+  
   console.log('='.repeat(80));
   console.log(migrationSQL);
   console.log('='.repeat(80));
-  console.log('');
-  console.log('4. Ejecuta el SQL');
-  console.log('5. Verifica que la tabla se creó correctamente');
-  console.log('');
-  console.log('✅ Una vez ejecutado, el error de equipment_monthly_expenses debería resolverse');
+  
+  // 4. Ejecuta el SQL
+  // 5. Verifica que la tabla se creó correctamente
+  // Una vez ejecutado, el error de equipment_monthly_expenses debería resolverse
   
 } catch (error) {
   console.error('❌ Error leyendo el archivo de migración:', error);

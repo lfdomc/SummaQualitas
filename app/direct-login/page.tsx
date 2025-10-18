@@ -48,10 +48,15 @@ export default function DirectLoginPage() {
           router.push('/projects');
         }, 2000);
 
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ Error en login:', error);
-        setStatus(`❌ Error: ${error.message}`);
-        setDetails(JSON.stringify(error, null, 2));
+        if (error instanceof Error) {
+          setStatus(`❌ Error: ${error.message}`);
+          setDetails(JSON.stringify(error, null, 2));
+        } else {
+          setStatus('❌ Error: Error desconocido durante el login');
+          setDetails(String(error));
+        }
         setIsLoading(false);
       }
     };

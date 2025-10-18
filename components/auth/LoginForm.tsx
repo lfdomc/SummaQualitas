@@ -44,16 +44,17 @@ export function LoginForm({ redirectTo = '/projects' }: LoginFormProps) {
       const { error } = await signIn(email, password);
 
       if (error) {
-        console.error('❌ [LoginForm] Error de autenticación:', error);
         setLocalError(error.message || 'Error durante el login');
         return;
       }
       
-      // Redirección directa
-      router.push(redirectTo);
+      // Esperar un momento para que el estado de autenticación se actualice
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Usar window.location para una redirección más robusta
+      window.location.href = redirectTo;
       
     } catch (err) {
-      console.error('❌ [LoginForm] Error inesperado:', err);
       setLocalError('Error inesperado. Por favor intenta de nuevo.');
     } finally {
       setLocalLoading(false);

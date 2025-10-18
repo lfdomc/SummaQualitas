@@ -44,48 +44,56 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
       currency: currency === 'USD' ? 'USD' : 'CRC',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount);
+    }).format(amount || 0);
   };
 
-  const renderDirectExpensesByProjectMonth = (reportData: DirectExpensesByProjectMonth) => (
+  const renderDirectExpensesByProjectMonth = (items: DirectExpensesByProjectMonth[]) => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-600">Total Gastos</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalExpenses)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Proyectos</p>
-                <p className="text-lg font-semibold">{reportData.projectCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-gray-600">Período</p>
-                <p className="text-lg font-semibold">{reportData.month}/{reportData.year}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {(() => {
+        const totalCRC = (items || []).reduce((sum, it) => sum + (it.totalInCRC || 0), 0);
+        const projectsCount = (items || []).length;
+        const month = items?.[0]?.month;
+        const year = items?.[0]?.year;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Total Gastos (CRC)</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalCRC, 'CRC')}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Proyectos</p>
+                    <p className="text-lg font-semibold">{projectsCount}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Período</p>
+                    <p className="text-lg font-semibold">{month}/{year}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       <Card>
         <CardHeader>
@@ -93,17 +101,15 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {reportData.expenses.map((expense, index) => (
-              <div key={expense.projectName || `expense-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            {(items || []).map((item, index) => (
+              <div key={item.project?.id || `expense-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium">{expense.projectName}</p>
-                  <p className="text-sm text-gray-600">{expense.expenseCount} gastos</p>
+                  <p className="font-medium">{item.project?.name}</p>
+                  <p className="text-sm text-gray-600">{item.expenseCount} gastos</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(expense.totalAmount, expense.currency)}</p>
-                  <Badge variant="secondary" className="text-xs">
-                    {expense.currency}
-                  </Badge>
+                  <p className="font-semibold">{formatCurrency(item.totalInCRC, 'CRC')}</p>
+                  <Badge variant="secondary" className="text-xs">CRC</Badge>
                 </div>
               </div>
             ))}
@@ -113,47 +119,51 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
     </div>
   );
 
-  const renderProjectTotalIncome = (reportData: ProjectTotalIncome) => (
+  const renderProjectTotalIncome = (items: ProjectTotalIncome[]) => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-600">Ingresos Totales</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalIncome)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Proyectos</p>
-                <p className="text-lg font-semibold">{reportData.projectCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-gray-600">Promedio por Proyecto</p>
-                <p className="text-lg font-semibold">
-                  {formatCurrency(reportData.totalIncome / reportData.projectCount)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {(() => {
+        const totalIncome = (items || []).reduce((sum, it) => sum + (it.totalIncome || 0), 0);
+        const projectsCount = (items || []).length || 1;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Ingresos Totales</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalIncome)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Proyectos</p>
+                    <p className="text-lg font-semibold">{projectsCount}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Promedio por Proyecto</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalIncome / projectsCount)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       <Card>
         <CardHeader>
@@ -161,17 +171,14 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {reportData.incomes.map((income, index) => (
-              <div key={income.projectName || `income-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            {(items || []).map((it, index) => (
+              <div key={it.project?.id || `income-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium">{income.projectName}</p>
-                  <p className="text-sm text-gray-600">{income.incomeCount} ingresos</p>
+                  <p className="font-medium">{it.project?.name}</p>
+                  <p className="text-sm text-gray-600">{it.incomeCount} ingresos</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(income.totalAmount, income.currency)}</p>
-                  <Badge variant="secondary" className="text-xs">
-                    {income.currency}
-                  </Badge>
+                  <p className="font-semibold">{formatCurrency(it.totalIncome)}</p>
                 </div>
               </div>
             ))}
@@ -181,45 +188,52 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
     </div>
   );
 
-  const renderSupplierExpensesByYear = (reportData: SupplierExpensesByYear) => (
+  const renderSupplierExpensesByYear = (items: SupplierExpensesByYear[]) => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="text-sm text-gray-600">Total Gastos</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalExpenses)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Proveedores</p>
-                <p className="text-lg font-semibold">{reportData.supplierCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-gray-600">Año</p>
-                <p className="text-lg font-semibold">{reportData.year}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {(() => {
+        const totalExpenses = (items || []).reduce((sum, it) => sum + (it.totalExpenses || 0), 0);
+        const supplierCount = (items || []).length;
+        const year = items?.[0]?.year;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-red-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Total Gastos</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalExpenses)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Proveedores</p>
+                    <p className="text-lg font-semibold">{supplierCount}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Año</p>
+                    <p className="text-lg font-semibold">{year}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       <Card>
         <CardHeader>
@@ -227,17 +241,14 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {reportData.expenses.map((expense, index) => (
-              <div key={expense.supplierName || `supplier-expense-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            {(items || []).map((it, index) => (
+              <div key={it.supplier?.id || `supplier-expense-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium">{expense.supplierName}</p>
-                  <p className="text-sm text-gray-600">{expense.expenseCount} transacciones</p>
+                  <p className="font-medium">{it.supplier?.name}</p>
+                  <p className="text-sm text-gray-600">{it.expenseCount} transacciones</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(expense.totalAmount, expense.currency)}</p>
-                  <Badge variant="secondary" className="text-xs">
-                    {expense.currency}
-                  </Badge>
+                  <p className="font-semibold">{formatCurrency(it.totalExpenses)}</p>
                 </div>
               </div>
             ))}
@@ -247,129 +258,149 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
     </div>
   );
 
-  const renderMonthlyExpensesByCategory = (reportData: MonthlyExpensesByCategory) => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-600">Total Gastos</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalExpenses)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Categorías</p>
-                <p className="text-lg font-semibold">{reportData.categoryCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-gray-600">Período</p>
-                <p className="text-lg font-semibold">{reportData.month}/{reportData.year}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Gastos por Categoría</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {reportData.expenses.map((expense, index) => (
-              <div key={expense.category || `category-expense-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+  const renderMonthlyExpensesByCategory = (items: MonthlyExpensesByCategory[]) => {
+    const entry = (items || [])[0];
+    if (!entry) {
+      return (
+        <div className="text-center py-8 text-gray-500">No hay datos para el período seleccionado</div>
+      );
+    }
+    const categoryCount = entry.categories?.length || 0;
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <PieChart className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="font-medium">{expense.category}</p>
-                  <p className="text-sm text-gray-600">{expense.expenseCount} gastos</p>
+                  <p className="text-sm text-gray-600">Total Gastos</p>
+                  <p className="text-lg font-semibold">{formatCurrency(entry.totalAmount)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(expense.totalAmount, expense.currency)}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${expense.percentage}%` }}
-                      ></div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Categorías</p>
+                  <p className="text-lg font-semibold">{categoryCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-purple-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Período</p>
+                  <p className="text-lg font-semibold">{entry.month}/{entry.year}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Gastos por Categoría</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(entry.categories || []).map((cat, index) => (
+                <div key={cat.category || `category-${index}`} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{cat.category}</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {cat.percentage?.toFixed(1)}%
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Monto (CRC)</p>
+                      <p className="font-semibold">{formatCurrency(cat.amountCRC, 'CRC')}</p>
                     </div>
-                    <span className="text-xs text-gray-500 ml-2">{expense.percentage.toFixed(1)}%</span>
+                    <div>
+                      <p className="text-gray-600">Monto (USD)</p>
+                      <p className="font-semibold">{formatCurrency(cat.amountUSD, 'USD')}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Transacciones</p>
+                      <p className="font-semibold">{cat.count}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderProjectProfitabilityAnalysis = (reportData: ProjectProfitabilityAnalysis) => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-600">Ingresos Totales</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalRevenue)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="text-sm text-gray-600">Gastos Totales</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalExpenses)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Ganancia Neta</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.netProfit)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-gray-600">Margen (%)</p>
-                <p className="text-lg font-semibold">{reportData.profitMargin.toFixed(1)}%</p>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
+    );
+  };
+
+  const renderProjectProfitabilityAnalysis = (items: ProjectProfitabilityAnalysis[]) => (
+    <div className="space-y-6">
+      {(() => {
+        const totalIncome = (items || []).reduce((sum, it) => sum + (it.totalIncome || 0), 0);
+        const totalExpenses = (items || []).reduce((sum, it) => sum + (it.totalExpenses || 0), 0);
+        const grossProfit = totalIncome - totalExpenses;
+        const margin = totalIncome > 0 ? (grossProfit / totalIncome) * 100 : 0;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Ingresos Totales</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalIncome)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="h-5 w-5 text-red-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Gastos Totales</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalExpenses)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Ganancia Bruta</p>
+                    <p className="text-lg font-semibold">{formatCurrency(grossProfit)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Margen (%)</p>
+                    <p className="text-lg font-semibold">{margin.toFixed(1)}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       <Card>
         <CardHeader>
@@ -377,36 +408,36 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {reportData.projects.map((project, index) => (
-              <div key={project.projectName || `project-${index}`} className="p-4 bg-gray-50 rounded-lg">
+            {(items || []).map((it, index) => (
+              <div key={it.project?.id || `project-${index}`} className="p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">{project.projectName}</h4>
+                  <h4 className="font-medium">{it.project?.name}</h4>
                   <Badge 
-                    variant={project.profitMargin > 0 ? "default" : "destructive"}
+                    variant={it.grossProfit > 0 ? 'default' : 'destructive'}
                     className="text-xs"
                   >
-                    {project.profitMargin > 0 ? 'Rentable' : 'Pérdida'}
+                    {it.grossProfit > 0 ? 'Rentable' : 'Pérdida'}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">Ingresos</p>
-                    <p className="font-semibold">{formatCurrency(project.revenue, project.currency)}</p>
+                    <p className="font-semibold">{formatCurrency(it.totalIncome)}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Gastos</p>
-                    <p className="font-semibold">{formatCurrency(project.expenses, project.currency)}</p>
+                    <p className="font-semibold">{formatCurrency(it.totalExpenses)}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Ganancia</p>
-                    <p className={`font-semibold ${project.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(project.profit, project.currency)}
+                    <p className={`font-semibold ${it.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(it.grossProfit)}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Margen</p>
-                    <p className={`font-semibold ${project.profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {project.profitMargin.toFixed(1)}%
+                    <p className={`font-semibold ${it.profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {it.profitMargin.toFixed(1)}%
                     </p>
                   </div>
                 </div>
@@ -418,45 +449,52 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
     </div>
   );
 
-  const renderSupplierPaymentAnalysis = (reportData: SupplierPaymentAnalysis) => (
+  const renderSupplierPaymentAnalysis = (items: SupplierPaymentAnalysis[]) => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-600">Total Pagado</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalPaid)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="text-sm text-gray-600">Total Pendiente</p>
-                <p className="text-lg font-semibold">{formatCurrency(reportData.totalPending)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Proveedores</p>
-                <p className="text-lg font-semibold">{reportData.supplierCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {(() => {
+        const totalPaid = (items || []).reduce((sum, it) => sum + (it.paidAmount || 0), 0);
+        const totalPending = (items || []).reduce((sum, it) => sum + (it.pendingAmount || 0), 0);
+        const supplierCount = (items || []).length;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Total Pagado</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalPaid)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="h-5 w-5 text-red-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Total Pendiente</p>
+                    <p className="text-lg font-semibold">{formatCurrency(totalPending)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Proveedores</p>
+                    <p className="text-lg font-semibold">{supplierCount}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
 
       <Card>
         <CardHeader>
@@ -464,33 +502,29 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {reportData.suppliers.map((supplier, index) => (
-              <div key={supplier.supplierName || `supplier-${index}`} className="p-4 bg-gray-50 rounded-lg">
+            {(items || []).map((it, index) => (
+              <div key={it.supplier?.id || `supplier-${index}`} className="p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">{supplier.supplierName}</h4>
+                  <h4 className="font-medium">{it.supplier?.name}</h4>
                   <Badge 
-                    variant={supplier.pendingAmount > 0 ? "destructive" : "default"}
+                    variant={it.pendingAmount > 0 ? 'destructive' : 'default'}
                     className="text-xs"
                   >
-                    {supplier.pendingAmount > 0 ? 'Pendiente' : 'Al día'}
+                    {it.pendingAmount > 0 ? 'Pendiente' : 'Al día'}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">Total Pagado</p>
-                    <p className="font-semibold text-green-600">
-                      {formatCurrency(supplier.paidAmount, supplier.currency)}
-                    </p>
+                    <p className="font-semibold text-green-600">{formatCurrency(it.paidAmount)}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Pendiente</p>
-                    <p className="font-semibold text-red-600">
-                      {formatCurrency(supplier.pendingAmount, supplier.currency)}
-                    </p>
+                    <p className="font-semibold text-red-600">{formatCurrency(it.pendingAmount)}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">Transacciones</p>
-                    <p className="font-semibold">{supplier.transactionCount}</p>
+                    <p className="font-semibold">{it.invoiceCount}</p>
                   </div>
                 </div>
               </div>
@@ -527,17 +561,17 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
 
     switch (config.reportType) {
       case 'direct_expenses_by_project_month':
-        return renderDirectExpensesByProjectMonth(data);
+        return renderDirectExpensesByProjectMonth(data as DirectExpensesByProjectMonth[]);
       case 'project_total_income':
-        return renderProjectTotalIncome(data);
+        return renderProjectTotalIncome(data as ProjectTotalIncome[]);
       case 'supplier_expenses_by_year':
-        return renderSupplierExpensesByYear(data);
+        return renderSupplierExpensesByYear(data as SupplierExpensesByYear[]);
       case 'monthly_expenses_by_category':
-        return renderMonthlyExpensesByCategory(data);
+        return renderMonthlyExpensesByCategory(data as MonthlyExpensesByCategory[]);
       case 'project_profitability_analysis':
-        return renderProjectProfitabilityAnalysis(data);
+        return renderProjectProfitabilityAnalysis(data as ProjectProfitabilityAnalysis[]);
       case 'supplier_payment_analysis':
-        return renderSupplierPaymentAnalysis(data);
+        return renderSupplierPaymentAnalysis(data as SupplierPaymentAnalysis[]);
       default:
         return renderGenericData(data);
     }
@@ -575,13 +609,13 @@ export default function CustomReportPreview({ config, data }: CustomReportPrevie
             {config.dateRange.from && (
               <div>
                 <p className="text-sm text-gray-600 mb-1">Fecha de Inicio</p>
-                <p className="font-medium">{format(config.dateRange.from, "PPP", { locale: es })}</p>
+                <p className="font-medium">{format(config.dateRange.from, 'PPP', { locale: es })}</p>
               </div>
             )}
             {config.dateRange.to && (
               <div>
                 <p className="text-sm text-gray-600 mb-1">Fecha de Fin</p>
-                <p className="font-medium">{format(config.dateRange.to, "PPP", { locale: es })}</p>
+                <p className="font-medium">{format(config.dateRange.to, 'PPP', { locale: es })}</p>
               </div>
             )}
           </div>

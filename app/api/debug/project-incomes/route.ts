@@ -6,14 +6,21 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id') || '64561c06-e646-468a-9112-24a600e7f8f0';
+    const limitParam = parseInt(searchParams.get('limit') || '0', 10);
 
-    console.log('🔍 Verificando ingresos para el proyecto:', projectId);
+    // Verificando ingresos para el proyecto
 
-    // Obtener todos los ingresos del proyecto
-    const { data: incomes, error: incomesError } = await supabase
+    // Obtener todos los ingresos del proyecto (con límite opcional)
+    let incomesQuery = supabase
       .from('incomes')
       .select('*')
       .eq('project_id', projectId);
+
+    if (limitParam > 0) {
+      incomesQuery = incomesQuery.limit(limitParam);
+    }
+
+    const { data: incomes, error: incomesError } = await incomesQuery;
 
     if (incomesError) {
       console.error('Error obteniendo ingresos:', incomesError);
@@ -26,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Obtener el resumen de ingresos usando la función del servicio
     const { data: incomesSummary, error: summaryError } = await supabase
-      .rpc('get_project_incomes_summary', { project_id_param: projectId });
+      .rpc('get_project_incomes_summary', { p_project_id: projectId });
 
     if (summaryError) {
       console.error('Error obteniendo resumen de ingresos:', summaryError);
@@ -52,6 +59,7 @@ export async function GET(request: NextRequest) {
         incomes_count: incomes?.length || 0,
         incomes_raw: incomes,
         incomes_summary_from_function: incomesSummary,
+        summary_function_error: summaryError ? (summaryError.message ?? summaryError) : null,
         manual_calculation: {
           total_confirmed: totalConfirmed,
           total_pending: totalPending,

@@ -8,9 +8,20 @@ export function LogoutButton() {
   const router = useRouter();
 
   const logout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/auth/login");
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      
+      // Forzar refresh completo después del logout manual
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 100);
+    } catch (error) {
+      // Forzar refresh incluso si hay error
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 100);
+    }
   };
 
   return <Button onClick={logout}>Cerrar sesión</Button>;

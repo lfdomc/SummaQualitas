@@ -67,15 +67,17 @@ export default function EditChangeOrderPage() {
     project_id: '',
     title: '',
     description: '',
-    amount: 0,
+    cost_impact: 0,
     currency: 'USD',
-    status: 'pending',
+    status: 'pendiente',
+    impact_type: 'positivo',
+    change_type: 'extras',
     designer: '',
     approved_by: '',
-    request_date: '',
-    approval_date: '',
+    requested_date: '',
+    approved_at: '',
     implementation_date: '',
-    notes: '',
+    general_comments: '',
   });
 
   const orderId = params.id as string;
@@ -127,15 +129,17 @@ export default function EditChangeOrderPage() {
           project_id: changeOrderData.project_id || '',
           title: changeOrderData.title || '',
           description: changeOrderData.description || '',
-          amount: changeOrderData.amount || 0,
+          cost_impact: changeOrderData.cost_impact ?? changeOrderData.amount ?? 0,
           currency: changeOrderData.currency || 'USD',
-          status: changeOrderData.status || 'pending',
+          status: changeOrderData.status || 'pendiente',
+          impact_type: changeOrderData.impact_type || 'positivo',
+          change_type: changeOrderData.change_type || 'extras',
           designer: changeOrderData.designer || '',
           approved_by: changeOrderData.approved_by || 'unassigned',
-          request_date: changeOrderData.request_date || new Date().toISOString().split('T')[0],
-          approval_date: changeOrderData.approval_date || '',
+          requested_date: changeOrderData.requested_date || changeOrderData.request_date || new Date().toISOString().split('T')[0],
+          approved_at: changeOrderData.approved_at || changeOrderData.approval_date || '',
           implementation_date: changeOrderData.implementation_date || '',
-          notes: changeOrderData.notes || '',
+          general_comments: changeOrderData.general_comments || changeOrderData.notes || '',
         });
         setLoadingStates(prev => ({ ...prev, changeOrder: false }));
       } else {
@@ -171,7 +175,7 @@ export default function EditChangeOrderPage() {
     }
   }, [user, orderId, fetchInitialData]);
 
-  const handleInputChange = useCallback((field: keyof UpdateChangeOrderData, value: any) => {
+  const handleInputChange = useCallback(<K extends keyof UpdateChangeOrderData>(field: K, value: UpdateChangeOrderData[K]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -210,15 +214,17 @@ export default function EditChangeOrderPage() {
         project_id: formData.project_id,
         title: formData.title,
         description: formData.description,
-        amount: formData.amount,
+        cost_impact: formData.cost_impact ?? 0,
         currency: formData.currency,
         status: formData.status,
-        designer: formData.designer || null,
-        approved_by: formData.approved_by === 'unassigned' ? null : formData.approved_by || null,
-        request_date: formData.request_date || null,
-        approval_date: formData.approval_date || null,
-        implementation_date: formData.implementation_date || null,
-        notes: formData.notes || null,
+        impact_type: formData.impact_type,
+        change_type: formData.change_type,
+        designer: formData.designer || undefined,
+        approved_by: formData.approved_by === 'unassigned' ? undefined : formData.approved_by || undefined,
+        requested_date: formData.requested_date || undefined,
+        approved_at: formData.approved_at || undefined,
+        implementation_date: formData.implementation_date || undefined,
+        general_comments: formData.general_comments || undefined,
       };
       
       const response = await fetch(`/api/change-orders/${orderId}`, {
@@ -245,7 +251,7 @@ export default function EditChangeOrderPage() {
     }
   }, [validateForm, formData, orderId, router]);
 
-  // Memoizar las opciones de proyectos para evitar re-renderizados innecesarios
+  // Memoizar las opciones de proyectos para evitar re-renderizados innecesios
   const projectOptions = useMemo(() => {
     return projects.map(project => ({
       value: project.id,
@@ -444,7 +450,7 @@ export default function EditChangeOrderPage() {
                 <Label htmlFor="status">Estado *</Label>
                 <Select 
                   value={formData.status} 
-                  onValueChange={(value) => handleInputChange('status', value)}
+                  onValueChange={(value) => handleInputChange('status', value as UpdateChangeOrderData['status'])}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar estado" />
@@ -457,6 +463,38 @@ export default function EditChangeOrderPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label htmlFor="impact_type">Tipo de Impacto *</Label>
+                <Select 
+                  value={formData.impact_type}
+                  onValueChange={(value) => handleInputChange('impact_type', value as UpdateChangeOrderData['impact_type'])}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo de impacto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="positivo">Positivo (Incrementa presupuesto)</SelectItem>
+                    <SelectItem value="negativo">Negativo (Reduce presupuesto)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="change_type">Tipo de Orden *</Label>
+              <Select 
+                value={formData.change_type}
+                onValueChange={(value) => handleInputChange('change_type', value as UpdateChangeOrderData['change_type'])}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar tipo de orden" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="accion_correctiva">Acción Correctiva</SelectItem>
+                  <SelectItem value="accion_preventiva">Acción Preventiva</SelectItem>
+                  <SelectItem value="extras">Extras</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -495,18 +533,18 @@ export default function EditChangeOrderPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">Monto</Label>
+                <Label htmlFor="cost_impact">Monto</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                     {formData.currency === 'USD' ? '$' : '₡'}
                   </span>
                   <Input
-                    id="amount"
+                    id="cost_impact"
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.amount}
-                    onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
+                    value={formData.cost_impact}
+                    onChange={(e) => handleInputChange('cost_impact', parseFloat(e.target.value) || 0)}
                     className="pl-8"
                     placeholder="0.00"
                   />
@@ -517,7 +555,7 @@ export default function EditChangeOrderPage() {
                 <Label htmlFor="currency">Moneda</Label>
                 <Select 
                   value={formData.currency} 
-                  onValueChange={(value) => handleInputChange('currency', value)}
+                  onValueChange={(value) => handleInputChange('currency', value as UpdateChangeOrderData['currency'])}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar moneda" />
@@ -604,22 +642,22 @@ export default function EditChangeOrderPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="request_date">Fecha de Solicitud</Label>
+                <Label htmlFor="requested_date">Fecha de Solicitud</Label>
                 <Input
-                  id="request_date"
+                  id="requested_date"
                   type="date"
-                  value={formData.request_date}
-                  onChange={(e) => handleInputChange('request_date', e.target.value)}
+                  value={formData.requested_date}
+                  onChange={(e) => handleInputChange('requested_date', e.target.value)}
                 />
               </div>
               
               <div>
-                <Label htmlFor="approval_date">Fecha de Aprobación</Label>
+                <Label htmlFor="approved_at">Fecha de Aprobación</Label>
                 <Input
-                  id="approval_date"
+                  id="approved_at"
                   type="date"
-                  value={formData.approval_date}
-                  onChange={(e) => handleInputChange('approval_date', e.target.value)}
+                  value={formData.approved_at}
+                  onChange={(e) => handleInputChange('approved_at', e.target.value)}
                 />
               </div>
               
@@ -646,11 +684,11 @@ export default function EditChangeOrderPage() {
           </CardHeader>
           <CardContent>
             <div>
-              <Label htmlFor="notes">Notas Adicionales</Label>
+              <Label htmlFor="general_comments">Notas Adicionales</Label>
               <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
+                id="general_comments"
+                value={formData.general_comments}
+                onChange={(e) => handleInputChange('general_comments', e.target.value)}
                 placeholder="Notas adicionales sobre la orden de cambio"
                 rows={4}
               />

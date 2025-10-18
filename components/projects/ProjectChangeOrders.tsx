@@ -297,7 +297,7 @@ export default function ProjectChangeOrders({ projectId, projectName }: ProjectC
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
-                          {order.status === 'approved' && (
+                          {order.status === 'aprobado' && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="default" size="sm">

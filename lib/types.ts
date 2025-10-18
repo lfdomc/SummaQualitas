@@ -1,4 +1,5 @@
 import { LucideIcon } from "lucide-react";
+import type { Expense } from './types/expense';
 
 // Tipos para el sistema de gestión de proyectos de construcción
 
@@ -45,9 +46,14 @@ export interface UserProfile {
 export interface Client {
   id: string;
   name: string;
+  contact_person: string;
   email?: string;
   phone?: string;
   address?: string;
+  tax_id?: string;
+  client_type?: string;
+  status?: 'activo' | 'inactivo';
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -156,6 +162,7 @@ export interface Supplier {
   phone?: string;
   address?: string;
   tax_id?: string;
+  notes?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -406,6 +413,9 @@ export interface CreateProjectDTO {
   // Campos legacy para compatibilidad
   start_date?: string;
   area?: number;
+  
+  // Metadatos opcionales para cumplir RLS en algunos esquemas
+  created_by?: string;
 }
 
 export interface UpdateProjectDTO extends Partial<CreateProjectDTO> {
@@ -468,16 +478,36 @@ export interface DashboardMetrics {
 }
 
 export interface ProjectFinancialSummary {
-  project: Project;
-  budget_breakdown: ProjectBudget[];
-  total_budget: number;
-  total_expenses: number;
-  total_payments: number;
-  remaining_budget: number;
-  profit_margin: number;
-  latest_progress: ProjectProgress;
-  pending_changes: ScopeChange[];
-  active_equipment: ProjectEquipment[];
+  // Campos detallados del resumen financiero (para implementación completa)
+  project?: Project;
+  budget_breakdown?: ProjectBudget[];
+  total_budget?: number;
+  total_expenses?: number;
+  total_payments?: number;
+  remaining_budget?: number;
+  profit_margin?: number;
+  latest_progress?: ProjectProgress;
+  pending_changes?: ScopeChange[];
+  active_equipment?: ProjectEquipment[];
+
+  // Campos simplificados actualmente usados por ProjectFinancialAnalysis y database.ts
+  id?: string;
+  name?: string;
+  budget?: number;
+  expenses?: {
+    total: number;
+    byCategory: {
+      costos_directos: number;
+      costos_indirectos: number;
+      administracion: number;
+      mano_obra: number;
+      imprevistos: number;
+      utilidad: number;
+    };
+    items: Expense[];
+  };
+  remainingBudget?: number;
+  budgetUtilization?: number;
 }
 
 // Tipos heredados del sistema anterior (para compatibilidad)
@@ -659,4 +689,147 @@ export interface MonthlyIncomeReport {
   } | null;
   created_at: string;
   updated_at: string;
+}
+
+// Tipos para Sumitals (Materiales, Productos y Equipamiento)
+export type SumitalApprovalStatus = null | boolean; // null = pendiente, true = aprobado, false = rechazado
+
+export interface AttachedDocument {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploaded_at: string;
+}
+
+export type SumitalAttachmentType = 'document' | 'image' | 'signed_sumital';
+
+export interface SumitalAttachment {
+  id: string;
+  sumital_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  file_type: string;
+  attachment_type: SumitalAttachmentType;
+  description?: string;
+  uploaded_by: string;
+  uploaded_at: string;
+  created_at: string;
+  updated_at: string;
+  // Relaciones
+  uploaded_by_user?: UserProfile;
+}
+
+export interface CreateSumitalAttachmentData {
+  sumital_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  file_type: string;
+  attachment_type: SumitalAttachmentType;
+  description?: string;
+}
+
+export interface SumitalWithAttachments extends Sumital {
+  attachments: SumitalAttachment[];
+  signed_document?: SumitalAttachment;
+}
+
+export interface Sumital {
+  id: string;
+  sumital_number: number;
+  project_id: string;
+  project_date: string;
+  equipment_description: string;
+  supplier_name: string;
+  supplier_phone?: string;
+  country_of_origin?: string;
+  brand?: string;
+  model?: string;
+  warranty_period?: string;
+  useful_life?: string;
+  total_price: number;
+  maintenance?: string;
+  training?: string;
+  attached_documents: AttachedDocument[];
+  is_approved: SumitalApprovalStatus;
+  observations?: string;
+  approver_name?: string;
+  review_date?: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+  // Relaciones
+  project?: Project;
+  created_by_user?: UserProfile;
+  updated_by_user?: UserProfile;
+}
+
+export interface CreateSumitalData {
+  project_id: string;
+  project_date?: string;
+  equipment_description: string;
+  supplier_name: string;
+  supplier_phone?: string;
+  country_of_origin?: string;
+  brand?: string;
+  model?: string;
+  warranty_period?: string;
+  useful_life?: string;
+  total_price: number;
+  maintenance?: string;
+  training?: string;
+  attached_documents?: AttachedDocument[];
+  observations?: string;
+}
+
+export interface UpdateSumitalData extends Partial<CreateSumitalData> {
+  is_approved?: SumitalApprovalStatus;
+  approver_name?: string;
+  review_date?: string;
+  observations?: string;
+}
+
+export interface SumitalFilters {
+  project_id?: string;
+  supplier_name?: string;
+  is_approved?: SumitalApprovalStatus;
+  brand?: string;
+  country_of_origin?: string;
+  price_min?: number;
+  price_max?: number;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}
+
+export interface SumitalSummary {
+  total_sumitals: number;
+  total_approved: number;
+  total_rejected: number;
+  total_pending: number;
+  total_value: number;
+  total_approved_value: number;
+  total_rejected_value: number;
+  total_pending_value: number;
+  by_project: {
+    project_id: string;
+    project_name: string;
+    count: number;
+    total_value: number;
+    approved_count: number;
+    rejected_count: number;
+    pending_count: number;
+  }[];
+  by_supplier: {
+    supplier_name: string;
+    count: number;
+    total_value: number;
+    approved_count: number;
+    rejected_count: number;
+    pending_count: number;
+  }[];
 }

@@ -84,7 +84,7 @@ export default function ProjectsPage() {
         const clientsData = await getActiveClients();
         setClients(clientsData);
       } catch (error) {
-        console.error('Error loading clients:', error);
+        // Error loading clients
       }
     };
 
@@ -151,13 +151,15 @@ export default function ProjectsPage() {
   // Función para obtener variante del badge de estado
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'default';
-      case 'completed':
-        return 'secondary';
-      case 'on_hold':
+      case 'planificacion':
         return 'outline';
-      case 'cancelled':
+      case 'en_progreso':
+        return 'default';
+      case 'pausado':
+        return 'outline';
+      case 'completado':
+        return 'secondary';
+      case 'cancelado':
         return 'destructive';
       default:
         return 'outline';
@@ -167,13 +169,15 @@ export default function ProjectsPage() {
   // Función para obtener etiqueta del estado
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'Activo';
-      case 'completed':
+      case 'planificacion':
+        return 'Planificación';
+      case 'en_progreso':
+        return 'En Progreso';
+      case 'pausado':
+        return 'Pausado';
+      case 'completado':
         return 'Completado';
-      case 'on_hold':
-        return 'En Pausa';
-      case 'cancelled':
+      case 'cancelado':
         return 'Cancelado';
       default:
         return status;
@@ -201,7 +205,7 @@ export default function ProjectsPage() {
 
   // Calcular estadísticas
   const totalProjectsCount = totalProjects; // Usar el total del servidor, no el array local
-  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const activeProjects = projects.filter(p => p.status === 'en_progreso').length;
 
   const canCreateProjects = permissions.canCreateProjects;
   const canEditProjects = permissions.canEditProjects;
@@ -301,10 +305,11 @@ export default function ProjectsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="active">Activo</SelectItem>
-                  <SelectItem value="completed">Completado</SelectItem>
-                  <SelectItem value="on_hold">En Pausa</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="planificacion">Planificación</SelectItem>
+                  <SelectItem value="en_progreso">En Progreso</SelectItem>
+                  <SelectItem value="pausado">Pausado</SelectItem>
+                  <SelectItem value="completado">Completado</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -364,10 +369,11 @@ export default function ProjectsPage() {
               <div className="block lg:hidden">
                 <div className="space-y-4">
                   {filteredProjects.map((project) => {
-                    const client = project.clients || clients.find(c => c.id === project.client_id);
-                    const totalExpenses = project.actualExpenses || 0;
-                    const progressPercentage = totalExpenses && (project.presupuesto_final || project.presupuesto_inicial || project.budget)
-                      ? Math.min((totalExpenses / (project.presupuesto_final || project.presupuesto_inicial || project.budget)) * 100, 100)
+                    const client = project.client || clients.find(c => c.id === project.client_id);
+                    const totalExpenses = (project as any)?.actualExpenses ?? (project as any)?.actual_expenses ?? 0;
+                    const budgetValue = project.presupuesto_final ?? project.presupuesto_inicial ?? project.budget;
+                    const progressPercentage = budgetValue && budgetValue > 0
+                      ? Math.min(((totalExpenses || 0) / budgetValue) * 100, 100)
                       : 0;
 
                     return (
@@ -406,7 +412,7 @@ export default function ProjectsPage() {
                               </div>
                               <div className="font-medium text-gray-900">
                                 {(() => {
-                                  const startDate = project.fecha_inicio || project.estimated_start_date || project.actual_start_date;
+                                  const startDate = project.estimated_start_date || project.actual_start_date || project.start_date;
                                   if (!startDate) return 'Sin definir';
                                   const dateObj = new Date(startDate);
                                   return isNaN(dateObj.getTime()) ? 'Fecha inválida' : dateObj.toLocaleDateString('es-ES');
@@ -420,7 +426,7 @@ export default function ProjectsPage() {
                               </div>
                               <div className="font-medium text-gray-900">
                                 {(() => {
-                                  const endDate = project.fecha_fin || project.estimated_end_date || project.actual_end_date;
+                                  const endDate = project.estimated_end_date || project.actual_end_date || project.end_date;
                                   if (!endDate) return 'Sin definir';
                                   const dateObj = new Date(endDate);
                                   return isNaN(dateObj.getTime()) ? 'Fecha inválida' : dateObj.toLocaleDateString('es-ES');
@@ -499,10 +505,11 @@ export default function ProjectsPage() {
                     </TableHeader>
                     <TableBody>
                       {filteredProjects.map((project) => {
-                        const client = project.clients || clients.find(c => c.id === project.client_id);
-                        const totalExpenses = project.actualExpenses || 0;
-                        const progressPercentage = totalExpenses && (project.presupuesto_final || project.presupuesto_inicial || project.budget)
-              ? Math.min((totalExpenses / (project.presupuesto_final || project.presupuesto_inicial || project.budget)) * 100, 100)
+                        const client = project.client || clients.find(c => c.id === project.client_id);
+                        const totalExpenses = (project as any)?.actualExpenses ?? (project as any)?.actual_expenses ?? 0;
+                        const budgetValue = project.presupuesto_final ?? project.presupuesto_inicial ?? project.budget;
+                        const progressPercentage = budgetValue && budgetValue > 0
+              ? Math.min(((totalExpenses || 0) / budgetValue) * 100, 100)
               : 0;
 
                         return (
@@ -536,7 +543,7 @@ export default function ProjectsPage() {
                                 <div className="flex items-center">
                                   <Calendar className="h-3 w-3 mr-1" />
                                   Inicio: {(() => {
-                                    const startDate = project.fecha_inicio || project.estimated_start_date || project.actual_start_date;
+                                    const startDate = project.estimated_start_date || project.actual_start_date || project.start_date;
                                     if (!startDate) return 'Sin definir';
                                     const dateObj = new Date(startDate);
                                     return isNaN(dateObj.getTime()) ? 'Fecha inválida' : dateObj.toLocaleDateString('es-ES');
@@ -545,7 +552,7 @@ export default function ProjectsPage() {
                                 <div className="flex items-center mt-1">
                                   <Calendar className="h-3 w-3 mr-1" />
                                   Fin: {(() => {
-                                    const endDate = project.fecha_fin || project.estimated_end_date || project.actual_end_date;
+                                    const endDate = project.estimated_end_date || project.actual_end_date || project.end_date;
                                     if (!endDate) return 'Sin definir';
                                     const dateObj = new Date(endDate);
                                     return isNaN(dateObj.getTime()) ? 'Fecha inválida' : dateObj.toLocaleDateString('es-ES');

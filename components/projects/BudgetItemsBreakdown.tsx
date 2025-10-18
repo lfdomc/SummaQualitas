@@ -12,7 +12,7 @@ import {
   Calculator,
   DollarSign
 } from 'lucide-react';
-import { Project } from '@/lib/types';
+import type { Project } from '@/lib/types';
 
 
 interface BudgetItemsBreakdownProps {
@@ -72,8 +72,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
   // Calcular el monto sin asignar
   const unassigned = totalBudget - initialTotalAssigned;
 
-  // Si hay monto sin asignar, distribuirlo proporcionalmente
-  const distributionFactor = unassigned > 0 ? totalBudget / initialTotalAssigned : 1;
+  // Si hay monto sin asignar y existe asignación inicial, distribuirlo proporcionalmente
+  const distributionFactor = unassigned > 0 && initialTotalAssigned > 0 ? totalBudget / initialTotalAssigned : 1;
 
   // Función para calcular el monto ajustado con distribución proporcional
   const calculateAdjustedAmount = (originalAmount: number): number => {
@@ -81,13 +81,25 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     return originalAmount * distributionFactor;
   };
 
+  // Porcentajes por defecto iguales a los de la página
+  const DEFAULT_BUDGET_PERCENTAGES = {
+    costos_directos: 0.650,
+    costos_indirectos: 0.040,
+    administracion: 0.100,
+    mano_obra: 0.190,
+    imprevistos: 0.020,
+    utilidad: 0.000
+  };
+
+  const useDefaults = initialTotalAssigned === 0 && totalBudget > 0;
+
   // Crear las partidas presupuestarias basadas en los campos correctos de la tabla projects
   const budgetItems: BudgetItem[] = [
     {
       id: 'costos_directos',
       name: 'Costos Directos',
-      amount: calculateAdjustedAmount(project.costos_directos || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_directos || 0), totalBudget),
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_directos) : calculateAdjustedAmount(project.costos_directos || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_directos), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.costos_directos || 0), totalBudget),
       icon: Building,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
@@ -96,8 +108,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'costos_indirectos',
       name: 'Costos Indirectos',
-      amount: calculateAdjustedAmount(project.costos_indirectos || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_indirectos || 0), totalBudget),
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_indirectos) : calculateAdjustedAmount(project.costos_indirectos || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_indirectos), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.costos_indirectos || 0), totalBudget),
       icon: Settings,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
@@ -106,8 +118,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'administracion',
       name: 'Administración',
-      amount: calculateAdjustedAmount(project.administracion || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.administracion || 0), totalBudget),
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.administracion) : calculateAdjustedAmount(project.administracion || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.administracion), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.administracion || 0), totalBudget),
       icon: Calculator,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
@@ -116,8 +128,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'mano_obra',
       name: 'Mano de Obra',
-      amount: calculateAdjustedAmount(project.mano_obra || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.mano_obra || 0), totalBudget),
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.mano_obra) : calculateAdjustedAmount(project.mano_obra || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.mano_obra), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.mano_obra || 0), totalBudget),
       icon: Users,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
@@ -126,8 +138,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'imprevistos',
       name: 'Imprevistos',
-      amount: calculateAdjustedAmount(project.imprevistos || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.imprevistos || 0), totalBudget),
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.imprevistos) : calculateAdjustedAmount(project.imprevistos || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.imprevistos), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.imprevistos || 0), totalBudget),
       icon: AlertTriangle,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
@@ -136,8 +148,8 @@ export function BudgetItemsBreakdown({ project, exchangeRate = 500 }: BudgetItem
     {
       id: 'utilidad',
       name: 'Utilidad',
-      amount: calculateAdjustedAmount(project.utilidad || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.utilidad || 0), totalBudget),
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.utilidad) : calculateAdjustedAmount(project.utilidad || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.utilidad), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.utilidad || 0), totalBudget),
       icon: TrendingUp,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',

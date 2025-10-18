@@ -30,11 +30,11 @@ export async function migrateBudgetIfNeeded(projectId: string): Promise<void> {
                        project.presupuesto_final === 0;
     
     if (!needsUpdate) {
-      console.log('✅ Proyecto no necesita migración de presupuesto');
+      // Proyecto no necesita migración de presupuesto
       return;
     }
     
-    console.log('🔄 Migrando presupuestos del proyecto:', project.name);
+    // Migrando presupuestos del proyecto
     
     // Calcular el valor del presupuesto a usar
     const budgetValue = project.presupuesto_inicial || 0;
@@ -53,11 +53,7 @@ export async function migrateBudgetIfNeeded(projectId: string): Promise<void> {
       return;
     }
     
-    console.log('✅ Presupuestos migrados exitosamente:', {
-      projectId,
-      presupuesto_original: budgetValue,
-      presupuesto_final: budgetValue
-    });
+    // Presupuestos migrados exitosamente
     
   } catch (error) {
     console.error('❌ Error en migración automática de presupuesto:', error);
@@ -72,7 +68,7 @@ export async function migrateAllProjectBudgets(): Promise<void> {
   try {
     const supabase = createClient();
     
-    console.log('🔍 Buscando proyectos que necesiten migración...');
+    // Buscando proyectos que necesiten migración
     
     // Obtener todos los proyectos que necesiten migración
     const { data: projects, error } = await supabase
@@ -85,11 +81,11 @@ export async function migrateAllProjectBudgets(): Promise<void> {
     }
     
     if (!projects || projects.length === 0) {
-      console.log('✅ No hay proyectos que necesiten migración');
+      // No hay proyectos que necesiten migración
       return;
     }
     
-    console.log(`📊 Encontrados ${projects.length} proyectos que necesitan migración`);
+    // Encontrados proyectos que necesitan migración
     
     // Migrar cada proyecto
     for (const project of projects) {
@@ -113,13 +109,12 @@ export async function migrateAllProjectBudgets(): Promise<void> {
         
         if (updateError) {
           console.error(`❌ Error al migrar proyecto ${project.name}:`, updateError);
-        } else {
-          console.log(`✅ Migrado: ${project.name} - Presupuesto: ${budgetValue}`);
         }
+        // Migrado exitosamente (silencioso)
       }
     }
     
-    console.log('🎉 Migración masiva completada');
+    // Migración masiva completada (silencioso)
     
   } catch (error) {
     console.error('❌ Error en migración masiva:', error);

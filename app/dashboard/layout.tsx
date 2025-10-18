@@ -14,19 +14,7 @@ export default function DashboardLayout({
   const [timeoutReached, setTimeoutReached] = useState(false);
   const isAuthenticated = !!user;
 
-  // Debug logs para entender el estado
-  useEffect(() => {
-    console.log('🏠 [DashboardLayout] Estado actual:', {
-      loading,
-      hasUser: !!user,
-      userEmail: user?.email,
-      hasProfile: !!profile,
-      profileRole: profile?.role,
-      error,
-      isAuthenticated,
-      timeoutReached
-    });
-  }, [loading, user, profile, error, isAuthenticated, timeoutReached]);
+
 
   // Timeout de seguridad para evitar loading infinito
   useEffect(() => {

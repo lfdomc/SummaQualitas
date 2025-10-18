@@ -23,9 +23,18 @@ CREATE INDEX IF NOT EXISTS idx_equipment_monthly_expenses_year_month ON public.e
 CREATE INDEX IF NOT EXISTS idx_equipment_monthly_expenses_created_at ON public.equipment_monthly_expenses(created_at);
 
 -- Crear constraint único para evitar duplicados
-ALTER TABLE public.equipment_monthly_expenses 
-ADD CONSTRAINT IF NOT EXISTS unique_equipment_project_year_month 
-UNIQUE (equipment_id, project_id, year, month);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'unique_equipment_project_year_month' 
+        AND table_name = 'equipment_monthly_expenses'
+    ) THEN
+        ALTER TABLE public.equipment_monthly_expenses 
+        ADD CONSTRAINT unique_equipment_project_year_month 
+        UNIQUE (equipment_id, project_id, year, month);
+    END IF;
+END $$;
 
 -- Trigger para actualizar updated_at
 CREATE OR REPLACE FUNCTION update_equipment_monthly_expenses_updated_at()

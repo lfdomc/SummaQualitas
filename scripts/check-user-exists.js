@@ -2,90 +2,120 @@ require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Faltan variables de entorno NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY');
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Variables de entorno de Supabase no encontradas');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function checkUserExists() {
-  const email = 'lfdomc@gmail.com';
+  console.log('🔍 VERIFICANDO USUARIO ESPECÍFICO');
+  console.log('================================');
   
-  console.log('🔍 Verificando usuario:', email);
-  console.log('🔗 Supabase URL:', supabaseUrl);
+  const targetEmail = 'lfdomc@gmail.com';
   
   try {
-    // 1. Verificar en Supabase Auth
-    console.log('\n1️⃣ Verificando en Supabase Auth...');
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    // Verificar en tabla users (si existe)
+    console.log(`\n📋 Buscando usuario: ${targetEmail}`);
     
-    if (authError) {
-      console.error('❌ Error al obtener usuarios de Auth:', authError);
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', targetEmail);
+    
+    if (usersError) {
+      console.log('❌ Error accediendo a tabla users:', usersError.message);
     } else {
-      const authUser = authUsers.users.find(user => user.email === email);
-      if (authUser) {
-        console.log('✅ Usuario encontrado en Supabase Auth:');
-        console.log('   - ID:', authUser.id);
-        console.log('   - Email:', authUser.email);
-        console.log('   - Email confirmado:', authUser.email_confirmed_at ? '✅' : '❌');
-        console.log('   - Creado:', authUser.created_at);
-        console.log('   - Último login:', authUser.last_sign_in_at || 'Nunca');
-      } else {
-        console.log('❌ Usuario NO encontrado en Supabase Auth');
+      console.log(`✅ Usuarios encontrados en tabla 'users': ${users?.length || 0}`);
+      if (users && users.length > 0) {
+        console.log('👤 DATOS DEL USUARIO:');
+        users.forEach((user, index) => {
+          console.log(`   ${index + 1}. ID: ${user.id}`);
+          console.log(`      Email: ${user.email}`);
+          console.log(`      Nombre: ${user.name || 'No especificado'}`);
+          console.log(`      Activo: ${user.is_active ? 'Sí' : 'No'}`);
+          console.log(`      Tiene contraseña: ${user.password_hash ? 'Sí' : 'No'}`);
+          console.log(`      Rol: ${user.role || 'No especificado'}`);
+          console.log(`      Creado: ${user.created_at}`);
+        });
       }
     }
     
-    // 2. Verificar en la tabla users
-    console.log('\n2️⃣ Verificando en tabla users...');
-    const { data: dbUsers, error: dbError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email);
+    // Verificar en tabla user_profiles (si existe)
+    console.log(`\n📋 Buscando en user_profiles...`);
     
-    if (dbError) {
-      console.error('❌ Error al consultar tabla users:', dbError);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('email', targetEmail);
+    
+    if (profilesError) {
+      console.log('❌ Error accediendo a tabla user_profiles:', profilesError.message);
     } else {
-      if (dbUsers && dbUsers.length > 0) {
-        const dbUser = dbUsers[0];
-        console.log('✅ Usuario encontrado en tabla users:');
-        console.log('   - ID:', dbUser.id);
-        console.log('   - Email:', dbUser.email);
-        console.log('   - Nombre:', dbUser.name);
-        console.log('   - Rol:', dbUser.role);
-        console.log('   - Activo:', dbUser.is_active ? '✅' : '❌');
-        console.log('   - Creado:', dbUser.created_at);
-      } else {
-        console.log('❌ Usuario NO encontrado en tabla users');
+      console.log(`✅ Perfiles encontrados en tabla 'user_profiles': ${profiles?.length || 0}`);
+      if (profiles && profiles.length > 0) {
+        console.log('👤 DATOS DEL PERFIL:');
+        profiles.forEach((profile, index) => {
+          console.log(`   ${index + 1}. ID: ${profile.id}`);
+          console.log(`      Email: ${profile.email}`);
+          console.log(`      Nombre: ${profile.full_name || 'No especificado'}`);
+          console.log(`      Rol: ${profile.role || 'No especificado'}`);
+        });
       }
     }
     
-    // 3. Verificar estructura de la tabla users
-    console.log('\n3️⃣ Verificando estructura de tabla users...');
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('users')
-      .select('*')
-      .limit(1);
-    
-    if (tableError) {
-      console.error('❌ Error al verificar estructura de tabla:', tableError);
-    } else {
-      console.log('✅ Tabla users accesible');
-      if (tableInfo && tableInfo.length > 0) {
-        console.log('   - Columnas disponibles:', Object.keys(tableInfo[0]));
+    // Intentar crear usuario si no existe
+    if ((!users || users.length === 0) && (!profiles || profiles.length === 0)) {
+      console.log('\n🔧 USUARIO NO ENCONTRADO - Intentando crear...');
+      
+      // Primero intentar registrar en Supabase Auth
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: targetEmail,
+        password: 'Luimorca22',
+        options: {
+          data: {
+            name: 'Luis Fernando Domínguez'
+          }
+        }
+      });
+      
+      if (signUpError) {
+        console.log('❌ Error creando usuario en auth:', signUpError.message);
+      } else {
+        console.log('✅ Usuario creado en auth:', signUpData.user?.email);
+        
+        // Intentar crear perfil en tabla users
+        if (signUpData.user) {
+          const { data: insertData, error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: signUpData.user.id,
+              email: targetEmail,
+              name: 'Luis Fernando Domínguez',
+              role: 'admin',
+              is_active: true,
+              created_at: new Date().toISOString()
+            });
+          
+          if (insertError) {
+            console.log('❌ Error creando perfil en users:', insertError.message);
+          } else {
+            console.log('✅ Perfil creado en tabla users');
+          }
+        }
       }
     }
     
   } catch (error) {
-    console.error('❌ Error general:', error);
+    console.error('❌ Error general:', error.message);
   }
 }
 
-checkUserExists();
+checkUserExists().then(() => {
+  console.log('\n✅ Verificación completada');
+}).catch(error => {
+  console.error('❌ Error en verificación:', error);
+});

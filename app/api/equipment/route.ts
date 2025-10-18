@@ -46,7 +46,6 @@ export async function GET(request: NextRequest) {
     const { data: equipment, error, count } = await query;
     
     if (error) {
-      console.error('Error fetching equipment:', error);
       return NextResponse.json(
         { success: false, error: 'Error al obtener equipos' },
         { status: 500 }
@@ -65,7 +64,6 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error in equipment GET:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
@@ -122,7 +120,6 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (error) {
-      console.error('Error creating equipment:', error);
       return NextResponse.json(
         { success: false, error: 'Error al crear equipo' },
         { status: 500 }
@@ -136,7 +133,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
     
   } catch (error) {
-    console.error('Error in equipment POST:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
@@ -180,7 +176,6 @@ export async function PUT(request: NextRequest) {
       .single();
     
     if (error) {
-      console.error('Error updating equipment:', error);
       return NextResponse.json(
         { success: false, error: 'Error al actualizar equipo' },
         { status: 500 }
@@ -194,7 +189,6 @@ export async function PUT(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error in equipment PUT:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
@@ -233,7 +227,6 @@ export async function DELETE(request: NextRequest) {
       .eq('status', 'active');
     
     if (rentalError) {
-      console.error('Error checking active rentals:', rentalError);
       return NextResponse.json(
         { success: false, error: 'Error al verificar alquileres activos' },
         { status: 500 }
@@ -259,7 +252,6 @@ export async function DELETE(request: NextRequest) {
       .single();
     
     if (error) {
-      console.error('Error deleting equipment:', error);
       return NextResponse.json(
         { success: false, error: 'Error al eliminar equipo' },
         { status: 500 }
@@ -273,7 +265,6 @@ export async function DELETE(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error in equipment DELETE:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }

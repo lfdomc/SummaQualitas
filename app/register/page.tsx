@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { RegisterForm } from '@/components/auth/RegisterForm';
-import { UserRole } from '@/lib/types';
+// import { UserRole } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'Crear Cuenta | Summa Qualitas',
@@ -23,7 +23,7 @@ export default function RegisterPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <RegisterForm 
-          allowedRoles={[UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE]}
+          allowedRoles={['gerencia', 'administrativo', 'cliente']}
           redirectTo="/login"
         />
       </div>

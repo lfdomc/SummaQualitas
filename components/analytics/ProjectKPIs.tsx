@@ -22,7 +22,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AnalyticsLoader } from './AnalyticsLoader';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
-import type { Project } from '@/types/database';
+import type { Project } from '@/lib/types';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 

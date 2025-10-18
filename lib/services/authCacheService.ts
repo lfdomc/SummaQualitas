@@ -200,9 +200,7 @@ class AuthCacheService {
       this.cache.delete(userId);
     });
 
-    if (toDelete.length > 0) {
-      console.log(`🧹 [AuthCache] Limpiadas ${toDelete.length} sesiones expiradas`);
-    }
+    // Sesiones expiradas limpiadas silenciosamente
   }
 
   /**

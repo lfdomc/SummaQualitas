@@ -53,7 +53,8 @@ export function usePermissions(): UserPermissions {
       };
     }
 
-    const role = user.role;
+    // Locally widen type to allow handling of legacy roles without affecting global typing
+    const role = user.role as string;
 
     switch (role) {
       case 'maestro':

@@ -1,28 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/client';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    console.log('🔍 Debug change orders structure API called');
-    
+    // Debug change orders structure API called
     const supabase = createAdminClient();
     
-    // Obtener información de la estructura de la tabla
+    // Get table structure
     const { data: tableInfo, error: tableError } = await supabase
       .from('change_orders')
       .select('*')
       .limit(1);
     
-    console.log('📊 Table info:', tableInfo);
-    console.log('❌ Table error:', tableError);
+    // Table info retrieved
     
-    // Intentar obtener todas las órdenes de cambio para ver qué columnas existen
+    // Get all change orders
     const { data: changeOrders, error: changeOrdersError } = await supabase
       .from('change_orders')
       .select('*');
     
-    console.log('📋 Change orders:', changeOrders);
-    console.log('❌ Change orders error:', changeOrdersError);
+    // Change orders retrieved
     
     return NextResponse.json({
       success: true,

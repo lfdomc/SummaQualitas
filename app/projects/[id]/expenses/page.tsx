@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Project, Expense, Supplier, EXPENSE_CATEGORIES, UserProfile } from '@/types/database';
+import { Project, Expense, Supplier, EXPENSE_CATEGORIES } from '@/types/database';
+import type { User } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,13 +29,14 @@ import Link from 'next/link';
 
 interface CreateExpenseData {
   project_id: string;
-  category: 'costos_directos' | 'costos_indirectos' | 'gastos_administrativos' | 'mano_obra' | 'imprevistos';
-  subcategory?: string;
+  category: 'costos_directos' | 'costos_indirectos' | 'administracion' | 'mano_obra' | 'imprevistos';
+  subcategory_direct?: string;
+  subcategory_indirect?: string;
   description: string;
   amount: number;
   currency: 'CRC' | 'USD';
-  exchange_rate?: number;
-  date: string;
+  exchange_rate_usd?: number;
+  expense_date: string;
   supplier_id?: string;
 
   reference?: string;
@@ -49,7 +51,7 @@ function ProjectExpensesPage() {
   const supabase = createClient();
   
   // Estado de autenticación
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   
@@ -66,13 +68,14 @@ function ProjectExpensesPage() {
   // Estado del formulario de gastos
   const [expenseForm, setExpenseForm] = useState<CreateExpenseData>({
     project_id: projectId,
-    category: '',
-    subcategory: '',
+    category: 'costos_directos',
+    subcategory_direct: undefined,
+    subcategory_indirect: undefined,
     description: '',
     amount: 0,
     currency: 'CRC',
-    exchange_rate: 500,
-    date: new Date().toISOString().split('T')[0],
+    exchange_rate_usd: 500,
+    expense_date: new Date().toISOString().split('T')[0],
     supplier_id: '',
 
     reference: '',
@@ -90,7 +93,6 @@ function ProjectExpensesPage() {
         setUser(user);
         setIsAuthenticated(!!user);
       } catch (error) {
-        console.error('Error checking auth:', error);
         setIsAuthenticated(false);
         router.push('/login');
       } finally {
@@ -120,7 +122,6 @@ function ProjectExpensesPage() {
       if (error) throw error;
       setProject(data);
     } catch (error) {
-      console.error('Error loading project:', error);
       toast.error('Error al cargar el proyecto');
       router.push('/projects');
     }
@@ -139,7 +140,6 @@ function ProjectExpensesPage() {
       if (error) throw error;
       setExpenses(data || []);
     } catch (error) {
-      console.error('Error loading expenses:', error);
       toast.error('Error al cargar los gastos');
     } finally {
       setLoading(false);
@@ -156,20 +156,21 @@ function ProjectExpensesPage() {
       if (error) throw error;
       setSuppliers(data || []);
     } catch (error) {
-      console.error('Error loading suppliers:', error);
+      // Error loading suppliers - handled silently
     }
   };
 
   const resetExpenseForm = () => {
     setExpenseForm({
       project_id: projectId,
-      category: '',
-      subcategory: '',
+      category: 'costos_directos',
+      subcategory_direct: undefined,
+      subcategory_indirect: undefined,
       description: '',
       amount: 0,
       currency: 'CRC',
-      exchange_rate: 500,
-      date: new Date().toISOString().split('T')[0],
+      exchange_rate_usd: 500,
+      expense_date: new Date().toISOString().split('T')[0],
       supplier_id: '',
   
       reference: '',
@@ -196,7 +197,6 @@ function ProjectExpensesPage() {
       resetExpenseForm();
       loadExpenses();
     } catch (error) {
-      console.error('Error adding expense:', error);
       toast.error('Error al agregar el gasto');
     }
   };
@@ -205,13 +205,14 @@ function ProjectExpensesPage() {
     setEditingExpense(expense);
     setExpenseForm({
       project_id: expense.project_id,
-      category: expense.category,
-      subcategory: expense.subcategory || '',
+      category: expense.category as CreateExpenseData['category'],
+      subcategory_direct: expense.subcategory_direct || undefined,
+      subcategory_indirect: expense.subcategory_indirect || undefined,
       description: expense.description,
       amount: expense.amount,
-      currency: expense.currency,
-      exchange_rate: expense.exchange_rate || 500,
-      date: expense.expense_date,
+      currency: expense.currency as 'CRC' | 'USD',
+      exchange_rate_usd: expense.exchange_rate_usd || 500,
+      expense_date: expense.expense_date,
       supplier_id: expense.supplier_id || '',
   
       reference: expense.reference || '',
@@ -243,7 +244,6 @@ function ProjectExpensesPage() {
       resetExpenseForm();
       loadExpenses();
     } catch (error) {
-      console.error('Error updating expense:', error);
       toast.error('Error al actualizar el gasto');
     }
   };
@@ -266,7 +266,6 @@ function ProjectExpensesPage() {
       toast.success('Gasto eliminado exitosamente');
       loadExpenses();
     } catch (error) {
-      console.error('Error deleting expense:', error);
       toast.error('Error al eliminar el gasto');
     }
   };
@@ -282,16 +281,16 @@ function ProjectExpensesPage() {
 
   // Calcular totales
   const totalExpenses = filteredExpenses.reduce((sum, expense) => {
-    return sum + (expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate || 500));
+    return sum + (expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate_usd || 500));
   }, 0);
 
   const totalUSD = filteredExpenses.reduce((sum, expense) => {
-    return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate || 500));
+    return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 500));
   }, 0);
 
   // Calcular totales por categoría
   const expensesByCategory = filteredExpenses.reduce((acc, expense) => {
-    const amount = expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate || 500);
+    const amount = expense.currency === 'CRC' ? expense.amount : expense.amount * (expense.exchange_rate_usd || 500);
     acc[expense.category] = (acc[expense.category] || 0) + amount;
     return acc;
   }, {} as Record<string, number>);
@@ -380,7 +379,7 @@ function ProjectExpensesPage() {
                       <Label htmlFor="category">Categoría *</Label>
                       <Select
                         value={expenseForm.category}
-                        onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value })}
+                        onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value as CreateExpenseData['category'], subcategory_direct: undefined, subcategory_indirect: undefined })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar categoría" />
@@ -398,8 +397,19 @@ function ProjectExpensesPage() {
                       <Label htmlFor="subcategory">Subcategoría</Label>
                       <Input
                         id="subcategory"
-                        value={expenseForm.subcategory}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, subcategory: e.target.value })}
+                        value={
+                          expenseForm.category === 'costos_directos'
+                            ? (expenseForm.subcategory_direct ?? '')
+                            : (expenseForm.subcategory_indirect ?? '')
+                        }
+                        onChange={(e) =>
+                          setExpenseForm({
+                            ...expenseForm,
+                            ...(expenseForm.category === 'costos_directos'
+                              ? { subcategory_direct: e.target.value || undefined }
+                              : { subcategory_indirect: e.target.value || undefined }),
+                          })
+                        }
                         placeholder="Subcategoría opcional"
                       />
                     </div>
@@ -441,25 +451,25 @@ function ProjectExpensesPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="exchange_rate">Tipo de Cambio</Label>
+                      <Label htmlFor="exchange_rate_usd">Tipo de Cambio</Label>
                       <Input
-                        id="exchange_rate"
+                        id="exchange_rate_usd"
                         type="number"
                         step="0.01"
-                        value={expenseForm.exchange_rate}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate: parseFloat(e.target.value) || 500 })}
+                        value={expenseForm.exchange_rate_usd}
+                        onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate_usd: parseFloat(e.target.value) || 500 })}
                         placeholder="500.00"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="date">Fecha</Label>
+                      <Label htmlFor="expense_date">Fecha</Label>
                       <Input
-                        id="date"
+                        id="expense_date"
                         type="date"
-                        value={expenseForm.date}
-                        onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                        value={expenseForm.expense_date}
+                        onChange={(e) => setExpenseForm({ ...expenseForm, expense_date: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -678,12 +688,12 @@ Clear Filters
                           </div>
                           {expense.currency === 'USD' && (
                             <div className="text-sm text-gray-500">
-                              {formatCurrency(expense.amount * (expense.exchange_rate || 500))}
+                              {formatCurrency(expense.amount * (expense.exchange_rate_usd || 500))}
                             </div>
                           )}
                           {expense.currency === 'CRC' && (
                             <div className="text-sm text-green-600">
-                              {formatUSDCurrency(expense.amount / (expense.exchange_rate || 500))}
+                              {formatUSDCurrency(expense.amount / (expense.exchange_rate_usd || 500))}
                             </div>
                           )}
                         </div>
@@ -741,7 +751,7 @@ Clear Filters
                 <Label htmlFor="edit-category">Categoría *</Label>
                 <Select
                   value={expenseForm.category}
-                  onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value })}
+                  onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value as CreateExpenseData['category'], subcategory_direct: undefined, subcategory_indirect: undefined })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar categoría" />
@@ -759,8 +769,19 @@ Clear Filters
                 <Label htmlFor="edit-subcategory">Subcategoría</Label>
                 <Input
                   id="edit-subcategory"
-                  value={expenseForm.subcategory}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, subcategory: e.target.value })}
+                  value={
+                    expenseForm.category === 'costos_directos'
+                      ? (expenseForm.subcategory_direct ?? '')
+                      : (expenseForm.subcategory_indirect ?? '')
+                  }
+                  onChange={(e) =>
+                    setExpenseForm({
+                      ...expenseForm,
+                      ...(expenseForm.category === 'costos_directos'
+                        ? { subcategory_direct: e.target.value || undefined }
+                        : { subcategory_indirect: e.target.value || undefined }),
+                    })
+                  }
                   placeholder="Subcategoría opcional"
                 />
               </div>
@@ -802,25 +823,25 @@ Clear Filters
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-exchange_rate">Tipo de Cambio</Label>
+                <Label htmlFor="edit-exchange_rate_usd">Tipo de Cambio</Label>
                 <Input
-                  id="edit-exchange_rate"
+                  id="edit-exchange_rate_usd"
                   type="number"
                   step="0.01"
-                  value={expenseForm.exchange_rate}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate: parseFloat(e.target.value) || 500 })}
+                  value={expenseForm.exchange_rate_usd}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, exchange_rate_usd: parseFloat(e.target.value) || 500 })}
                   placeholder="500.00"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-date">Fecha</Label>
+                <Label htmlFor="edit-expense_date">Fecha</Label>
                 <Input
-                  id="edit-date"
+                  id="edit-expense_date"
                   type="date"
-                  value={expenseForm.date}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                  value={expenseForm.expense_date}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, expense_date: e.target.value })}
                 />
               </div>
               <div className="space-y-2">

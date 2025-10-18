@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { UserProfile } from '@/lib/types';
+import type { User } from '@supabase/supabase-js';
 
 interface Expense {
   id: string;
@@ -12,11 +12,11 @@ interface Expense {
   expense_date: string;
   suppliers?: {
     name: string;
-  };
+  }[];
 }
 
 export default function TestExpensesPage() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -97,10 +97,22 @@ export default function TestExpensesPage() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setExpenses([]);
-    setError('');
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setExpenses([]);
+      setError('');
+      
+      // Forzar refresh completo después del logout manual
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 100);
+    } catch (error) {
+      // Forzar refresh incluso si hay error
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 100);
+    }
   };
 
   if (loading) {
@@ -167,7 +179,7 @@ export default function TestExpensesPage() {
                   </div>
                   {expense.suppliers && (
                     <div className="text-sm text-blue-600">
-                      Supplier: {expense.suppliers.name}
+                      Supplier: {expense.suppliers.map((s) => s.name).join(', ')}
                     </div>
                   )}
                 </div>

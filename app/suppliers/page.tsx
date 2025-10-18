@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Truck, Plus, Search, Edit, Trash2, Phone, Mail, MapPin } from 'lucide-react';
+import { Truck, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { withAuth } from '@/components/auth/withAuth';
@@ -105,7 +105,7 @@ function SuppliersPage() {
       
       if (result.success) {
         setSuppliers(result.data || []);
-        console.log(`Cargados ${result.count} proveedores`);
+  
       } else {
         throw new Error(result.error || 'Error desconocido');
       }
@@ -122,7 +122,7 @@ function SuppliersPage() {
     let filtered = suppliers.filter(supplier => {
       const matchesSearch = supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            supplier.contact_person.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           supplier.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (supplier.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                            supplier.tax_id.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesType = filterType === 'ALL' || supplier.supplier_type === filterType;
@@ -286,6 +286,67 @@ function SuppliersPage() {
     }
   };
 
+  const exportToExcel = async () => {
+    try {
+      // Importar la librería de forma perezosa para evitar cargarla en SSR/initial render
+      const XLSX = await import('xlsx');
+      // Preparar los datos para exportar
+      const dataToExport = filteredSuppliers.map((supplier: Supplier) => ({
+        'Empresa': supplier.name,
+        'Persona de Contacto': supplier.contact_person,
+        'Email': supplier.email || '',
+        'Teléfono': supplier.phone,
+        'Dirección': supplier.address,
+        'Cédula Jurídica': supplier.tax_id,
+        'Tipo de Proveedor': supplierTypeLabels[supplier.supplier_type],
+        'Estado': statusLabels[supplier.status],
+        'Notas': supplier.notes || '',
+        'Fecha de Creación': new Date(supplier.created_at).toLocaleDateString('es-ES'),
+        'Última Actualización': new Date(supplier.updated_at).toLocaleDateString('es-ES')
+      }));
+
+      // Crear el libro de trabajo
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+      // Configurar el ancho de las columnas
+      const colWidths = [
+        { wch: 25 }, // Empresa
+        { wch: 20 }, // Persona de Contacto
+        { wch: 25 }, // Email
+        { wch: 15 }, // Teléfono
+        { wch: 30 }, // Dirección
+        { wch: 15 }, // Cédula Jurídica
+        { wch: 18 }, // Tipo de Proveedor
+        { wch: 10 }, // Estado
+        { wch: 30 }, // Notas
+        { wch: 15 }, // Fecha de Creación
+        { wch: 18 }  // Última Actualización
+      ];
+      ws['!cols'] = colWidths;
+
+      // Agregar la hoja al libro
+      XLSX.utils.book_append_sheet(wb, ws, 'Proveedores');
+
+      // Generar el nombre del archivo
+      const currentDate = new Date().toISOString().split('T')[0];
+      let fileName = `proveedores_${currentDate}.xlsx`;
+      
+      // Si hay filtros aplicados, incluirlos en el nombre del archivo
+      if (filterType !== 'ALL') {
+        fileName = `proveedores_${supplierTypeLabels[filterType as keyof typeof supplierTypeLabels]}_${currentDate}.xlsx`;
+      }
+
+      // Descargar el archivo
+      XLSX.writeFile(wb, fileName);
+      
+      toast.success(`Archivo Excel exportado: ${fileName}`);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Error al exportar a Excel');
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -378,7 +439,7 @@ function SuppliersPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="supplier_type">Tipo de Proveedor</Label>
-                <Select value={supplierForm.supplier_type} onValueChange={(value: string) => setSupplierForm(prev => ({ ...prev, supplier_type: value }))}>
+                <Select value={supplierForm.supplier_type} onValueChange={(value) => setSupplierForm(prev => ({ ...prev, supplier_type: value as SupplierForm['supplier_type'] }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -499,6 +560,19 @@ function SuppliersPage() {
               <span className="hidden sm:inline">Proveedores ({filteredSuppliers.length})</span>
               <span className="sm:hidden">{filteredSuppliers.length} proveedores</span>
             </span>
+            <div className="flex gap-2">
+              <Button
+                onClick={exportToExcel}
+                variant="outline"
+                size="sm"
+                disabled={filteredSuppliers.length === 0}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Exportar a Excel</span>
+                <span className="sm:hidden">Excel</span>
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -728,7 +802,7 @@ function SuppliersPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-supplier_type">Tipo de Proveedor</Label>
-              <Select value={supplierForm.supplier_type} onValueChange={(value: string) => setSupplierForm(prev => ({ ...prev, supplier_type: value }))}>
+              <Select value={supplierForm.supplier_type} onValueChange={(value) => setSupplierForm(prev => ({ ...prev, supplier_type: value as SupplierForm['supplier_type'] }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -742,7 +816,7 @@ function SuppliersPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-status">Estado</Label>
-              <Select value={supplierForm.status} onValueChange={(value: string) => setSupplierForm(prev => ({ ...prev, status: value }))}>
+              <Select value={supplierForm.status} onValueChange={(value) => setSupplierForm(prev => ({ ...prev, status: value as SupplierForm['status'] }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

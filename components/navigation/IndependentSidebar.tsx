@@ -37,10 +37,8 @@ function useHydrated() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    console.log('🔄 [useHydrated] useEffect ejecutándose...');
     // Usar requestAnimationFrame para asegurar que se ejecute después del renderizado
     const frame = requestAnimationFrame(() => {
-      console.log('🎬 [useHydrated] requestAnimationFrame ejecutándose, estableciendo hydrated = true');
       setHydrated(true);
     });
     
@@ -58,44 +56,32 @@ export function IndependentSidebar() {
   const hydrated = useHydrated();
   const pathname = usePathname();
 
-  console.log('🚀 [IndependentSidebar] Componente renderizado, pathname:', pathname, 'hydrated:', hydrated);
-
   useEffect(() => {
     if (!hydrated || typeof window === 'undefined') {
-      console.log('🔄 [IndependentSidebar] Saltando auth check - hydrated:', hydrated, 'window:', typeof window);
       return;
     }
     
-    console.log('🔄 [IndependentSidebar] Iniciando verificación de autenticación...');
-    
     const checkAuth = async () => {
       try {
-        console.log('🔍 [IndependentSidebar] Verificando autenticación...');
         const supabase = createClient();
         
         // Verificar localStorage primero (solo en el cliente)
         const accessToken = typeof window !== 'undefined' ? localStorage.getItem('sb-localhost-auth-token') : null;
-        console.log('🔍 [IndependentSidebar] Token en localStorage:', !!accessToken);
         
         // Verificar sesión
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        console.log('🔍 [IndependentSidebar] Datos de sesión:', sessionData);
-        
         if (sessionError) {
-          console.error('❌ [IndependentSidebar] Error de sesión:', sessionError);
           setLoading(false);
           return;
         }
 
         if (!sessionData.session) {
-          console.log('ℹ️ [IndependentSidebar] No hay sesión activa');
           setLoading(false);
           return;
         }
 
         const sessionUser = sessionData.session.user;
-        console.log('✅ [IndependentSidebar] Sesión encontrada:', sessionUser.email);
         
         setUser({
           id: sessionUser.id,
@@ -114,7 +100,6 @@ export function IndependentSidebar() {
           if (profileError) {
             console.warn('⚠️ [IndependentSidebar] Error al obtener perfil:', profileError);
           } else if (profileData) {
-            console.log('👤 [IndependentSidebar] Perfil encontrado:', profileData);
             setProfile(profileData);
             setUser(prev => prev ? { ...prev, role: profileData.role } : null);
           }
@@ -123,9 +108,8 @@ export function IndependentSidebar() {
         }
 
       } catch (error) {
-        console.error('❌ [IndependentSidebar] Error general:', error);
+        // Error silently handled
       } finally {
-        console.log('🏁 [IndependentSidebar] Finalizando checkAuth, setLoading(false)');
         setLoading(false);
       }
     };
@@ -135,7 +119,6 @@ export function IndependentSidebar() {
     // Escuchar cambios de autenticación
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 [IndependentSidebar] Cambio de auth:', event, session?.user?.email);
       if (event === 'SIGNED_IN' && session) {
         setUser({
           id: session.user.id,
@@ -155,16 +138,24 @@ export function IndependentSidebar() {
 
   const handleLogout = async () => {
     try {
-      console.log('🚪 [IndependentSidebar] Cerrando sesión...');
       const supabase = createClient();
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
+      
+      // Forzar refresh completo después del logout manual
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        setTimeout(() => {
+          window.location.href = '/?reason=manual_logout';
+        }, 100);
       }
     } catch (error) {
-      console.error('❌ [IndependentSidebar] Error al cerrar sesión:', error);
+      // Error silently handled - pero aún así hacer refresh
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.location.href = '/?reason=manual_logout';
+        }, 100);
+      }
     }
   };
 
@@ -174,11 +165,8 @@ export function IndependentSidebar() {
 
   // No mostrar sidebar si no está hidratado, está cargando, no hay usuario, o es ruta pública
   if (!hydrated || loading || !user || isPublicRoute) {
-    console.log('🔍 [IndependentSidebar] Estado:', { hydrated, loading, hasUser: !!user, isPublicRoute, pathname });
     return null;
   }
-
-  console.log('✅ [IndependentSidebar] Mostrando sidebar para:', user.email);
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', href: '/dashboard' },

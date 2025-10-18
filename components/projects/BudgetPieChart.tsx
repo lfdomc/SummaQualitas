@@ -1,10 +1,9 @@
 'use client';
 
-import { Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { LazyPieChart } from '@/components/ui/lazy-chart';
+import { LazyPieChart, Pie, Cell, Tooltip } from '@/components/ui/lazy-chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart as PieChartIcon } from 'lucide-react';
-import { Project } from '@/lib/types';
+import type { Project } from '@/lib/types';
 
 interface BudgetPieChartProps {
   project: Project;
@@ -43,17 +42,30 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
                               (project.imprevistos || 0) + 
                               (project.utilidad || 0);
 
+  // Porcentajes por defecto (coinciden con los usados en la página del proyecto)
+  const DEFAULT_BUDGET_PERCENTAGES = {
+    costos_directos: 0.650,      // 65.0%
+    costos_indirectos: 0.040,    // 4.0%
+    administracion: 0.100,       // 10.0%
+    mano_obra: 0.190,            // 19.0%
+    imprevistos: 0.020,          // 2.0%
+    utilidad: 0.000              // 0.0%
+  };
+
   // Calcular el monto sin asignar
   const unassigned = totalBudget - initialTotalAssigned;
 
   // Si hay monto sin asignar, distribuirlo proporcionalmente
-  const distributionFactor = unassigned > 0 ? totalBudget / initialTotalAssigned : 1;
+  const distributionFactor = unassigned > 0 && initialTotalAssigned > 0 ? totalBudget / initialTotalAssigned : 1;
 
   // Función para calcular el monto ajustado con distribución proporcional
   const calculateAdjustedAmount = (originalAmount: number): number => {
     if (originalAmount === 0) return 0;
     return originalAmount * distributionFactor;
   };
+
+  // Si no hay partidas asignadas pero existe presupuesto, usar distribución por defecto
+  const useDefaults = initialTotalAssigned === 0 && totalBudget > 0;
 
   // Colores para cada categoría (usando los campos correctos de la tabla projects)
   const categoryColors = {
@@ -70,38 +82,38 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
     {
       id: 'costos_directos',
       name: 'Costos Directos',
-      amount: calculateAdjustedAmount(project.costos_directos || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_directos || 0), totalBudget)
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_directos) : calculateAdjustedAmount(project.costos_directos || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_directos), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.costos_directos || 0), totalBudget)
     },
     {
       id: 'costos_indirectos',
       name: 'Costos Indirectos',
-      amount: calculateAdjustedAmount(project.costos_indirectos || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.costos_indirectos || 0), totalBudget)
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_indirectos) : calculateAdjustedAmount(project.costos_indirectos || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.costos_indirectos), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.costos_indirectos || 0), totalBudget)
     },
     {
       id: 'administracion',
       name: 'Administración',
-      amount: calculateAdjustedAmount(project.administracion || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.administracion || 0), totalBudget)
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.administracion) : calculateAdjustedAmount(project.administracion || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.administracion), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.administracion || 0), totalBudget)
     },
     {
       id: 'mano_obra',
       name: 'Mano de Obra',
-      amount: calculateAdjustedAmount(project.mano_obra || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.mano_obra || 0), totalBudget)
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.mano_obra) : calculateAdjustedAmount(project.mano_obra || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.mano_obra), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.mano_obra || 0), totalBudget)
     },
     {
       id: 'imprevistos',
       name: 'Imprevistos',
-      amount: calculateAdjustedAmount(project.imprevistos || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.imprevistos || 0), totalBudget)
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.imprevistos) : calculateAdjustedAmount(project.imprevistos || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.imprevistos), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.imprevistos || 0), totalBudget)
     },
     {
       id: 'utilidad',
       name: 'Utilidad',
-      amount: calculateAdjustedAmount(project.utilidad || 0),
-      percentage: calculatePercentage(calculateAdjustedAmount(project.utilidad || 0), totalBudget)
+      amount: useDefaults ? Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.utilidad) : calculateAdjustedAmount(project.utilidad || 0),
+      percentage: useDefaults ? calculatePercentage(Math.round(totalBudget * DEFAULT_BUDGET_PERCENTAGES.utilidad), totalBudget) : calculatePercentage(calculateAdjustedAmount(project.utilidad || 0), totalBudget)
     }
   ].filter(item => item.amount > 0); // Solo mostrar partidas con valor
 
@@ -165,25 +177,23 @@ export function BudgetPieChart({ project, exchangeRate = 500 }: BudgetPieChartPr
       </CardHeader>
       <CardContent>
         <div className="w-full h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <LazyPieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
-                outerRadius={120}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </LazyPieChart>
-          </ResponsiveContainer>
+          <LazyPieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
+              outerRadius={120}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </LazyPieChart>
         </div>
       </CardContent>
     </Card>

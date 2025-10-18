@@ -2,11 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { UserRoleType } from '@/lib/types';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 
 interface UseRequireAuthOptions {
-  requiredRoles?: UserRoleType[];
+  requiredRoles?: string[];
   redirectTo?: string;
 }
 
@@ -17,7 +16,7 @@ interface UseRequireAuthOptions {
 export function useRequireAuth(options: UseRequireAuthOptions = {}) {
   const { requiredRoles, redirectTo = '/login' } = options;
   const router = useRouter();
-  const { isAuthenticated, profile, loading } = useAuth();
+  const { isAuthenticated, profile, loading } = useAuthContext();
 
   useEffect(() => {
     if (loading) return; // Esperar a que termine de cargar

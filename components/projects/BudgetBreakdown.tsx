@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { projectService, incomeService, expenseService } from '@/lib/supabase/database';
-import { BudgetItem, UserRole, Income, Expense } from '@/lib/types';
+import { BudgetItem, Income, Expense } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +47,8 @@ export function BudgetBreakdown({ projectId, totalBudget, exchangeRate = 500, on
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const canEdit = hasRole(UserRole.GERENCIA) || hasRole(UserRole.ADMINISTRATIVO);
+  // Permissions using UserRoleType string literals
+  const canEdit = hasRole('gerencia') || hasRole('administrativo');
 
   useEffect(() => {
     loadFinancialData();
@@ -68,7 +69,6 @@ export function BudgetBreakdown({ projectId, totalBudget, exchangeRate = 500, on
       setIncomes(incomesData);
       setExpenses(expensesData);
     } catch (error) {
-      console.error('Error loading financial data:', error);
       toast.error('Error al cargar los datos financieros');
     } finally {
       setLoading(false);
@@ -86,7 +86,6 @@ export function BudgetBreakdown({ projectId, totalBudget, exchangeRate = 500, on
       await loadBudgetItems();
       onBudgetUpdate?.();
     } catch (error) {
-      console.error('Error deleting budget item:', error);
       toast.error('Error al eliminar la partida presupuestaria');
     }
   };

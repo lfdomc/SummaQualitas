@@ -5,6 +5,14 @@
 import { Project, Supplier, Client } from '@/lib/types';
 import { Expense, Income } from '@/lib/types';
 
+// Tipo para datos de gráficos
+export interface ChartDataPoint {
+  label: string;
+  value: number;
+  category?: string;
+  color?: string;
+}
+
 // Tipos de reportes personalizados disponibles
 export type CustomReportType = 
   | 'direct_expenses_by_project_month'
@@ -345,7 +353,7 @@ export interface CustomReportData {
   charts?: {
     type: 'bar' | 'line' | 'pie' | 'area';
     title: string;
-    data: any[];
+    data: ChartDataPoint[];
   }[];
 }
 

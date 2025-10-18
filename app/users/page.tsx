@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { UserService } from '@/lib/supabase/database';
-import { UserProfile, UserRole } from '@/lib/types';
+import { UserProfile, UserRoleType } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,25 +50,25 @@ import { toast } from 'sonner';
 import { withAuth } from '@/components/auth/withAuth';
 
 interface EditUserData {
-  full_name: string;
+  name: string;
   email: string;
-  role: UserRole;
+  role: UserRoleType;
   phone?: string;
   department?: string;
   is_active: boolean;
 }
 
 function UsersPage() {
-  const { user: currentUser, profile: currentProfile } = useAuth();
+  const { user: currentUser, profile: currentProfile } = useAuthContext();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editData, setEditData] = useState<EditUserData>({
-    full_name: '',
+    name: '',
     email: '',
-    role: UserRole.CLIENTE,
+    role: 'cliente',
     phone: '',
     department: '',
     is_active: true
@@ -98,7 +98,7 @@ function UsersPage() {
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
     setEditData({
-      full_name: user.full_name,
+      name: user.name,
       email: user.email,
       role: user.role,
       // phone: user.phone || '', // Campo removido del esquema
@@ -138,26 +138,26 @@ function UsersPage() {
     }
   };
 
-  const getRoleBadgeVariant = (role: UserRole) => {
+  const getRoleBadgeVariant = (role: UserRoleType) => {
     switch (role) {
-      case UserRole.GERENCIA:
+      case 'gerencia':
         return 'default';
-      case UserRole.ADMINISTRATIVO:
+      case 'administrativo':
         return 'secondary';
-      case UserRole.CLIENTE:
+      case 'cliente':
         return 'outline';
       default:
         return 'outline';
     }
   };
 
-  const getRoleDisplayName = (role: UserRole) => {
+  const getRoleDisplayName = (role: UserRoleType) => {
     switch (role) {
-      case UserRole.GERENCIA:
+      case 'gerencia':
         return 'Gerencia';
-      case UserRole.ADMINISTRATIVO:
+      case 'administrativo':
         return 'Administrativo';
-      case UserRole.CLIENTE:
+      case 'cliente':
         return 'Cliente';
       default:
         return role;
@@ -165,7 +165,7 @@ function UsersPage() {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     return matchesSearch && matchesRole;
@@ -228,7 +228,7 @@ function UsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.role === UserRole.GERENCIA).length}
+              {users.filter(u => u.role === 'gerencia').length}
             </div>
           </CardContent>
         </Card>
@@ -240,7 +240,7 @@ function UsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.role === UserRole.ADMINISTRATIVO).length}
+              {users.filter(u => u.role === 'administrativo').length}
             </div>
           </CardContent>
         </Card>
@@ -252,7 +252,7 @@ function UsersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.role === UserRole.CLIENTE).length}
+              {users.filter(u => u.role === 'cliente').length}
             </div>
           </CardContent>
         </Card>
@@ -286,9 +286,9 @@ function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los roles</SelectItem>
-                  <SelectItem value={UserRole.GERENCIA}>Gerencia</SelectItem>
-                  <SelectItem value={UserRole.ADMINISTRATIVO}>Administrativo</SelectItem>
-                  <SelectItem value={UserRole.CLIENTE}>Cliente</SelectItem>
+                  <SelectItem value="gerencia">Gerencia</SelectItem>
+                  <SelectItem value="administrativo">Administrativo</SelectItem>
+                  <SelectItem value="cliente">Cliente</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -321,7 +321,7 @@ function UsersPage() {
                 <TableRow key={user.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{user.full_name}</div>
+                      <div className="font-medium">{user.name}</div>
                       <div className="text-sm text-muted-foreground flex items-center gap-1">
                         <Mail className="h-3 w-3" />
                         {user.email}
@@ -421,8 +421,8 @@ function UsersPage() {
               </Label>
               <Input
                 id="edit-name"
-                value={editData.full_name}
-                onChange={(e) => setEditData({ ...editData, full_name: e.target.value })}
+                value={editData.name}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                 className="col-span-3"
               />
             </div>
@@ -444,15 +444,15 @@ function UsersPage() {
               </Label>
               <Select
                 value={editData.role}
-                onValueChange={(value: UserRole) => setEditData({ ...editData, role: value })}
+                onValueChange={(value: UserRoleType) => setEditData({ ...editData, role: value })}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={UserRole.GERENCIA}>Gerencia</SelectItem>
-                  <SelectItem value={UserRole.ADMINISTRATIVO}>Administrativo</SelectItem>
-                  <SelectItem value={UserRole.CLIENTE}>Cliente</SelectItem>
+                  <SelectItem value="gerencia">Gerencia</SelectItem>
+                  <SelectItem value="administrativo">Administrativo</SelectItem>
+                  <SelectItem value="cliente">Cliente</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -507,4 +507,4 @@ function UsersPage() {
 }
 
 // Proteger esta página - solo gerencia puede acceder
-export default withAuth(UsersPage, [UserRole.GERENCIA]);
+export default withAuth(UsersPage, ['gerencia']);

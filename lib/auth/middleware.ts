@@ -1,10 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { UserRole } from '@/lib/types';
+import { type UserRoleType } from '@/lib/types';
 
 interface UserProfile {
   id: string;
-  role: UserRole;
+  role: UserRoleType;
   email: string;
   name: string;
 }
@@ -41,27 +41,27 @@ const publicRoutes = [
 ];
 
 // Rutas que requieren roles específicos
-const roleBasedRoutes: Record<string, UserRole[]> = {
+const roleBasedRoutes: Record<string, UserRoleType[]> = {
   // Solo gerencia
-  '/settings': [UserRole.GERENCIA],
-  '/users': [UserRole.GERENCIA],
-  '/projects/new': [UserRole.GERENCIA],
-  '/projects/*/edit': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO], // Rutas de edición de proyectos
+  '/settings': ['gerencia'],
+  '/users': ['gerencia'],
+  '/projects/new': ['gerencia'],
+  '/projects/*/edit': ['gerencia', 'administrativo'], // Rutas de edición de proyectos
   
   // Gerencia y administrativo
-  '/analytics': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
-  '/reports': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
-  '/equipment': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
-  '/alerts': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
-  '/incomes': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
-  '/expenses': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
-  '/payments': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO],
+  '/analytics': ['gerencia', 'administrativo'],
+  '/reports': ['gerencia', 'administrativo'],
+  '/equipment': ['gerencia', 'administrativo'],
+  '/alerts': ['gerencia', 'administrativo'],
+  '/incomes': ['gerencia', 'administrativo'],
+  '/expenses': ['gerencia', 'administrativo'],
+  '/payments': ['gerencia', 'administrativo'],
   
   // Todos los roles (pero con diferentes permisos internos)
-  '/dashboard': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE],
-  '/projects': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE],
-  '/invoices': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE],
-  '/profile': [UserRole.GERENCIA, UserRole.ADMINISTRATIVO, UserRole.CLIENTE]
+  '/dashboard': ['gerencia', 'administrativo', 'cliente'],
+  '/projects': ['gerencia', 'administrativo', 'cliente'],
+  '/invoices': ['gerencia', 'administrativo', 'cliente'],
+  '/profile': ['gerencia', 'administrativo', 'cliente']
 };
 
 const PUBLIC_ROUTES = new Set([
@@ -205,13 +205,13 @@ export async function updateSession(request: NextRequest) {
 }
 
 // Optimización: cache simple para permisos de usuario
-const userPermissionCache = new Map<string, { role: UserRole; timestamp: number }>();
+const userPermissionCache = new Map<string, { role: UserRoleType; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 // Helper function to check user permissions con cache
 export async function checkUserPermission(
   userId: string,
-  requiredRoles: UserRole[],
+  requiredRoles: UserRoleType[],
   supabaseClient?: any
 ): Promise<boolean> {
   try {
@@ -219,7 +219,7 @@ export async function checkUserPermission(
     const cached = userPermissionCache.get(userId);
     const now = Date.now();
     
-    let userRole: UserRole;
+    let userRole: UserRoleType;
     
     if (cached && (now - cached.timestamp) < CACHE_DURATION) {
       userRole = cached.role;
@@ -256,14 +256,14 @@ export async function checkUserPermission(
         return false;
       }
       
-      userRole = profile.role as UserRole;
+      userRole = profile.role as UserRoleType;
       
       // Actualizar cache
       userPermissionCache.set(userId, { role: userRole, timestamp: now });
     }
 
     // Si el usuario es gerencia, permitir acceso a todo
-    if (userRole === UserRole.GERENCIA) {
+    if (userRole === 'gerencia') {
       return true;
     }
 

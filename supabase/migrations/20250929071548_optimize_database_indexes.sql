@@ -44,15 +44,29 @@ CREATE INDEX IF NOT EXISTS idx_incomes_date_status
 ON incomes(received_date DESC, status) 
 WHERE status IN ('confirmado', 'pendiente');
 
--- Índices para la tabla change_orders (si existe la tabla)
+-- Índices para la tabla change_orders (si existe la tabla y la columna)
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'change_orders') THEN
-        CREATE INDEX IF NOT EXISTS idx_change_orders_project_type_status 
-        ON change_orders(project_id, change_type, status);
+        -- Crear índice sólo si la columna change_type existe
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'change_orders' AND column_name = 'change_type'
+        ) THEN
+          CREATE INDEX IF NOT EXISTS idx_change_orders_project_type_status 
+          ON change_orders(project_id, change_type, status);
+        END IF;
         
-        CREATE INDEX IF NOT EXISTS idx_change_orders_date_cost 
-        ON change_orders(created_at DESC, cost_impact DESC);
+        -- Crear índice sólo si la columna cost_impact existe
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'change_orders' AND column_name = 'cost_impact'
+        ) THEN
+          CREATE INDEX IF NOT EXISTS idx_change_orders_date_cost 
+          ON change_orders(created_at DESC, cost_impact DESC);
+        END IF;
     END IF;
 END $$;
 

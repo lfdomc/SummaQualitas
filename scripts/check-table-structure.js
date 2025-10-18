@@ -124,6 +124,32 @@ async function checkTableStructure() {
       console.log('   income status valores únicos:', uniqueIncomeStatuses);
     }
 
+    // Verificar estructura de la tabla change_orders
+    console.log('\n🧾 Estructura de la tabla CHANGE_ORDERS:');
+    const { data: changeOrdersColumns, error: changeOrdersError } = await supabase
+      .from('information_schema.columns')
+      .select('column_name, data_type, is_nullable, column_default')
+      .eq('table_name', 'change_orders')
+      .eq('table_schema', 'public')
+      .order('ordinal_position');
+
+    if (changeOrdersError) {
+      console.error('❌ Error obteniendo estructura de change_orders:', changeOrdersError);
+    } else if (changeOrdersColumns && changeOrdersColumns.length > 0) {
+      const cols = changeOrdersColumns.map(col => col.column_name);
+      changeOrdersColumns.forEach(col => {
+        console.log(`   ${col.column_name}: ${col.data_type} ${col.is_nullable === 'NO' ? '(NOT NULL)' : ''}`);
+      });
+      // Señalar columnas críticas
+      const critical = ['document_number','cost_impact','exchange_rate','cost_impact_crc','requested_date','request_date','exchange_rate_usd'];
+      const missingCritical = critical.filter(c => !cols.includes(c));
+      if (missingCritical.length > 0) {
+        console.log('⚠️  Columnas críticas faltantes en change_orders:', missingCritical);
+      } else {
+        console.log('✅ Columnas críticas presentes en change_orders');
+      }
+    }
+
     // Verificar expense categories
     const { data: expenseCategories, error: expenseCategoriesError } = await supabase
       .from('expenses')

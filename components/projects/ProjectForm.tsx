@@ -26,7 +26,7 @@ import { BudgetPercentageBreakdown, BudgetBreakdownData } from './BudgetPercenta
 const projectSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(255, 'El nombre es muy largo'),
   description: z.string().optional(),
-  client_id: z.string().uuid('Selecciona un cliente válido').optional(),
+  client_id: z.string().uuid('Selecciona un cliente válido'),
   manager_id: z.string().uuid('Selecciona un gerente válido').optional(),
   status: z.enum(['planificacion', 'en_progreso', 'pausado', 'completado', 'cancelado']),
   location: z.string().optional(),
@@ -178,13 +178,6 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       setClients(clientsData);
       setManagers(managersData);
     } catch (error) {
-      console.error('Error loading form data:', {
-        error,
-        message: error instanceof Error ? error.message : 'Error desconocido',
-        stack: error instanceof Error ? error.stack : undefined,
-        type: typeof error,
-        stringified: JSON.stringify(error)
-      });
       toast.error(`Error al cargar los datos del formulario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoadingData(false);
@@ -192,14 +185,16 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
   };
 
   const onSubmit = async (data: ProjectFormData) => {
+    console.log('ProjectForm onSubmit triggered with data:', data);
     const projectData = {
       ...data,
-      budget: data.presupuesto_inicial || 0,
+      // No ajustar 'budget' durante edición: evita violar constraints.
+      // Para creación, se calculará explícitamente más abajo.
       estimated_start_date: data.estimated_start_date?.toISOString().split('T')[0],
       estimated_end_date: data.estimated_end_date?.toISOString().split('T')[0],
       actual_start_date: data.actual_start_date?.toISOString().split('T')[0],
       actual_end_date: data.actual_end_date?.toISOString().split('T')[0],
-      // Budget is calculated automatically from breakdown fields
+      // El presupuesto se calcula automáticamente desde los campos de desglose cuando corresponde.
     };
 
     try {
@@ -208,19 +203,39 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       let result: Project;
       
       if (isEditing && project) {
-        // Para edición, usar la clase ProjectService
+        // Para edición, usar API route con PATCH para obtener datos frescos y mejores errores
         const updateData: UpdateProjectDTO = {
-          ...projectData
-        };
-        
-        const projectServiceInstance = new ProjectService();
-        result = await projectServiceInstance.updateProject(project.id, updateData);
-        
+          ...projectData,
+        } as UpdateProjectDTO;
+
+        // No enviar 'budget' en edición para no resetearlo a 0 accidentalmente
+        // (Si existe en el objeto por alguna razón, elimínalo)
+        delete (updateData as any).budget;
+
+        const response = await fetch(`/api/projects/${project.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateData),
+        });
+
+        console.log('ProjectForm PATCH response status:', response.status);
+        const responseData = await response.json();
+        console.log('ProjectForm PATCH response data:', responseData);
+
+        if (!response.ok || !responseData.success) {
+          throw new Error(responseData.error || 'Error al actualizar el proyecto');
+        }
+
+        result = responseData.data;
         toast.success('Proyecto actualizado correctamente');
       } else {
         // Para creación, usar la API route
         const createData: CreateProjectDTO = {
-          ...projectData
+          ...projectData,
+          // En creación sí establecemos budget desde presupuesto_inicial
+          budget: data.presupuesto_inicial || 0,
         } as CreateProjectDTO;
         
         const response = await fetch('/api/projects', {
@@ -231,7 +246,9 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
           body: JSON.stringify(createData),
         });
 
+        console.log('ProjectForm submit response status:', response.status);
         const responseData = await response.json();
+        console.log('ProjectForm submit response data:', responseData);
 
         if (!response.ok) {
           throw new Error(responseData.error || 'Error al crear el proyecto');
@@ -245,35 +262,17 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
         toast.success('Proyecto creado correctamente');
       }
 
+      // Tras guardar, asegura que la UI revalide y muestre datos actualizados
       if (onSuccess) {
         onSuccess(result);
       } else {
-        router.push('/projects');
+        // Navega al detalle del proyecto para forzar lectura fresca
+        router.push(`/projects/${result.id}`);
       }
+      // Fuerza revalidación del router para evitar valores en caché
+      router.refresh();
     } catch (error) {
-      console.error('Error saving project:', error);
-      
-      // Log más detallado del error
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          cause: error.cause
-        });
-      } else {
-        console.error('Non-Error object thrown:', {
-          type: typeof error,
-          value: error,
-          toString: String(error)
-        });
-      }
-      
-      // Log de los datos que se estaban enviando
-      console.error('Project data being sent:', {
-        ...projectData,
-        // Ocultar datos sensibles si los hay
-      });
+      // Error details handled by toast message
       
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido al guardar el proyecto';
       toast.error(isEditing ? `Error al actualizar el proyecto: ${errorMessage}` : `Error al crear el proyecto: ${errorMessage}`);
@@ -316,7 +315,10 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+            console.log('ProjectForm validation errors:', errors);
+            toast.error('Por favor revisa los campos requeridos');
+          })} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Project Name */}
               <FormField
@@ -365,8 +367,8 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
                 name="client_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cliente</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel>Cliente *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona un cliente" />
@@ -477,70 +479,31 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
               <FormField
                 control={form.control}
                 name="presupuesto_inicial"
-                render={({ field }) => {
-                  const [displayValue, setDisplayValue] = useState('');
-
-                  const formatNumber = (value: number): string => {
-                    if (value === 0 || isNaN(value)) return '';
-                    return new Intl.NumberFormat('es-CR', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }).format(value);
-                  };
-
-                  const parseNumber = (value: string): number => {
-                    if (!value || value.trim() === '') return 0;
-                    
-                    // Simplemente convertir el valor directamente
-                    // Reemplazar coma por punto para decimales
-                    const cleanValue = value.replace(',', '.');
-                    
-                    const parsed = parseFloat(cleanValue);
-                    return isNaN(parsed) ? 0 : parsed;
-                  };
-
-                  // Inicializar displayValue solo una vez
-                  useEffect(() => {
-                    if (displayValue === '' && field.value > 0) {
-                      setDisplayValue(field.value.toString());
-                    }
-                  }, []);
-
-                  return (
-                    <FormItem>
-                      <FormLabel>Presupuesto Inicial *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="0,00"
-                          value={displayValue}
-                          onChange={(e) => {
-                            const inputValue = e.target.value;
-                            setDisplayValue(inputValue);
-                            
-                            // Solo actualizar el campo si hay un valor válido
-                            const numericValue = parseNumber(inputValue);
-                            field.onChange(numericValue);
-                          }}
-                          onBlur={() => {
-                            // Al perder el foco, formatear el valor
-                            setDisplayValue(formatNumber(field.value));
-                          }}
-                          onFocus={() => {
-                            // Al enfocar, mostrar el valor sin formato para facilitar edición
-                            if (field.value > 0) {
-                              setDisplayValue(field.value.toString());
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                          Presupuesto inicial del proyecto en colones costarricenses (CRC)
-                        </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Presupuesto Inicial *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={field.value === 0 ? '' : field.value}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onFocus={() => {
+                          if (field.value === 0) {
+                            // mostrar vacío para facilitar edición
+                            field.onChange('');
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                        Presupuesto inicial del proyecto en colones costarricenses (CRC)
+                      </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
 

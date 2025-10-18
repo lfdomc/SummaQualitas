@@ -25,8 +25,12 @@ interface ExpenseData {
   expense_date: string;
   category: string;
   subcategory_direct?: string;
+  // add indirect subcategory support used in various reports
+  subcategory_indirect?: string;
   currency: string;
+  // keep legacy field for compatibility, but prefer exchange_rate_usd
   exchange_rate?: number;
+  exchange_rate_usd?: number;
   project_id: string;
   supplier_id?: string;
   project?: {
@@ -37,20 +41,33 @@ interface ExpenseData {
     };
   };
   supplier?: {
+    id?: string;
     name: string;
+    contact_name?: string;
+    email?: string;
   };
+  // payment tracking for supplier payment analysis
+  payment_status?: string;
+  payment_date?: string;
 }
 
 interface IncomeData {
   id: string;
   amount: number;
-  income_date: string;
+  // align with DB: received_date
+  received_date: string;
   currency: string;
+  // keep legacy field for compatibility, but prefer exchange_rate_usd
   exchange_rate?: number;
+  exchange_rate_usd?: number;
   project_id: string;
+  status?: 'pending' | 'confirmed' | 'cancelled' | 'pendiente' | 'confirmado' | 'cancelado';
   project?: {
     id: string;
     name: string;
+    status?: string;
+    estimated_start_date?: string;
+    estimated_end_date?: string;
     client?: {
       name: string;
     };
@@ -58,22 +75,37 @@ interface IncomeData {
 }
 
 interface ProjectGroup {
-  projectId: string;
-  projectName: string;
-  clientName: string;
+  project: {
+    id: string;
+    name: string;
+    client?: {
+      name: string;
+    };
+  };
   expenses: ExpenseData[];
 }
 
 interface IncomeGroup {
-  projectId: string;
-  projectName: string;
-  clientName: string;
+  project: {
+    id: string;
+    name: string;
+    status?: string;
+    estimated_start_date?: string;
+    estimated_end_date?: string;
+    client?: {
+      name: string;
+    };
+  };
   incomes: IncomeData[];
 }
 
 interface SupplierGroup {
-  supplierId: string;
-  supplierName: string;
+  supplier: {
+    id: string;
+    name: string;
+    contact_name?: string;
+    email?: string;
+  };
   expenses: ExpenseData[];
 }
 
@@ -120,16 +152,16 @@ export class CustomReportsService {
         const projectId = expense.project_id;
         if (!acc[projectId]) {
           acc[projectId] = {
-            project: expense.project,
+            project: expense.project!,
             expenses: []
           };
         }
-        acc[projectId].expenses.push(expense);
+        acc[projectId].expenses.push(expense as ExpenseData);
         return acc;
       }, {} as Record<string, ProjectGroup>) || {};
 
       // Procesar datos por proyecto
-      const result: DirectExpensesByProjectMonth[] = Object.values(projectGroups).map((group: ProjectGroup) => {
+      const result: DirectExpensesByProjectMonth[] = (Object.values(projectGroups) as ProjectGroup[]).map((group) => {
         const directExpenses = {
           subcontratos: 0,
           materiales: 0,
@@ -167,7 +199,16 @@ export class CustomReportsService {
           project: {
             id: group.project.id,
             name: group.project.name,
-            client: group.project.client?.name || 'Sin cliente'
+            client: (() => {
+              const c: any = group.project.client;
+              if (Array.isArray(c)) {
+                return c[0]?.name || 'Sin cliente';
+              }
+              if (typeof c === 'object' && c !== null) {
+                return c.name || 'Sin cliente';
+              }
+              return typeof c === 'string' ? c : 'Sin cliente';
+            })()
           },
           month: new Date(year, month - 1).toLocaleDateString('es-ES', { month: 'long' }),
           year,
@@ -181,7 +222,6 @@ export class CustomReportsService {
 
       return result;
     } catch (error) {
-      console.error('Error fetching direct expenses by project month:', error);
       throw error;
     }
   }
@@ -199,8 +239,7 @@ export class CustomReportsService {
         .from('incomes')
         .select(`
           *,
-          project:projects(id, name, status, estimated_start_date, estimated_end_date),
-          client:clients(name)
+          project:projects(id, name, status, estimated_start_date, estimated_end_date, client:clients(name))
         `);
 
       if (projectIds.length > 0) {
@@ -228,18 +267,16 @@ export class CustomReportsService {
         const projectId = income.project_id;
         if (!acc[projectId]) {
           acc[projectId] = {
-            projectId,
-            projectName: income.project?.name || 'Proyecto Desconocido',
-            clientName: income.project?.client?.name || 'Cliente Desconocido',
+            project: income.project!,
             incomes: []
           };
         }
-        acc[projectId].incomes.push(income);
+        acc[projectId].incomes.push(income as IncomeData);
         return acc;
       }, {} as Record<string, IncomeGroup>) || {};
 
       // Procesar datos por proyecto
-      const result: ProjectTotalIncome[] = Object.values(projectGroups).map((group: IncomeGroup) => {
+      const result: ProjectTotalIncome[] = (Object.values(projectGroups) as IncomeGroup[]).map((group) => {
         let totalIncome = 0;
         let totalIncomeCRC = 0;
         let totalIncomeUSD = 0;
@@ -291,12 +328,12 @@ export class CustomReportsService {
 
         return {
           project: {
-            id: group.project.id,
-            name: group.project.name,
-            client: group.client?.name || 'Sin cliente',
-            status: group.project.status,
-            startDate: group.project.estimated_start_date,
-            endDate: group.project.estimated_end_date
+            id: group.project?.id ?? 'unknown',
+            name: group.project?.name ?? 'Proyecto Desconocido',
+            client: group.project?.client?.name || 'Sin cliente',
+            status: group.project?.status ?? 'unknown',
+            startDate: group.project?.estimated_start_date ?? '',
+            endDate: group.project?.estimated_end_date
           },
           totalIncome,
           totalIncomeCRC,
@@ -312,7 +349,6 @@ export class CustomReportsService {
 
       return result;
     } catch (error) {
-      console.error('Error fetching project total income:', error);
       throw error;
     }
   }
@@ -354,78 +390,74 @@ export class CustomReportsService {
       // Agrupar por proveedor
       const supplierGroups = expenses?.reduce((acc, expense) => {
         const supplierId = expense.supplier_id;
-        if (!supplierId || !expense.supplier) return acc;
+        if (!supplierId) return acc;
 
         if (!acc[supplierId]) {
           acc[supplierId] = {
-            supplierId,
-            supplierName: expense.supplier.name || 'Proveedor Desconocido',
+            supplier: {
+              id: supplierId,
+              name: expense.supplier?.name || 'Proveedor Desconocido',
+              contact_name: expense.supplier?.contact_name,
+              email: expense.supplier?.email,
+            },
             expenses: []
-          };
+          } as SupplierGroup;
         }
         acc[supplierId].expenses.push(expense);
         return acc;
       }, {} as Record<string, SupplierGroup>) || {};
 
-      // Procesar datos por proveedor
-      const result: SupplierExpensesByYear[] = Object.values(supplierGroups).map((group: SupplierGroup) => {
+      // Mapear al formato SupplierExpensesByYear
+      const result: SupplierExpensesByYear[] = (Object.values(supplierGroups) as SupplierGroup[]).map((group) => {
         let totalExpenses = 0;
         let totalExpensesCRC = 0;
         let totalExpensesUSD = 0;
 
-        const categoriesMap = new Map();
-        const monthlyMap = new Map();
-        const projectsMap = new Map();
+        const categoriesMap: Record<string, { amount: number; count: number }> = {};
+        const monthlyMap = new Map<string, { amount: number; count: number }>();
+        const projectsMap = new Map<string, { projectName: string; amount: number; count: number }>();
 
         group.expenses.forEach((expense: ExpenseData) => {
-          const amount = expense.amount;
+          const amount = expense.amount || 0;
           totalExpenses += amount;
 
-          if (expense.currency === 'CRC') {
-            totalExpensesCRC += amount;
-            if (expense.exchange_rate_usd) {
-              totalExpensesUSD += amount / expense.exchange_rate_usd;
-            }
-          } else {
-            totalExpensesUSD += amount;
-            if (expense.exchange_rate_usd) {
-              totalExpensesCRC += amount * expense.exchange_rate_usd;
-            }
-          }
+          // Por moneda
+          const currency = (expense.currency || '').toUpperCase();
+          if (currency === 'CRC') totalExpensesCRC += amount;
+          else if (currency === 'USD') totalExpensesUSD += amount;
 
-          // Agrupar por categoría
-          const category = expense.category;
-          if (!categoriesMap.has(category)) {
-            categoriesMap.set(category, { amount: 0, count: 0 });
+          // Por categoría
+          const categoryKey = expense.category || 'Sin categoría';
+          if (!categoriesMap[categoryKey]) {
+            categoriesMap[categoryKey] = { amount: 0, count: 0 };
           }
-          const catData = categoriesMap.get(category);
-          catData.amount += amount;
-          catData.count += 1;
+          categoriesMap[categoryKey].amount += amount;
+          categoriesMap[categoryKey].count += 1;
 
-          // Agrupar por mes
-          const expenseDate = new Date(expense.expense_date);
-          const monthKey = expenseDate.toLocaleDateString('es-ES', { month: 'long' });
-          if (!monthlyMap.has(monthKey)) {
-            monthlyMap.set(monthKey, { amount: 0, count: 0 });
-          }
-          const monthData = monthlyMap.get(monthKey);
-          monthData.amount += amount;
-          monthData.count += 1;
-
-          // Agrupar por proyecto
+          // Por proyecto
           if (expense.project) {
             const projectId = expense.project.id;
             if (!projectsMap.has(projectId)) {
               projectsMap.set(projectId, {
                 projectName: expense.project.name,
                 amount: 0,
-                count: 0
+                count: 0,
               });
             }
-            const projectData = projectsMap.get(projectId);
+            const projectData = projectsMap.get(projectId)!;
             projectData.amount += amount;
             projectData.count += 1;
           }
+
+          // Desglose mensual
+          const date = new Date(expense.expense_date);
+          const monthKey = date.toLocaleDateString('es-ES', { month: 'long' });
+          if (!monthlyMap.has(monthKey)) {
+            monthlyMap.set(monthKey, { amount: 0, count: 0 });
+          }
+          const monthData = monthlyMap.get(monthKey)!;
+          monthData.amount += amount;
+          monthData.count += 1;
         });
 
         return {
@@ -433,35 +465,34 @@ export class CustomReportsService {
             id: group.supplier.id,
             name: group.supplier.name,
             contactName: group.supplier.contact_name,
-            email: group.supplier.email
+            email: group.supplier.email,
           },
           year,
           totalExpenses,
           totalExpensesCRC,
           totalExpensesUSD,
           expenseCount: group.expenses.length,
-          categories: Array.from(categoriesMap.entries()).map(([category, data]) => ({
+          categories: Object.entries(categoriesMap).map(([category, data]) => ({
             category,
             amount: data.amount,
-            count: data.count
+            count: data.count,
           })),
           monthlyBreakdown: Array.from(monthlyMap.entries()).map(([month, data]) => ({
             month,
             amount: data.amount,
-            count: data.count
+            count: data.count,
           })),
           projects: Array.from(projectsMap.entries()).map(([projectId, data]) => ({
             projectId,
             projectName: data.projectName,
             amount: data.amount,
-            count: data.count
-          }))
+            count: data.count,
+          })),
         };
       });
 
       return result;
     } catch (error) {
-      console.error('Error fetching supplier expenses by year:', error);
       throw error;
     }
   }
@@ -561,7 +592,6 @@ export class CustomReportsService {
         totalCount
       }];
     } catch (error) {
-      console.error('Error fetching monthly expenses by category:', error);
       throw error;
     }
   }
@@ -642,7 +672,7 @@ export class CustomReportsService {
           project: {
             id: project.id,
             name: project.name,
-            client: project.client?.name || 'Sin cliente',
+            client: (project as any)?.client?.name || 'Sin cliente',
             status: project.status,
             budget: project.budget || 0
           },
@@ -660,26 +690,31 @@ export class CustomReportsService {
 
       return result;
     } catch (error) {
-      console.error('Error fetching project profitability analysis:', error);
       throw error;
     }
   }
 
   // Método auxiliar para desglose mensual
-  private static getMonthlyBreakdown(data: (ExpenseData | IncomeData)[], dateField: string) {
-    const monthlyMap = new Map();
+  private static getMonthlyBreakdown(
+    data: (ExpenseData | IncomeData)[],
+    dateField: 'expense_date' | 'received_date'
+  ) {
+    const monthlyMap = new Map<string, number>();
     
-    data.forEach((item) => {
-      const date = new Date(item[dateField]);
+    data.forEach((item: ExpenseData | IncomeData) => {
+      const dateStr = dateField === 'expense_date'
+        ? (item as ExpenseData).expense_date
+        : (item as IncomeData).received_date;
+      const date = new Date(dateStr);
       const monthKey = date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' });
       
       if (!monthlyMap.has(monthKey)) {
         monthlyMap.set(monthKey, 0);
       }
-      monthlyMap.set(monthKey, monthlyMap.get(monthKey) + item.amount);
+      monthlyMap.set(monthKey, (monthlyMap.get(monthKey) || 0) + item.amount);
     });
 
-    return Array.from(monthlyMap.entries()).map(([month, amount]) => ({
+    return Array.from(monthlyMap.entries()).map(([month, amount]: [string, number]) => ({
       month,
       amount
     }));
@@ -716,16 +751,20 @@ export class CustomReportsService {
 
         if (!acc[supplierId]) {
           acc[supplierId] = {
-            supplierId,
-            supplierName: expense.supplier?.name || 'Proveedor Desconocido',
+            supplier: {
+              id: supplierId,
+              name: expense.supplier?.name || 'Proveedor Desconocido',
+              contact_name: expense.supplier?.contact_name,
+              email: expense.supplier?.email,
+            },
             expenses: []
-          };
+          } as SupplierGroup;
         }
         acc[supplierId].expenses.push(expense);
         return acc;
       }, {} as Record<string, SupplierGroup>) || {};
 
-      const result: SupplierPaymentAnalysis[] = Object.values(supplierGroups).map((group: SupplierGroup) => {
+      const result: SupplierPaymentAnalysis[] = (Object.values(supplierGroups) as SupplierGroup[]).map((group) => {
         let totalAmount = 0;
         let paidAmount = 0;
         let pendingAmount = 0;
@@ -733,8 +772,8 @@ export class CustomReportsService {
         let totalPaymentDays = 0;
         let paidInvoicesCount = 0;
 
-        const projectsMap = new Map();
-        const monthlyMap = new Map();
+        const projectsMap = new Map<string, { projectName: string; amount: number; paidAmount: number; pendingAmount: number }>();
+        const monthlyMap = new Map<string, { amount: number; invoiceCount: number }>();
 
         group.expenses.forEach((expense: ExpenseData) => {
           const amount = expense.amount;
@@ -757,9 +796,10 @@ export class CustomReportsService {
             case 'cancelado':
               cancelledAmount += amount;
               break;
+            default:
+              break;
           }
 
-          // Agrupar por proyecto
           if (expense.project) {
             const projectId = expense.project.id;
             if (!projectsMap.has(projectId)) {
@@ -770,7 +810,7 @@ export class CustomReportsService {
                 pendingAmount: 0
               });
             }
-            const projectData = projectsMap.get(projectId);
+            const projectData = projectsMap.get(projectId)!;
             projectData.amount += amount;
             if (expense.payment_status === 'pagado') {
               projectData.paidAmount += amount;
@@ -779,13 +819,12 @@ export class CustomReportsService {
             }
           }
 
-          // Agrupar por mes
           const expenseDate = new Date(expense.expense_date);
-          const monthKey = expenseDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' });
+          const monthKey = expenseDate.toLocaleDateString('es-ES', { month: 'long' });
           if (!monthlyMap.has(monthKey)) {
             monthlyMap.set(monthKey, { amount: 0, invoiceCount: 0 });
           }
-          const monthData = monthlyMap.get(monthKey);
+          const monthData = monthlyMap.get(monthKey)!;
           monthData.amount += amount;
           monthData.invoiceCount += 1;
         });
@@ -823,7 +862,6 @@ export class CustomReportsService {
 
       return result;
     } catch (error) {
-      console.error('Error fetching supplier payment analysis:', error);
       throw error;
     }
   }

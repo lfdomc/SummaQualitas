@@ -10,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Save, X } from 'lucide-react';
 import { SupplierService } from '@/lib/supabase/database';
 import { toast } from 'sonner';
-import { Supplier } from '@/types/database';
+// Note: We only need the new supplier's id for the callback
 
 interface NewSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSupplierCreated: (supplier: Supplier) => void;
+  // Callback expects minimal data (id) to avoid cross-type conflicts
+  onSupplierCreated: (supplier: { id: string }) => void;
 }
 
 export function NewSupplierModal({ isOpen, onClose, onSupplierCreated }: NewSupplierModalProps) {
@@ -43,18 +44,20 @@ export function NewSupplierModal({ isOpen, onClose, onSupplierCreated }: NewSupp
     try {
       setLoading(true);
       const supplierService = new SupplierService();
-      
+
+      // Align with Supplier type used by SupplierService (from lib/types)
       const supplierData = {
         name: formData.name.trim(),
-        contact_person: formData.contact_person.trim(),
-        email: formData.email.trim() || null,
-        phone: formData.phone.trim() || null,
-        address: formData.address.trim() || null,
-        tax_id: formData.tax_id.trim() || null,
-        supplier_type: formData.supplier_type,
-        status: formData.status,
-        notes: formData.notes.trim() || null
-      };
+        // Map UI field to expected key
+        contact_name: formData.contact_person.trim() || undefined,
+        email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        address: formData.address.trim() || undefined,
+        tax_id: formData.tax_id.trim() || undefined,
+        // Derive is_active from selected status
+        is_active: formData.status === 'ACTIVO',
+        // 'notes' is not part of Supplier type in lib/types
+      } as const;
 
       const newSupplier = await supplierService.createSupplier(supplierData);
       toast.success('Proveedor creado exitosamente');
@@ -76,7 +79,6 @@ export function NewSupplierModal({ isOpen, onClose, onSupplierCreated }: NewSupp
       onSupplierCreated(newSupplier);
       onClose();
     } catch (error) {
-      console.error('Error creating supplier:', error);
       toast.error('Error al crear el proveedor');
     } finally {
       setLoading(false);

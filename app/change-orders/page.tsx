@@ -50,14 +50,14 @@ import {
 import { useAuthWorking } from '@/lib/hooks/useAuthWorking';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import type { ChangeOrder, Project } from '@/types/database';
+import type { ChangeOrder } from '@/types/database';
 
 export default function ChangeOrdersPage() {
   // Usando useAuthWorking para sincronización con sidebar
   const { user } = useAuthWorking();
   const searchParams = useSearchParams();
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -147,11 +147,7 @@ export default function ChangeOrdersPage() {
       localStorage.setItem(`${cacheKey}_time`, Date.now().toString());
     } catch (error) {
       console.error('Error fetching projects:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los proyectos",
-        variant: "destructive",
-      });
+      toast.error('No se pudieron cargar los proyectos');
     } finally {
       setLoadingProjects(false);
     }
@@ -197,9 +193,9 @@ export default function ChangeOrdersPage() {
         console.error('Error fetching change orders:', result.error);
         toast.error('Error al cargar las órdenes de cambio');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // No mostrar error si la solicitud fue cancelada
-      if (error.name !== 'AbortError') {
+      if (error instanceof Error && error.name !== 'AbortError') {
         console.error('Error fetching change orders:', error);
         toast.error('Error al cargar las órdenes de cambio');
       }
@@ -522,7 +518,7 @@ export default function ChangeOrdersPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {order.projects?.name || 'N/A'}
+                      {order.project?.name || 'N/A'}
                     </TableCell>
                     <TableCell>
                       {getTypeBadge(order.change_type)}

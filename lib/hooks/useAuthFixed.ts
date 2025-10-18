@@ -1,16 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import { UserRole, UserRoleType } from '@/lib/types';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
+import { type UserRoleType, type UserProfile } from '@/lib/types';
 
 interface AuthError {
   message: string;
@@ -19,7 +12,7 @@ interface AuthError {
 
 interface SignUpData {
   name: string;
-  role?: string;
+  role?: UserRoleType;
   [key: string]: string | undefined;
 }
 
@@ -38,8 +31,8 @@ export interface UseAuthReturn extends AuthState {
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: AuthError | null }>;
   refreshAuth: () => Promise<void>;
-  hasRole: (role: UserRole) => boolean;
-  hasAnyRole: (roles: UserRole[]) => boolean;
+  hasRole: (role: UserRoleType) => boolean;
+  hasAnyRole: (roles: UserRoleType[]) => boolean;
 }
 
 export function useAuthFixed(): UseAuthReturn {
@@ -57,7 +50,7 @@ export function useAuthFixed(): UseAuthReturn {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, email, name, role')
+        .select('id, email, name, role, company, avatar_url, is_active, created_at, updated_at, bio, address, department')
         .eq('id', userId)
         .single();
 
@@ -66,7 +59,7 @@ export function useAuthFixed(): UseAuthReturn {
         return null;
       }
 
-      return data;
+      return data as UserProfile;
     } catch (err) {
       console.warn('⚠️ [useAuthFixed] Error inesperado obteniendo perfil:', err);
       return null;
@@ -233,10 +226,12 @@ export function useAuthFixed(): UseAuthReturn {
     }
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('users')
         .update(updates)
-        .eq('id', authState.user.id);
+        .eq('id', authState.user.id)
+        .select()
+        .single();
 
       if (error) {
         console.error('❌ [useAuthFixed] Error actualizando perfil:', error);
@@ -244,10 +239,12 @@ export function useAuthFixed(): UseAuthReturn {
       }
 
       // Actualizar estado local
-      setAuthState(prev => ({
-        ...prev,
-        profile: prev.profile ? { ...prev.profile, ...updates } : null,
-      }));
+      if (data) {
+        setAuthState(prev => ({
+          ...prev,
+          profile: prev.profile ? { ...prev.profile, ...updates } as UserProfile : data as UserProfile,
+        }));
+      }
 
       return { error: null };
 
@@ -258,12 +255,12 @@ export function useAuthFixed(): UseAuthReturn {
   };
 
   // Funciones de verificación de roles
-  const hasRole = (role: UserRole): boolean => {
-    return authState.profile?.role === role;
+  const hasRole = (role: UserRoleType): boolean => {
+    return (authState.profile?.role ?? null) === role;
   };
 
-  const hasAnyRole = (roles: UserRole[]): boolean => {
-    return authState.profile ? roles.includes(authState.profile.role as UserRole) : false;
+  const hasAnyRole = (roles: UserRoleType[]): boolean => {
+    return authState.profile?.role ? roles.includes(authState.profile.role as UserRoleType) : false;
   };
 
   return {

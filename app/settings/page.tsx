@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { withAuth } from '@/components/auth/withAuth';
-import { UserRole, UserRoleType } from '@/lib/types';
-import { Settings, User, Bell, Shield, Database, Palette } from 'lucide-react';
+import { UserRoleType } from '@/lib/types';
+import { Settings, User, Bell, Shield, Database, Palette, Save } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 

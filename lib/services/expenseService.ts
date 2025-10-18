@@ -9,12 +9,38 @@ import {
   UpdateExpenseData, 
   ExpenseFilters,
   ExpenseSummary,
-  ProjectExpenseSummary 
+  ProjectExpenseSummary,
+  ExpenseCategory
 } from '@/lib/types/expense';
 import { PaginatedResponse, PaginationParams } from '@/lib/types';
 
 export class ExpenseService {
   private supabase = createClient();
+
+  // Normaliza texto de error proveniente de Supabase/PostgREST
+  private getErrorText(err: any): string {
+    if (!err) return '';
+    const parts = [err.message, err.details, err.hint].filter(Boolean);
+    return parts.join(' | ').toLowerCase();
+  }
+
+  // Extrae nombre de columna desconocida desde errores tipo "Could not find the 'xxx' column"
+  private extractUnknownColumnFromError(err: any): string | null {
+    const text = this.getErrorText(err);
+    const match = text.match(/could not find the '([^']+)' column/i);
+    return match?.[1] || null;
+  }
+
+  // Elimina claves con valor undefined para evitar que PostgREST las envíe como columnas inexistentes
+  private sanitizePayload<T extends Record<string, any>>(payload: T): T {
+    const clean: Record<string, any> = {};
+    for (const [k, v] of Object.entries(payload)) {
+      if (v !== undefined && v !== null && v !== '') {
+        clean[k] = v;
+      }
+    }
+    return clean as T;
+  }
 
   /**
    * Obtiene todos los gastos con paginación y filtros optimizados
@@ -84,7 +110,6 @@ export class ExpenseService {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('Error fetching expenses:', error);
         throw new Error(`Error al obtener gastos: ${error.message}`);
       }
 
@@ -152,15 +177,103 @@ export class ExpenseService {
         throw new Error('Faltan campos requeridos: project_id, description, amount');
       }
 
-      const { data, error } = await this.supabase
-        .from('expenses')
-        .insert([expenseData])
-        .select(`
-          *,
-          project:projects(id, name, status),
-          supplier:suppliers(id, name, email, phone, status)
-        `)
-        .single();
+      // Construir payload con compatibilidad de esquema
+      const initialPayload: Record<string, any> = {
+        project_id: expenseData.project_id,
+        category: expenseData.category,
+        subcategory_direct: expenseData.subcategory_direct,
+        subcategory_indirect: expenseData.subcategory_indirect,
+        description: expenseData.description,
+        amount: expenseData.amount,
+        currency: expenseData.currency,
+        // Mapear exchange_rate -> exchange_rate_usd si viene definido
+        exchange_rate_usd: expenseData.exchange_rate,
+        expense_date: expenseData.expense_date,
+        supplier_id: expenseData.supplier_id,
+        invoice_number: expenseData.invoice_number,
+        payment_status: expenseData.payment_status,
+        payment_date: expenseData.payment_date,
+        notes: expenseData.notes,
+        receipt_url: expenseData.receipt_url,
+        reference: expenseData.reference,
+        reference_attachment_url: expenseData.reference_attachment_url,
+        reference_attachment_name: expenseData.reference_attachment_name,
+        reference_attachment_type: expenseData.reference_attachment_type,
+        reference_attachment_size: expenseData.reference_attachment_size,
+        details: (expenseData as any).details,
+      };
+
+      // Asegurar defaults razonables
+      if (!initialPayload.payment_status) initialPayload.payment_status = 'pendiente';
+      if (!initialPayload.currency) initialPayload.currency = 'CRC';
+
+      // Limpiar undefined/null/''
+      let payload = this.sanitizePayload(initialPayload);
+
+      const tryInsert = async (p: Record<string, any>) => {
+        return await this.supabase
+          .from('expenses')
+          .insert([p])
+          .select(`
+            *,
+            project:projects(id, name, status),
+            supplier:suppliers(id, name, email, phone, status)
+          `)
+          .single();
+      };
+
+      let { data, error } = await tryInsert(payload);
+
+      if (error) {
+        const unknownColumn = this.extractUnknownColumnFromError(error);
+
+        // Fallbacks específicos
+        // Subcategorías: si el esquema no las reconoce, quitarlas ambas para asegurar la inserción
+        if (unknownColumn === 'subcategory_direct' || unknownColumn === 'subcategory_indirect') {
+          delete (payload as any).subcategory_direct;
+          delete (payload as any).subcategory_indirect;
+          ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+        } else 
+        if (unknownColumn === 'exchange_rate') {
+          // Usar exchange_rate_usd y quitar exchange_rate
+          delete (payload as any).exchange_rate;
+          if (!payload.exchange_rate_usd && expenseData.exchange_rate !== undefined) {
+            payload.exchange_rate_usd = expenseData.exchange_rate;
+          }
+          ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+        } else if (unknownColumn === 'receipt_url') {
+          // Quitar receipt_url si no existe en el esquema
+          delete payload.receipt_url;
+          ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+        } else if (
+          unknownColumn === 'reference_attachment_url' ||
+          unknownColumn === 'reference_attachment_name' ||
+          unknownColumn === 'reference_attachment_type' ||
+          unknownColumn === 'reference_attachment_size'
+        ) {
+          delete payload.reference_attachment_url;
+          delete payload.reference_attachment_name;
+          delete payload.reference_attachment_type;
+          delete payload.reference_attachment_size;
+          ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+        } else if (unknownColumn === 'expense_date') {
+          // Intentar alias 'date' si existe
+          if ((expenseData as any).date) {
+            (payload as any).date = (expenseData as any).date;
+          }
+          delete payload.expense_date;
+          ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+        } else if (unknownColumn) {
+          // Fallback genérico: quitar la columna desconocida y reintentar
+          delete (payload as any)[unknownColumn];
+          // Caso adicional: si la columna desconocida se relaciona con subcategorías, aseguremos quitarlas
+          if (String(unknownColumn).includes('subcategory')) {
+            delete (payload as any).subcategory_direct;
+            delete (payload as any).subcategory_indirect;
+          }
+          ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+        }
+      }
 
       if (error) {
         console.error('Error creating expense:', error);
@@ -179,16 +292,85 @@ export class ExpenseService {
    */
   async updateExpense(id: string, updateData: UpdateExpenseData): Promise<Expense> {
     try {
-      const { data, error } = await this.supabase
-        .from('expenses')
-        .update(updateData)
-        .eq('id', id)
-        .select(`
-          *,
-          project:projects(id, name, status),
-          supplier:suppliers(id, name, email, phone, status)
-        `)
-        .single();
+      // Preparar payload de actualización con compatibilidad
+      let payload: Record<string, any> = this.sanitizePayload({
+        category: updateData.category,
+        subcategory_direct: updateData.subcategory_direct,
+        subcategory_indirect: updateData.subcategory_indirect,
+        description: updateData.description,
+        amount: updateData.amount,
+        currency: updateData.currency,
+        exchange_rate_usd: updateData.exchange_rate_usd,
+        expense_date: updateData.expense_date,
+        supplier_id: updateData.supplier_id,
+        invoice_number: updateData.invoice_number,
+        payment_status: updateData.payment_status,
+        payment_date: updateData.payment_date,
+        notes: updateData.notes,
+        receipt_url: updateData.receipt_url,
+        reference: updateData.reference,
+        reference_attachment_url: updateData.reference_attachment_url,
+        reference_attachment_name: updateData.reference_attachment_name,
+        reference_attachment_type: updateData.reference_attachment_type,
+        reference_attachment_size: updateData.reference_attachment_size,
+        details: (updateData as any).details,
+      });
+
+      const tryUpdate = async (p: Record<string, any>) => {
+        return await this.supabase
+          .from('expenses')
+          .update(p)
+          .eq('id', id)
+          .select(`
+            *,
+            project:projects(id, name, status),
+            supplier:suppliers(id, name, email, phone, status)
+          `)
+          .single();
+      };
+
+      let { data, error } = await tryUpdate(payload);
+
+      if (error) {
+        const unknownColumn = this.extractUnknownColumnFromError(error);
+        if (unknownColumn === 'subcategory_direct' || unknownColumn === 'subcategory_indirect') {
+          delete (payload as any).subcategory_direct;
+          delete (payload as any).subcategory_indirect;
+          ({ data, error } = await tryUpdate(this.sanitizePayload(payload)));
+        } else if (unknownColumn === 'exchange_rate_usd') {
+          // Intentar con exchange_rate si el esquema es antiguo
+          (payload as any).exchange_rate = payload.exchange_rate_usd;
+          delete payload.exchange_rate_usd;
+          ({ data, error } = await tryUpdate(this.sanitizePayload(payload)));
+        } else if (unknownColumn === 'receipt_url') {
+          delete payload.receipt_url;
+          ({ data, error } = await tryUpdate(this.sanitizePayload(payload)));
+        } else if (
+          unknownColumn === 'reference_attachment_url' ||
+          unknownColumn === 'reference_attachment_name' ||
+          unknownColumn === 'reference_attachment_type' ||
+          unknownColumn === 'reference_attachment_size'
+        ) {
+          delete payload.reference_attachment_url;
+          delete payload.reference_attachment_name;
+          delete payload.reference_attachment_type;
+          delete payload.reference_attachment_size;
+          ({ data, error } = await tryUpdate(this.sanitizePayload(payload)));
+        } else if (unknownColumn === 'expense_date') {
+          if ((updateData as any).date) {
+            (payload as any).date = (updateData as any).date;
+          }
+          delete payload.expense_date;
+          ({ data, error } = await tryUpdate(this.sanitizePayload(payload)));
+        } else if (unknownColumn) {
+          delete (payload as any)[unknownColumn];
+          if (String(unknownColumn).includes('subcategory')) {
+            delete (payload as any).subcategory_direct;
+            delete (payload as any).subcategory_indirect;
+          }
+          ({ data, error } = await tryUpdate(this.sanitizePayload(payload)));
+        }
+      }
 
       if (error) {
         console.error('Error updating expense:', error);
@@ -237,16 +419,17 @@ export class ExpenseService {
       }
 
       // Fallback a consulta optimizada con agregación en la base de datos
-      let baseQuery = this.supabase
-        .from('expenses')
-        .select(`
-          category,
-          currency,
-          sum(amount)::decimal as total_amount,
-          count(*)::integer as expense_count,
-          avg(amount)::decimal as avg_amount
-        `)
-        .group('category, currency');
+      let baseQuery = (
+        this.supabase
+          .from('expenses')
+          .select(`
+            category,
+            currency,
+            sum(amount) as total_amount,
+            count(*) as expense_count,
+            avg(amount) as avg_amount
+          `) as any
+      ).group('category, currency');
 
       if (projectId) {
         baseQuery = baseQuery.eq('project_id', projectId);
@@ -263,7 +446,7 @@ export class ExpenseService {
       const categoryMap = new Map<string, { total: number; totalUSD: number; count: number }>();
       let grandTotalUSD = 0;
 
-      data?.forEach(row => {
+      data?.forEach((row: any) => {
         const category = row.category;
         const amount = parseFloat(row.total_amount) || 0;
         const count = parseInt(row.expense_count) || 0;
@@ -284,7 +467,7 @@ export class ExpenseService {
 
       // Convertir a array con porcentajes
       const result: ExpenseSummary[] = Array.from(categoryMap.entries()).map(([category, summary]) => ({
-        category: category as any,
+        category: category as ExpenseCategory,
         total: summary.total,
         totalUSD: summary.totalUSD,
         count: summary.count,
@@ -311,16 +494,17 @@ export class ExpenseService {
       }
 
       // Fallback a consulta optimizada con agregación en la base de datos
-      const { data, error } = await this.supabase
-        .from('expenses')
-        .select(`
-          project_id,
-          currency,
-          sum(amount)::decimal as total_amount,
-          count(*)::integer as expense_count,
-          project:projects(name)
-        `)
-        .group('project_id, currency, project.name');
+      const { data, error } = await (
+        this.supabase
+          .from('expenses')
+          .select(`
+            project_id,
+            currency,
+            sum(amount) as total_amount,
+            count(*) as expense_count,
+            project:projects(name)
+          `) as any
+      ).group('project_id, currency');
 
       if (error) {
         console.error('Error fetching project expenses summary:', error);
@@ -336,7 +520,7 @@ export class ExpenseService {
       }>();
       let grandTotalUSD = 0;
 
-      data?.forEach(row => {
+      data?.forEach((row: any) => {
         const projectId = row.project_id;
         const projectName = row.project?.name || 'Proyecto sin nombre';
         const amount = parseFloat(row.total_amount) || 0;

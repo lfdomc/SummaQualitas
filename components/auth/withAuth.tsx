@@ -2,11 +2,10 @@
 
 import React from 'react';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { UserRoleType } from '@/lib/types';
 
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
-  requiredRoles?: UserRoleType[]
+  requiredRoles?: string[]
 ) {
   return function AuthenticatedComponent(props: P) {
     const { isAuthenticated, profile, loading } = useAuthContext();

@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error en traducción:', error);
     return NextResponse.json(
       { 
         error: 'Error al traducir el texto',

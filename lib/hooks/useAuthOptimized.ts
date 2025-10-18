@@ -3,14 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import { UserRole, UserRoleType } from '@/lib/types';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
+import { type UserRoleType, type UserProfile } from '@/lib/types';
 
 export interface AuthState {
   user: User | null;
@@ -26,7 +19,7 @@ interface AuthError {
 
 interface SignUpData {
   name: string;
-  role?: string;
+  role?: UserRoleType;
   [key: string]: string | undefined;
 }
 
@@ -38,8 +31,8 @@ export interface UseAuthReturn extends AuthState {
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: AuthError | null }>;
   refreshAuth: () => Promise<void>;
-  hasRole: (role: UserRole) => boolean;
-  hasAnyRole: (roles: UserRole[]) => boolean;
+  hasRole: (role: UserRoleType) => boolean;
+  hasAnyRole: (roles: UserRoleType[]) => boolean;
 }
 
 // Cache para el perfil del usuario
@@ -73,7 +66,7 @@ export function useAuthOptimized(): UseAuthReturn {
       // Obtener perfil de la base de datos
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('id, email, name, role')
+        .select('id, email, name, role, company, avatar_url, is_active, created_at, updated_at, bio, address, department')
         .eq('id', userId)
         .single();
 
@@ -84,8 +77,8 @@ export function useAuthOptimized(): UseAuthReturn {
 
       if (profile) {
         // Actualizar caché
-        profileCache.set(userId, { profile, timestamp: now });
-        return profile;
+        profileCache.set(userId, { profile: profile as UserProfile, timestamp: now });
+        return profile as UserProfile;
       }
 
       return null;
@@ -184,7 +177,7 @@ export function useAuthOptimized(): UseAuthReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       setAuthState(prev => ({ ...prev, loading: false, error: errorMessage }));
-      return { error: errorMessage };
+      return { error: { message: errorMessage } };
     }
   }, [supabase, getProfileFromCache]);
 
@@ -211,6 +204,12 @@ export function useAuthOptimized(): UseAuthReturn {
         error: null,
       });
 
+      // Forzar refresh completo después del logout manual
+      // Usar un pequeño delay para permitir que se complete el signOut
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 100);
+
     } catch (error) {
       console.error('❌ [useAuthOptimized] Error inesperado en signOut:', error);
       setAuthState({
@@ -219,6 +218,11 @@ export function useAuthOptimized(): UseAuthReturn {
         loading: false,
         error: error instanceof Error ? error.message : 'Error desconocido',
       });
+      
+      // Forzar refresh incluso si hay error
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 100);
     }
   }, [supabase, authState.user?.id]);
 
@@ -245,7 +249,7 @@ export function useAuthOptimized(): UseAuthReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
       setAuthState(prev => ({ ...prev, loading: false, error: errorMessage }));
-      return { error: errorMessage };
+      return { error: { message: errorMessage } };
     }
   }, [supabase]);
 
@@ -255,7 +259,7 @@ export function useAuthOptimized(): UseAuthReturn {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       return { error };
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Error desconocido' };
+      return { error: { message: error instanceof Error ? error.message : 'Error desconocido' } };
     }
   }, [supabase]);
 
@@ -263,7 +267,7 @@ export function useAuthOptimized(): UseAuthReturn {
   const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
     try {
       if (!authState.user?.id) {
-        return { error: 'Usuario no autenticado' };
+        return { error: { message: 'Usuario no autenticado' } };
       }
 
       const { data, error } = await supabase
@@ -274,28 +278,28 @@ export function useAuthOptimized(): UseAuthReturn {
         .single();
 
       if (error) {
-        return { error: error.message };
+        return { error: { message: error.message } };
       }
 
       // Actualizar caché y estado
       if (data) {
-        profileCache.set(authState.user.id, { profile: data, timestamp: Date.now() });
-        setAuthState(prev => ({ ...prev, profile: data }));
+        profileCache.set(authState.user.id, { profile: data as UserProfile, timestamp: Date.now() });
+        setAuthState(prev => ({ ...prev, profile: data as UserProfile }));
       }
 
       return { error: null };
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'Error desconocido' };
+      return { error: { message: error instanceof Error ? error.message : 'Error desconocido' } };
     }
   }, [supabase, authState.user?.id]);
 
   // Funciones de verificación de roles
-  const hasRole = useCallback((role: UserRole): boolean => {
-    return authState.profile?.role === role;
+  const hasRole = useCallback((role: UserRoleType): boolean => {
+    return (authState.profile?.role ?? null) === role;
   }, [authState.profile?.role]);
 
-  const hasAnyRole = useCallback((roles: UserRole[]): boolean => {
-    return authState.profile?.role ? roles.includes(authState.profile.role as UserRole) : false;
+  const hasAnyRole = useCallback((roles: UserRoleType[]): boolean => {
+    return authState.profile?.role ? roles.includes(authState.profile.role as UserRoleType) : false;
   }, [authState.profile?.role]);
 
   // Ejecutar verificación inicial y configurar listener

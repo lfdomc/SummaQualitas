@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ProjectService } from '@/lib/services/projectService';
+import { ProjectService } from '@/lib/supabase/database';
 import { ProjectFilters, PaginationParams, ProjectStatus } from '@/lib/types';
 
 // GET /api/projects/admin - Obtener proyectos usando cliente administrativo

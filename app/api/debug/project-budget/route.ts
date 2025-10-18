@@ -80,13 +80,7 @@ export async function GET(request: NextRequest) {
     
     const calculatedFinalBudget = originalBudget + totalImpact;
     
-    console.log(`📊 Análisis del proyecto ${projectId}:`);
-    console.log(`   - Presupuesto original: ${originalBudget}`);
-    console.log(`   - Presupuesto final actual: ${project.presupuesto_final}`);
-    console.log(`   - Presupuesto final calculado: ${calculatedFinalBudget}`);
-    console.log(`   - Órdenes de cambio totales: ${changeOrders?.length || 0}`);
-    console.log(`   - Órdenes de cambio aprobadas: ${approvedChangeOrders.length}`);
-    console.log(`   - Impacto total: ${totalImpact}`);
+    // Análisis del proyecto (silencioso)
     
     return NextResponse.json({
       success: true,

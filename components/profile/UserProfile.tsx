@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { UserService } from '@/lib/supabase/database';
-import { UserProfile as UserProfileType, UserRole, UserRoleType } from '@/lib/types';
+import { UserProfile as UserProfileType, UserRoleType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,8 +33,8 @@ export default function UserProfile({ userId, isEditable = true }: UserProfilePr
   });
 
   const targetUserId = userId || user?.id;
-  const canEdit = isEditable && (targetUserId === user?.id || hasAnyRole([UserRole.GERENCIA]));
-  const canChangeRole = hasAnyRole([UserRole.GERENCIA]) && targetUserId !== user?.id;
+  const canEdit = isEditable && (targetUserId === user?.id || hasAnyRole(['gerencia']));
+  const canChangeRole = hasAnyRole(['gerencia']) && targetUserId !== user?.id;
 
   useEffect(() => {
     if (targetUserId) {
@@ -117,11 +117,11 @@ export default function UserProfile({ userId, isEditable = true }: UserProfilePr
 
   const getRoleLabel = (role: UserRoleType) => {
     switch (role) {
-      case UserRole.GERENCIA:
+      case 'gerencia':
         return 'Gerencia';
-      case UserRole.ADMINISTRATIVO:
+      case 'administrativo':
         return 'Administrativo';
-      case UserRole.CLIENTE:
+      case 'cliente':
         return 'Cliente';
       default:
         return role;
@@ -245,9 +245,9 @@ export default function UserProfile({ userId, isEditable = true }: UserProfilePr
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={UserRole.GERENCIA}>Gerencia</SelectItem>
-                  <SelectItem value={UserRole.ADMINISTRATIVO}>Administrativo</SelectItem>
-                  <SelectItem value={UserRole.CLIENTE}>Cliente</SelectItem>
+                  <SelectItem value={'gerencia'}>Gerencia</SelectItem>
+                  <SelectItem value={'administrativo'}>Administrativo</SelectItem>
+                  <SelectItem value={'cliente'}>Cliente</SelectItem>
                 </SelectContent>
               </Select>
             ) : (

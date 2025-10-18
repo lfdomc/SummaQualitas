@@ -119,9 +119,9 @@ BEGIN
   RETURN QUERY
   SELECT 
     p.id as project_id,
-    p.name as project_name,
-    p.status as project_status,
-    c.name as client_name,
+    p.name::text as project_name,
+    p.status::text as project_status,
+    c.name::text as client_name,
     COUNT(i.id)::INTEGER as total_incomes,
     COALESCE(SUM(i.amount), 0) as total_amount,
     COALESCE(SUM(CASE WHEN i.status IN ('confirmed', 'confirmado') THEN i.amount ELSE 0 END), 0) as confirmed_amount,
@@ -173,9 +173,9 @@ BEGIN
   RETURN QUERY
   SELECT 
     p.id as project_id,
-    p.name as project_name,
-    p.status as project_status,
-    c.name as client_name,
+    p.name::text as project_name,
+    p.status::text as project_status,
+    c.name::text as client_name,
     
     -- Resumen de ingresos
     COALESCE(income_summary.total_incomes, 0)::INTEGER,

@@ -9,6 +9,7 @@ import { GlobalSidebar } from '@/components/GlobalSidebar';
 import { ConditionalHeader } from "@/components/ConditionalHeader";
 import { ConditionalFooter } from "@/components/ConditionalFooter";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -94,7 +95,10 @@ export default function RootLayout({
                 </SessionTimeoutProvider>
               </AuthProvider>
             </LoginStateProvider>
+          {/* Toaster para el sistema de notificaciones interno */}
           <Toaster />
+          {/* Toaster de Sonner para notificaciones usando `toast` de 'sonner' */}
+          <SonnerToaster />
         </ThemeProvider>
         
 

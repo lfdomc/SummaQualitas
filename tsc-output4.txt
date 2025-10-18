@@ -1,0 +1,429 @@
+﻿app/analytics/page.tsx(43,5): error TS2552: Cannot find name 'setSelectedProjectId'. Did you mean 'setSelectedProject'?
+app/api/projects/route.ts(260,44): error TS2345: Argument of type 'CreateProjectData' is not assignable to parameter of type 'CreateProjectDTO'.
+  Types of property 'status' are incompatible.
+    Type '"planificacion" | "en_progreso" | "pausado" | "completado" | "cancelado" | "cancelled" | "active" | "completed" | undefined' is not assignable to type 'ProjectStatus | undefined'.
+      Type '"cancelled"' is not assignable to type 'ProjectStatus | undefined'.
+app/api/upload/route.ts(170,22): error TS2339: Property 'size' does not exist on type 'FileObject'.
+app/api/upload/route.ts(172,22): error TS2339: Property 'type' does not exist on type 'FileObject'.
+app/api/upload/route.ts(182,22): error TS2339: Property 'size' does not exist on type 'FileObject'.
+app/api/upload/route.ts(184,22): error TS2339: Property 'type' does not exist on type 'FileObject'.
+app/change-orders/[id]/page.tsx(392,27): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+app/change-orders/[id]/page.tsx(424,37): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+app/change-orders/[id]/page.tsx(430,37): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+app/change-orders/[id]/page.tsx(436,37): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+app/change-orders/[id]/page.tsx(442,37): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+app/change-orders/new/page.tsx(401,49): error TS18048: 'formData.cost_impact' is possibly 'undefined'.
+app/change-orders/new/page.tsx(406,49): error TS18048: 'formData.cost_impact' is possibly 'undefined'.
+app/change-orders/new/page.tsx(408,75): error TS18048: 'formData.cost_impact' is possibly 'undefined'.
+app/change-orders/new/page.tsx(437,15): error TS18048: 'formData.cost_impact' is possibly 'undefined'.
+app/change-orders/new/page.tsx(441,20): error TS18048: 'formData.cost_impact' is possibly 'undefined'.
+app/change-orders/new/page.tsx(444,103): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(value: number | bigint | StringNumericLiteral): string', gave the following error.
+    Argument of type 'number | undefined' is not assignable to parameter of type 'number | bigint | StringNumericLiteral'.
+      Type 'undefined' is not assignable to type 'number | bigint | StringNumericLiteral'.
+  Overload 2 of 3, '(value: number | bigint): string', gave the following error.
+    Argument of type 'number | undefined' is not assignable to parameter of type 'number | bigint'.
+      Type 'undefined' is not assignable to type 'number | bigint'.
+  Overload 3 of 3, '(value: number): string', gave the following error.
+    Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+app/change-orders/page.tsx(143,19): error TS2345: Argument of type '{ id: any; name: any; }[]' is not assignable to parameter of type 'SetStateAction<Project[]>'.
+  Type '{ id: any; name: any; }[]' is not assignable to type 'Project[]'.
+    Type '{ id: any; name: any; }' is missing the following properties from type 'Project': status, presupuesto_inicial, presupuesto_final, costos_directos, and 7 more.
+app/change-orders/page.tsx(151,9): error TS2353: Object literal may only specify known properties, and 'title' does not exist in type 'ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<...> | (() => ReactNode)'.
+app/change-orders/page.tsx(525,30): error TS2551: Property 'projects' does not exist on type 'ChangeOrder'. Did you mean 'project'?
+app/incomes/page.tsx(170,18): error TS2345: Argument of type '{ category: string; status: string; reference: any; id: string; project_id: string; project?: Project | undefined; client_id: string; client?: Client | undefined; description: string; ... 7 more ...; updated_at: string; }[]' is not assignable to parameter of type 'SetStateAction<IncomeWithRelations[]>'.
+  Type '{ category: string; status: string; reference: any; id: string; project_id: string; project?: Project | undefined; client_id: string; client?: Client | undefined; description: string; ... 7 more ...; updated_at: string; }[]' is not assignable to type 'IncomeWithRelations[]'.
+    Type '{ category: string; status: string; reference: any; id: string; project_id: string; project?: Project; client_id: string; client?: Client; description: string; ... 7 more ...; updated_at: string; }' is not assignable to type 'IncomeWithRelations'.
+      Type '{ category: string; status: string; reference: any; id: string; project_id: string; project?: Project; client_id: string; client?: Client; description: string; ... 7 more ...; updated_at: string; }' is not assignable to type 'Income'.
+        Types of property 'project' are incompatible.
+          Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Project | undefined' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Project | undefined'.
+            Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Project' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Project'.
+              Types of property 'client' are incompatible.
+                Type 'string | Client | undefined' is not assignable to type 'Client | undefined'.
+                  Type 'string' is not assignable to type 'Client'.
+app/incomes/page.tsx(171,19): error TS2345: Argument of type 'Project[]' is not assignable to parameter of type 'SetStateAction<Project[]>'.
+  Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Project[]' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Project[]'.
+    Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Project' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Project'.
+      Types of property 'client' are incompatible.
+        Type 'string | Client | undefined' is not assignable to type 'Client | undefined'.
+          Type 'string' is not assignable to type 'Client'.
+app/incomes/page.tsx(201,9): error TS2322: Type 'string' is not assignable to type '"cancelado" | "pendiente" | "pending" | "confirmed" | "cancelled" | "confirmado"'.
+app/incomes/page.tsx(230,9): error TS2322: Type 'string' is not assignable to type '"cancelado" | "pendiente" | "pending" | "confirmed" | "cancelled" | "confirmado" | undefined'.
+app/incomes/page.tsx(1113,106): error TS2322: Type 'string' is not assignable to type '"cancelado" | "pendiente" | "pending" | "confirmed" | "cancelled" | "confirmado"'.
+app/incomes/page.tsx(1297,106): error TS2322: Type 'string' is not assignable to type '"cancelado" | "pendiente" | "pending" | "confirmed" | "cancelled" | "confirmado"'.
+app/projects/[id]/expenses/page.tsx(6,58): error TS2724: '"@/types/database"' has no exported member named 'UserProfile'. Did you mean 'UserRole'?
+app/projects/[id]/expenses/page.tsx(69,5): error TS2322: Type '""' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "gastos_administrativos"'.
+app/projects/[id]/expenses/page.tsx(163,7): error TS2322: Type '""' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "gastos_administrativos"'.
+app/projects/[id]/expenses/page.tsx(204,7): error TS2322: Type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "administracion"' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "gastos_administrativos"'.
+  Type '"administracion"' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "gastos_administrativos"'.
+app/projects/[id]/expenses/page.tsx(205,28): error TS2551: Property 'subcategory' does not exist on type 'Expense'. Did you mean 'category'?
+app/projects/[id]/expenses/page.tsx(209,30): error TS2551: Property 'exchange_rate' does not exist on type 'Expense'. Did you mean 'exchange_rate_usd'?
+app/projects/[id]/expenses/page.tsx(279,91): error TS2551: Property 'exchange_rate' does not exist on type 'Expense'. Did you mean 'exchange_rate_usd'?
+app/projects/[id]/expenses/page.tsx(283,91): error TS2551: Property 'exchange_rate' does not exist on type 'Expense'. Did you mean 'exchange_rate_usd'?
+app/projects/[id]/expenses/page.tsx(288,92): error TS2551: Property 'exchange_rate' does not exist on type 'Expense'. Did you mean 'exchange_rate_usd'?
+app/projects/[id]/expenses/page.tsx(377,84): error TS2322: Type 'string' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "gastos_administrativos"'.
+app/projects/[id]/expenses/page.tsx(675,73): error TS2551: Property 'exchange_rate' does not exist on type 'Expense'. Did you mean 'exchange_rate_usd'?
+app/projects/[id]/expenses/page.tsx(680,76): error TS2551: Property 'exchange_rate' does not exist on type 'Expense'. Did you mean 'exchange_rate_usd'?
+app/projects/[id]/expenses/page.tsx(738,78): error TS2322: Type 'string' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "gastos_administrativos"'.
+app/projects/[id]/page.tsx(646,17): error TS2322: Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Project' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Project'.
+  Types of property 'client' are incompatible.
+    Type 'string | Client | undefined' is not assignable to type 'Client | undefined'.
+      Type 'string' is not assignable to type 'Client'.
+app/projects/page.tsx(85,20): error TS2345: Argument of type 'Client[]' is not assignable to parameter of type 'SetStateAction<Client[]>'.
+  Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Client[]' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Client[]'.
+    Property 'is_active' is missing in type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Client' but required in type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Client'.
+app/projects/page.tsx(367,44): error TS2551: Property 'clients' does not exist on type 'Project'. Did you mean 'client'?
+app/projects/page.tsx(368,51): error TS2339: Property 'actualExpenses' does not exist on type 'Project'.
+app/projects/page.tsx(370,51): error TS2532: Object is possibly 'undefined'.
+app/projects/page.tsx(409,61): error TS2339: Property 'fecha_inicio' does not exist on type 'Project'.
+app/projects/page.tsx(423,59): error TS2339: Property 'fecha_fin' does not exist on type 'Project'.
+app/projects/page.tsx(502,48): error TS2551: Property 'clients' does not exist on type 'Project'. Did you mean 'client'?
+app/projects/page.tsx(503,55): error TS2339: Property 'actualExpenses' does not exist on type 'Project'.
+app/projects/page.tsx(505,43): error TS2532: Object is possibly 'undefined'.
+app/projects/page.tsx(539,63): error TS2339: Property 'fecha_inicio' does not exist on type 'Project'.
+app/projects/page.tsx(548,61): error TS2339: Property 'fecha_fin' does not exist on type 'Project'.
+app/projects/page.tsx(711,9): error TS2322: Type '(newClient: Client) => void' is not assignable to type '(client: Client) => void'.
+  Types of parameters 'newClient' and 'client' are incompatible.
+    Property 'is_active' is missing in type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Client' but required in type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Client'.
+app/proyecto/[id]/page.tsx(36,41): error TS2339: Property 'name' does not exist on type 'string | Client'.
+  Property 'name' does not exist on type 'string'.
+app/proyecto/[id]/page.tsx(278,47): error TS2339: Property 'id' does not exist on type '{ features: string[]; description: string; category: string; location: string; year: string; client: string; duration: string; }'.
+app/suppliers/[id]/edit/page.tsx(64,23): error TS2339: Property 'notes' does not exist on type 'Supplier'.
+app/suppliers/[id]/edit/page.tsx(98,56): error TS2345: Argument of type '{ name: string; contact_name: string | null; email: string | null; phone: string | null; address: string | null; tax_id: string | null; is_active: boolean; notes: string | null; }' is not assignable to parameter of type 'Partial<Omit<Supplier, "created_at" | "id" | "updated_at">>'.
+  Types of property 'email' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+app/suppliers/[id]/page.tsx(196,17): error TS2339: Property 'notes' does not exist on type 'Supplier'.
+app/suppliers/[id]/page.tsx(205,66): error TS2339: Property 'notes' does not exist on type 'Supplier'.
+app/suppliers/new/page.tsx(55,44): error TS2345: Argument of type '{ name: string; contact_name: string | null; email: string | null; phone: string | null; address: string | null; tax_id: string | null; is_active: boolean; notes: string | null; }' is not assignable to parameter of type 'Omit<Supplier, "created_at" | "id" | "updated_at">'.
+  Types of property 'email' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+app/suppliers/page.tsx(125,28): error TS18048: 'supplier.email' is possibly 'undefined'.
+app/test-expenses/page.tsx(48,15): error TS2345: Argument of type 'User' is not assignable to parameter of type 'SetStateAction<UserProfile | null>'.
+  Type 'User' is missing the following properties from type 'UserProfile': name, is_active
+app/test-expenses/page.tsx(71,19): error TS2345: Argument of type '{ id: any; description: any; amount: any; currency: any; expense_date: any; suppliers: { name: any; }[]; }[]' is not assignable to parameter of type 'SetStateAction<Expense[]>'.
+  Type '{ id: any; description: any; amount: any; currency: any; expense_date: any; suppliers: { name: any; }[]; }[]' is not assignable to type 'Expense[]'.
+    Type '{ id: any; description: any; amount: any; currency: any; expense_date: any; suppliers: { name: any; }[]; }' is not assignable to type 'Expense'.
+      Types of property 'suppliers' are incompatible.
+        Property 'name' is missing in type '{ name: any; }[]' but required in type '{ name: string; }'.
+components/auth/RegisterForm.tsx(77,65): error TS2345: Argument of type '{ full_name: string; role: UserRole; }' is not assignable to parameter of type 'SignUpData'.
+  Property 'name' is missing in type '{ full_name: string; role: UserRole; }' but required in type 'SignUpData'.
+components/dashboard/ExecutiveDashboard.tsx(798,34): error TS2322: Type 'FinancialTrend[]' is not assignable to type 'ChartDataPoint[]'.
+  Type 'FinancialTrend' is not assignable to type 'ChartDataPoint'.
+    Index signature for type 'string' is missing in type 'FinancialTrend'.
+components/dashboard/ExecutiveDashboard.tsx(897,34): error TS2322: Type 'FinancialTrend[]' is not assignable to type 'ChartDataPoint[]'.
+  Type 'FinancialTrend' is not assignable to type 'ChartDataPoint'.
+    Index signature for type 'string' is missing in type 'FinancialTrend'.
+components/projects/ProjectChangeOrders.tsx(300,28): error TS2367: This comparison appears to be unintentional because the types '"pendiente" | "aprobado" | "rechazado" | "implementado"' and '"approved"' have no overlap.
+components/projects/ProjectExpenses.tsx(394,29): error TS2322: Type 'string' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "administracion"'.
+components/projects/ProjectExpenses.tsx(796,23): error TS2322: Type 'string' is not assignable to type '"costos_directos" | "costos_indirectos" | "mano_obra" | "imprevistos" | "administracion"'.
+components/projects/ProjectForm.tsx(213,9): error TS2578: Unused '@ts-expect-error' directive.
+components/projects/ProjectForm.tsx(497,29): error TS2578: Unused '@ts-expect-error' directive.
+components/projects/ProjectIncomes.tsx(93,18): error TS2345: Argument of type '{ category: string; status: string; reference: any; payment_method: string; id: string; project_id: string; project?: Project | undefined; client_id: string; client?: Client | undefined; ... 7 more ...; updated_at: string; }[]' is not assignable to parameter of type 'SetStateAction<IncomeWithRelations[]>'.
+  Type '{ category: string; status: string; reference: any; payment_method: string; id: string; project_id: string; project?: Project | undefined; client_id: string; client?: Client | undefined; ... 7 more ...; updated_at: string; }[]' is not assignable to type 'IncomeWithRelations[]'.
+    Type '{ category: string; status: string; reference: any; payment_method: string; id: string; project_id: string; project?: Project; client_id: string; client?: Client; ... 7 more ...; updated_at: string; }' is not assignable to type 'IncomeWithRelations'.
+      Types of property 'status' are incompatible.
+        Type 'string' is not assignable to type '"pending" | "confirmed" | "cancelled"'.
+components/projects/ProjectIncomes.tsx(130,9): error TS2322: Type 'string' is not assignable to type '"cancelado" | "pendiente" | "pending" | "confirmed" | "cancelled" | "confirmado"'.
+components/projects/ProjectIncomes.tsx(165,59): error TS2345: Argument of type '{ description: string; amount: number; currency: string; received_date: string; payment_method: string | undefined; category: string; status: string; reference: string | undefined; notes: string | undefined; receipt_url: string | undefined; }' is not assignable to parameter of type 'UpdateIncomeData'.
+  Types of property 'status' are incompatible.
+    Type 'string' is not assignable to type '"cancelado" | "pendiente" | "pending" | "confirmed" | "cancelled" | "confirmado" | undefined'.
+components/projects/ProjectList.tsx(93,20): error TS7053: Element implicitly has an 'any' type because expression of type 'ProjectStatus' can't be used to index type '{ active: { label: string; variant: "success"; }; completed: { label: string; variant: "default"; }; paused: { label: string; variant: "outline"; }; cancelled: { label: string; variant: "destructive"; }; }'.
+  Property 'planificacion' does not exist on type '{ active: { label: string; variant: "success"; }; completed: { label: string; variant: "default"; }; paused: { label: string; variant: "outline"; }; cancelled: { label: string; variant: "destructive"; }; }'.
+components/projects/ProjectList.tsx(284,109): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+components/projects/ProjectList.tsx(296,38): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/reports/CustomReportPreview.tsx(59,81): error TS2339: Property 'totalExpenses' does not exist on type 'DirectExpensesByProjectMonth'.
+components/reports/CustomReportPreview.tsx(71,66): error TS2339: Property 'projectCount' does not exist on type 'DirectExpensesByProjectMonth'.
+components/reports/CustomReportPreview.tsx(96,25): error TS2339: Property 'expenses' does not exist on type 'DirectExpensesByProjectMonth'.
+components/reports/CustomReportPreview.tsx(96,39): error TS7006: Parameter 'expense' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(96,48): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(137,66): error TS2339: Property 'projectCount' does not exist on type 'ProjectTotalIncome'.
+components/reports/CustomReportPreview.tsx(150,71): error TS2339: Property 'projectCount' does not exist on type 'ProjectTotalIncome'.
+components/reports/CustomReportPreview.tsx(164,25): error TS2339: Property 'incomes' does not exist on type 'ProjectTotalIncome'.
+components/reports/CustomReportPreview.tsx(164,38): error TS7006: Parameter 'income' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(164,46): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(205,66): error TS2339: Property 'supplierCount' does not exist on type 'SupplierExpensesByYear'.
+components/reports/CustomReportPreview.tsx(230,25): error TS2339: Property 'expenses' does not exist on type 'SupplierExpensesByYear'.
+components/reports/CustomReportPreview.tsx(230,39): error TS7006: Parameter 'expense' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(230,48): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(259,81): error TS2339: Property 'totalExpenses' does not exist on type 'MonthlyExpensesByCategory'.
+components/reports/CustomReportPreview.tsx(271,66): error TS2339: Property 'categoryCount' does not exist on type 'MonthlyExpensesByCategory'.
+components/reports/CustomReportPreview.tsx(296,25): error TS2339: Property 'expenses' does not exist on type 'MonthlyExpensesByCategory'.
+components/reports/CustomReportPreview.tsx(296,39): error TS7006: Parameter 'expense' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(296,48): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(331,81): error TS2339: Property 'totalRevenue' does not exist on type 'ProjectProfitabilityAnalysis'.
+components/reports/CustomReportPreview.tsx(355,81): error TS2339: Property 'netProfit' does not exist on type 'ProjectProfitabilityAnalysis'.
+components/reports/CustomReportPreview.tsx(380,25): error TS2551: Property 'projects' does not exist on type 'ProjectProfitabilityAnalysis'. Did you mean 'project'?
+components/reports/CustomReportPreview.tsx(380,39): error TS7006: Parameter 'project' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(380,48): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(430,81): error TS2339: Property 'totalPaid' does not exist on type 'SupplierPaymentAnalysis'.
+components/reports/CustomReportPreview.tsx(442,81): error TS2339: Property 'totalPending' does not exist on type 'SupplierPaymentAnalysis'.
+components/reports/CustomReportPreview.tsx(454,66): error TS2339: Property 'supplierCount' does not exist on type 'SupplierPaymentAnalysis'.
+components/reports/CustomReportPreview.tsx(467,25): error TS2551: Property 'suppliers' does not exist on type 'SupplierPaymentAnalysis'. Did you mean 'supplier'?
+components/reports/CustomReportPreview.tsx(467,40): error TS7006: Parameter 'supplier' implicitly has an 'any' type.
+components/reports/CustomReportPreview.tsx(467,50): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/reports/DetailedProjectReport.tsx(241,61): error TS2554: Expected 0 arguments, but got 1.
+components/reports/DetailedProjectReport.tsx(270,19): error TS2345: Argument of type 'Project[]' is not assignable to parameter of type 'SetStateAction<Project[]>'.
+  Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Project[]' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Project[]'.
+    Type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/lib/types").Project' is not assignable to type 'import("C:/Users/HP/OneDrive - Wiener Laboratorios SAIC/Constructora/WEB_SummaQualitas/Summa+Supabase/Machote de Next con Supabase/types/database").Project'.
+      Types of property 'client' are incompatible.
+        Type 'string | Client | undefined' is not assignable to type 'Client | undefined'.
+          Type 'string' is not assignable to type 'Client'.
+components/reports/DetailedProjectReport.tsx(381,23): error TS2345: Argument of type '{ project: { id: any; name: any; status: any; presupuesto_original: any; presupuesto_inicial: any; presupuesto_final: any; budget: any; costos_directos: any; costos_indirectos: any; administracion: any; ... 7 more ...; clients: { ...; }[]; } | { ...; }; incomes: any[]; expenses: { ...; }[]; changeOrders: { ...; }[];...' is not assignable to parameter of type 'SetStateAction<ReportData | null>'.
+  Type '{ project: { id: any; name: any; status: any; presupuesto_original: any; presupuesto_inicial: any; presupuesto_final: any; budget: any; costos_directos: any; costos_indirectos: any; administracion: any; ... 7 more ...; clients: { ...; }[]; } | { ...; }; incomes: any[]; expenses: { ...; }[]; changeOrders: { ...; }[];...' is not assignable to type 'ReportData'.
+    Types of property 'project' are incompatible.
+      Type '{ id: any; name: any; status: any; presupuesto_original: any; presupuesto_inicial: any; presupuesto_final: any; budget: any; costos_directos: any; costos_indirectos: any; administracion: any; ... 7 more ...; clients: { ...; }[]; } | { ...; }' is not assignable to type 'Project'.
+        Property 'presupuesto_final' is missing in type '{ id: string; name: string; description: string; status: "active"; budget: number; presupuesto_inicial: number; costos_directos: number; costos_indirectos: number; administracion: number; mano_obra: number; ... 4 more ...; updated_at: string; }' but required in type 'Project'.
+components/reports/DetailedProjectReport.tsx(385,11): error TS2322: Type '{ project: { id: any; name: any; status: any; presupuesto_original: any; presupuesto_inicial: any; presupuesto_final: any; budget: any; costos_directos: any; costos_indirectos: any; administracion: any; ... 7 more ...; clients: { ...; }[]; } | { ...; }; incomes: any[]; expenses: { ...; }[]; changeOrders: { ...; }[];...' is not assignable to type 'ReportData'.
+  Types of property 'project' are incompatible.
+    Type '{ id: any; name: any; status: any; presupuesto_original: any; presupuesto_inicial: any; presupuesto_final: any; budget: any; costos_directos: any; costos_indirectos: any; administracion: any; ... 7 more ...; clients: { ...; }[]; } | { ...; }' is not assignable to type 'Project'.
+      Property 'presupuesto_final' is missing in type '{ id: string; name: string; description: string; status: "active"; budget: number; presupuesto_inicial: number; costos_directos: number; costos_indirectos: number; administracion: number; mano_obra: number; ... 4 more ...; updated_at: string; }' but required in type 'Project'.
+components/reports/DetailedProjectReport.tsx(505,49): error TS2339: Property 'reference_attachment_url' does not exist on type 'Income'.
+components/reports/DetailedProjectReport.tsx(522,13): error TS2719: Type 'ReportData' is not assignable to type 'ReportData'. Two different types with this name exist, but they are unrelated.
+  The types of 'project.start_date' are incompatible between these types.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+components/reports/DetailedProjectReport.tsx(530,55): error TS18046: 'componentError' is of type 'unknown'.
+components/reports/DetailedProjectReport.tsx(541,50): error TS18046: 'renderError' is of type 'unknown'.
+components/reports/DetailedProjectReport.tsx(601,25): error TS2552: Cannot find name 'jsPDF'. Did you mean 'jsPdf'?
+components/reports/DetailedProjectReport.tsx(643,32): error TS2304: Cannot find name 'html2canvas'.
+components/reports/DetailedProjectReport.tsx(658,31): error TS7006: Parameter 'element' implicitly has an 'any' type.
+components/reports/DetailedProjectReport.tsx(662,23): error TS7006: Parameter 'clonedDoc' implicitly has an 'any' type.
+components/reports/DetailedProjectReport.tsx(665,39): error TS7006: Parameter 'element' implicitly has an 'any' type.
+components/reports/DetailedProjectReport.tsx(683,36): error TS7006: Parameter 'element' implicitly has an 'any' type.
+components/reports/DetailedProjectReport.tsx(705,36): error TS7006: Parameter 'svg' implicitly has an 'any' type.
+components/reports/DetailedProjectReport.tsx(720,37): error TS7006: Parameter 'text' implicitly has an 'any' type.
+components/reports/DetailedProjectReport.tsx(826,31): error TS2304: Cannot find name 'pdf'.
+components/reports/DetailedProjectReport.tsx(828,11): error TS2719: Type 'ReportData' is not assignable to type 'ReportData'. Two different types with this name exist, but they are unrelated.
+  The types of 'project.start_date' are incompatible between these types.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+components/reports/PDFAnnexesDocument.tsx(105,5): error TS2322: Type '"table"' is not assignable to type 'Display | undefined'.
+components/reports/PDFReportDocument.tsx(414,84): error TS2339: Property 'invoice_number' does not exist on type 'Expense'.
+components/reports/ReportGenerator.backup.tsx(360,12): error TS2678: Type '"planning"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(361,12): error TS2678: Type '"in_progress"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(362,12): error TS2678: Type '"completed"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(363,12): error TS2678: Type '"on_hold"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(364,12): error TS2678: Type '"cancelled"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(371,12): error TS2678: Type '"planning"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(372,12): error TS2678: Type '"in_progress"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(373,12): error TS2678: Type '"completed"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(374,12): error TS2678: Type '"on_hold"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(375,12): error TS2678: Type '"cancelled"' is not comparable to type 'ProjectStatus'.
+components/reports/ReportGenerator.backup.tsx(483,31): error TS2339: Property 'type' does not exist on type 'CustomReportTemplate'.
+components/reports/ReportGenerator.backup.tsx(485,49): error TS2339: Property 'type' does not exist on type 'CustomReportTemplate'.
+components/reports/ReportGenerator.backup.tsx(487,62): error TS2339: Property 'type' does not exist on type 'CustomReportTemplate'.
+components/reports/ReportGenerator.backup.tsx(491,47): error TS2339: Property 'type' does not exist on type 'CustomReportTemplate'.
+components/reports/ReportGenerator.tsx(266,22): error TS2345: Argument of type 'DirectExpensesByProjectMonth[] | ProjectTotalIncome[] | SupplierExpensesByYear[] | ProjectProfitabilityAnalysis[]' is not assignable to parameter of type 'SetStateAction<ReportData[] | null>'.
+  Type 'DirectExpensesByProjectMonth[]' is not assignable to type 'SetStateAction<ReportData[] | null>'.
+    Type 'DirectExpensesByProjectMonth[]' is not assignable to type 'ReportData[]'.
+      Type 'DirectExpensesByProjectMonth' is not assignable to type 'ReportData'.
+        Property 'categories' is missing in type 'DirectExpensesByProjectMonth' but required in type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(585,21): error TS2345: Argument of type '(projectData: ProjectExpenseData, index: number) => React.JSX.Element' is not assignable to parameter of type '(value: ReportData, index: number, array: ReportData[]) => Element'.
+  Types of parameters 'projectData' and 'value' are incompatible.
+    Type 'ReportData' is not assignable to type 'ProjectExpenseData'.
+      Type 'ProjectIncomeData' is missing the following properties from type 'ProjectExpenseData': totalInCRC, totalInUSD, expenseCount, categories
+components/reports/ReportGenerator.tsx(615,40): error TS2339: Property 'month' does not exist on type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(615,60): error TS2339: Property 'year' does not exist on type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(619,32): error TS2339: Property 'directExpenses' does not exist on type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(625,61): error TS2339: Property 'directExpenses' does not exist on type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(629,61): error TS2339: Property 'directExpenses' does not exist on type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(633,61): error TS2339: Property 'directExpenses' does not exist on type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(637,61): error TS2339: Property 'directExpenses' does not exist on type 'ProjectExpenseData'.
+components/reports/ReportGenerator.tsx(653,21): error TS2345: Argument of type '(projectData: ProjectIncomeData, index: number) => React.JSX.Element' is not assignable to parameter of type '(value: ReportData, index: number, array: ReportData[]) => Element'.
+  Types of parameters 'projectData' and 'value' are incompatible.
+    Type 'ReportData' is not assignable to type 'ProjectIncomeData'.
+      Type 'ProjectExpenseData' is missing the following properties from type 'ProjectIncomeData': totalIncome, incomeCount, confirmedIncome, pendingIncome
+components/reports/ReportGenerator.tsx(677,72): error TS2339: Property 'status' does not exist on type '{ id: string; name: string; client: string; }'.
+components/reports/ReportGenerator.tsx(690,21): error TS2345: Argument of type '(supplierData: SupplierData, index: number) => React.JSX.Element' is not assignable to parameter of type '(value: ReportData, index: number, array: ReportData[]) => Element'.
+  Types of parameters 'supplierData' and 'value' are incompatible.
+    Type 'ReportData' is not assignable to type 'SupplierData'.
+      Type 'ProjectExpenseData' is missing the following properties from type 'SupplierData': supplier, totalAmount, projects
+components/reports/ReportGenerator.tsx(702,52): error TS2339: Property 'totalExpensesCRC' does not exist on type 'SupplierData'.
+components/reports/ReportGenerator.tsx(708,52): error TS2339: Property 'totalExpensesUSD' does not exist on type 'SupplierData'.
+components/reports/ReportGenerator.tsx(717,41): error TS2339: Property 'year' does not exist on type 'SupplierData'.
+components/reports/ReportGenerator.tsx(738,21): error TS2345: Argument of type '(projectData: ProjectSummaryData, index: number) => React.JSX.Element' is not assignable to parameter of type '(value: ReportData, index: number, array: ReportData[]) => Element'.
+  Types of parameters 'projectData' and 'value' are incompatible.
+    Type 'ReportData' is not assignable to type 'ProjectSummaryData'.
+      Type 'ProjectExpenseData' is missing the following properties from type 'ProjectSummaryData': totalIncome, totalExpenses, grossProfit, profitMargin
+components/reports/ReportGenerator.tsx(779,70): error TS2339: Property 'roi' does not exist on type 'ProjectSummaryData'.
+components/reports/ReportGenerator.tsx(780,39): error TS2339: Property 'roi' does not exist on type 'ProjectSummaryData'.
+components/reports/ReportGenerator.tsx(786,39): error TS2339: Property 'budgetUtilization' does not exist on type 'ProjectSummaryData'.
+components/suppliers/NewSupplierModal.tsx(62,64): error TS2345: Argument of type '{ readonly name: string; readonly contact_name: string; readonly email: string | null; readonly phone: string | null; readonly address: string | null; readonly tax_id: string | null; readonly is_active: boolean; }' is not assignable to parameter of type 'Omit<Supplier, "created_at" | "id" | "updated_at">'.
+  Types of property 'email' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+components/ui/lazy-chart.tsx(69,6): error TS2322: Type '{ children: ReactNode; syncId?: string | undefined; width?: string | number | undefined; height?: string | number | undefined; margin?: { top?: number | undefined; right?: number | undefined; bottom?: number | undefined; left?: number | undefined; } | undefined; data: ChartDataPoint[] | undefined; }' is not assignable to type 'CategoricalChartProps'.
+  Types of property 'width' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+components/ui/lazy-chart.tsx(78,6): error TS2322: Type '{ children: ReactNode; layout?: "horizontal" | "vertical" | undefined; stackOffset?: "none" | "expand" | "wiggle" | "silhouette" | undefined; width?: string | number | undefined; height?: string | ... 1 more ... | undefined; margin?: { ...; } | undefined; data: ChartDataPoint[] | undefined; }' is not assignable to type 'CategoricalChartProps'.
+  Types of property 'width' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+components/ui/lazy-chart.tsx(87,6): error TS2322: Type '{ children: ReactNode; width?: string | number | undefined; height?: string | number | undefined; margin?: { top?: number | undefined; right?: number | undefined; bottom?: number | undefined; left?: number | undefined; } | undefined; }' is not assignable to type 'CategoricalChartProps'.
+  Types of property 'width' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+components/ui/lazy-chart.tsx(96,6): error TS2322: Type '{ children: ReactNode; stackOffset?: "none" | "expand" | "wiggle" | "silhouette" | undefined; width?: string | number | undefined; height?: string | number | undefined; margin?: { ...; } | undefined; data: ChartDataPoint[] | undefined; }' is not assignable to type 'CategoricalChartProps'.
+  Types of property 'width' are incompatible.
+    Type 'string | number | undefined' is not assignable to type 'number | undefined'.
+      Type 'string' is not assignable to type 'number'.
+components/UserMenu.tsx(85,43): error TS2339: Property 'avatar_url' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(168,30): error TS2339: Property 'address' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(171,34): error TS2339: Property 'address' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(178,26): error TS2339: Property 'company' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(185,37): error TS2339: Property 'company' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(186,32): error TS2339: Property 'department' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(187,84): error TS2339: Property 'department' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(197,24): error TS2339: Property 'bio' does not exist on type 'UserProfile'.
+components/UserMenu.tsx(200,73): error TS2339: Property 'bio' does not exist on type 'UserProfile'.
+hooks/useAnalyticsData.ts(148,55): error TS2367: This comparison appears to be unintentional because the types 'ExpenseCategory' and '"seguridad"' have no overlap.
+lib/auth.ts(5,74): error TS2307: Cannot find module '@supabase/auth-helpers-nextjs' or its corresponding type declarations.
+lib/auth.ts(9,20): error TS2307: Cannot find module 'bcryptjs' or its corresponding type declarations.
+lib/auth.ts(10,17): error TS2307: Cannot find module 'jsonwebtoken' or its corresponding type declarations.
+lib/hooks/useAuthOptimized.ts(359,5): error TS2322: Type '(email: string, password: string) => Promise<{ error: AuthError; } | { error: null; } | { error: string; }>' is not assignable to type '(email: string, password: string) => Promise<{ error: AuthError | null; }>'.
+  Type 'Promise<{ error: AuthError; } | { error: null; } | { error: string; }>' is not assignable to type 'Promise<{ error: AuthError | null; }>'.
+    Type '{ error: AuthError; } | { error: null; } | { error: string; }' is not assignable to type '{ error: AuthError | null; }'.
+      Type '{ error: string; }' is not assignable to type '{ error: AuthError | null; }'.
+        Types of property 'error' are incompatible.
+          Type 'string' is not assignable to type 'AuthError'.
+lib/hooks/useAuthOptimized.ts(361,5): error TS2322: Type '(email: string, password: string, userData: SignUpData) => Promise<{ error: AuthError; } | { error: null; } | { error: string; }>' is not assignable to type '(email: string, password: string, userData: SignUpData) => Promise<{ error: AuthError | null; }>'.
+  Type 'Promise<{ error: AuthError; } | { error: null; } | { error: string; }>' is not assignable to type 'Promise<{ error: AuthError | null; }>'.
+    Type '{ error: AuthError; } | { error: null; } | { error: string; }' is not assignable to type '{ error: AuthError | null; }'.
+      Type '{ error: string; }' is not assignable to type '{ error: AuthError | null; }'.
+        Types of property 'error' are incompatible.
+          Type 'string' is not assignable to type 'AuthError'.
+lib/hooks/useAuthOptimized.ts(362,5): error TS2322: Type '(email: string) => Promise<{ error: AuthError | null; } | { error: string; }>' is not assignable to type '(email: string) => Promise<{ error: AuthError | null; }>'.
+  Type 'Promise<{ error: AuthError | null; } | { error: string; }>' is not assignable to type 'Promise<{ error: AuthError | null; }>'.
+    Type '{ error: AuthError | null; } | { error: string; }' is not assignable to type '{ error: AuthError | null; }'.
+      Type '{ error: string; }' is not assignable to type '{ error: AuthError | null; }'.
+        Types of property 'error' are incompatible.
+          Type 'string' is not assignable to type 'AuthError'.
+lib/hooks/useAuthOptimized.ts(363,5): error TS2322: Type '(updates: Partial<UserProfile>) => Promise<{ error: string; } | { error: null; }>' is not assignable to type '(updates: Partial<UserProfile>) => Promise<{ error: AuthError | null; }>'.
+  Type 'Promise<{ error: string; } | { error: null; }>' is not assignable to type 'Promise<{ error: AuthError | null; }>'.
+    Type '{ error: string; } | { error: null; }' is not assignable to type '{ error: AuthError | null; }'.
+      Type '{ error: string; }' is not assignable to type '{ error: AuthError | null; }'.
+        Types of property 'error' are incompatible.
+          Type 'string' is not assignable to type 'AuthError'.
+lib/hooks/useDataCache.ts(6,10): error TS2305: Module '"@/lib/supabase/database"' has no exported member 'getActiveClients'.
+lib/services/aggregatedQueryService.ts(139,39): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+lib/services/custom-pdf-generator.ts(111,58): error TS2339: Property 'type' does not exist on type 'CustomReportTemplate'.
+lib/services/custom-pdf-generator.ts(111,74): error TS2339: Property 'type' does not exist on type 'CustomReportConfig'.
+lib/services/custom-pdf-generator.ts(122,16): error TS2339: Property 'dateFrom' does not exist on type 'CustomReportConfig'.
+lib/services/custom-pdf-generator.ts(122,35): error TS2339: Property 'dateTo' does not exist on type 'CustomReportConfig'.
+lib/services/custom-pdf-generator.ts(124,35): error TS2339: Property 'dateFrom' does not exist on type 'CustomReportConfig'.
+lib/services/custom-pdf-generator.ts(124,87): error TS2339: Property 'dateTo' does not exist on type 'CustomReportConfig'.
+lib/services/custom-pdf-generator.ts(144,64): error TS2339: Property 'totalExpenses' does not exist on type 'DirectExpensesByProjectMonth'.
+lib/services/custom-pdf-generator.ts(147,48): error TS2339: Property 'projectCount' does not exist on type 'DirectExpensesByProjectMonth'.
+lib/services/custom-pdf-generator.ts(158,10): error TS2339: Property 'expenses' does not exist on type 'DirectExpensesByProjectMonth'.
+lib/services/custom-pdf-generator.ts(158,28): error TS7006: Parameter 'expense' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(158,37): error TS7006: Parameter 'index' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(185,48): error TS2339: Property 'projectCount' does not exist on type 'ProjectTotalIncome'.
+lib/services/custom-pdf-generator.ts(188,47): error TS2339: Property 'projectCount' does not exist on type 'ProjectTotalIncome'.
+lib/services/custom-pdf-generator.ts(197,10): error TS2339: Property 'incomes' does not exist on type 'ProjectTotalIncome'.
+lib/services/custom-pdf-generator.ts(197,27): error TS7006: Parameter 'income' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(197,35): error TS7006: Parameter 'index' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(224,50): error TS2339: Property 'supplierCount' does not exist on type 'SupplierExpensesByYear'.
+lib/services/custom-pdf-generator.ts(235,10): error TS2339: Property 'expenses' does not exist on type 'SupplierExpensesByYear'.
+lib/services/custom-pdf-generator.ts(235,28): error TS7006: Parameter 'expense' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(235,37): error TS7006: Parameter 'index' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(259,64): error TS2339: Property 'totalExpenses' does not exist on type 'MonthlyExpensesByCategory'.
+lib/services/custom-pdf-generator.ts(262,49): error TS2339: Property 'categoryCount' does not exist on type 'MonthlyExpensesByCategory'.
+lib/services/custom-pdf-generator.ts(273,10): error TS2339: Property 'expenses' does not exist on type 'MonthlyExpensesByCategory'.
+lib/services/custom-pdf-generator.ts(273,28): error TS7006: Parameter 'expense' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(273,37): error TS7006: Parameter 'index' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(300,65): error TS2339: Property 'totalRevenue' does not exist on type 'ProjectProfitabilityAnalysis'.
+lib/services/custom-pdf-generator.ts(306,62): error TS2339: Property 'netProfit' does not exist on type 'ProjectProfitabilityAnalysis'.
+lib/services/custom-pdf-generator.ts(317,10): error TS2551: Property 'projects' does not exist on type 'ProjectProfitabilityAnalysis'. Did you mean 'project'?
+lib/services/custom-pdf-generator.ts(317,28): error TS7006: Parameter 'project' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(317,37): error TS7006: Parameter 'index' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(350,61): error TS2339: Property 'totalPaid' does not exist on type 'SupplierPaymentAnalysis'.
+lib/services/custom-pdf-generator.ts(353,64): error TS2339: Property 'totalPending' does not exist on type 'SupplierPaymentAnalysis'.
+lib/services/custom-pdf-generator.ts(356,50): error TS2339: Property 'supplierCount' does not exist on type 'SupplierPaymentAnalysis'.
+lib/services/custom-pdf-generator.ts(364,10): error TS2551: Property 'suppliers' does not exist on type 'SupplierPaymentAnalysis'. Did you mean 'supplier'?
+lib/services/custom-pdf-generator.ts(364,29): error TS7006: Parameter 'supplier' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(364,39): error TS7006: Parameter 'index' implicitly has an 'any' type.
+lib/services/custom-pdf-generator.ts(398,22): error TS2339: Property 'type' does not exist on type 'CustomReportConfig'.
+lib/services/custom-pdf-generator.ts(400,53): error TS2345: Argument of type 'CustomReportData' is not assignable to parameter of type 'DirectExpensesByProjectMonth'.
+  Type 'DirectExpensesByProjectMonth[]' is missing the following properties from type 'DirectExpensesByProjectMonth': project, month, year, directExpenses, and 4 more.
+lib/services/custom-pdf-generator.ts(403,43): error TS2345: Argument of type 'CustomReportData' is not assignable to parameter of type 'ProjectTotalIncome'.
+  Type 'DirectExpensesByProjectMonth[]' is missing the following properties from type 'ProjectTotalIncome': project, totalIncome, totalIncomeCRC, totalIncomeUSD, and 4 more.
+lib/services/custom-pdf-generator.ts(406,47): error TS2345: Argument of type 'CustomReportData' is not assignable to parameter of type 'SupplierExpensesByYear'.
+  Type 'DirectExpensesByProjectMonth[]' is missing the following properties from type 'SupplierExpensesByYear': supplier, year, totalExpenses, totalExpensesCRC, and 5 more.
+lib/services/custom-pdf-generator.ts(409,50): error TS2345: Argument of type 'CustomReportData' is not assignable to parameter of type 'MonthlyExpensesByCategory'.
+  Type 'DirectExpensesByProjectMonth[]' is missing the following properties from type 'MonthlyExpensesByCategory': month, year, categories, totalAmount, and 3 more.
+lib/services/custom-pdf-generator.ts(412,53): error TS2345: Argument of type 'CustomReportData' is not assignable to parameter of type 'ProjectProfitabilityAnalysis'.
+  Type 'DirectExpensesByProjectMonth[]' is missing the following properties from type 'ProjectProfitabilityAnalysis': project, totalIncome, totalExpenses, grossProfit, and 6 more.
+lib/services/custom-pdf-generator.ts(415,48): error TS2345: Argument of type 'CustomReportData' is not assignable to parameter of type 'SupplierPaymentAnalysis'.
+  Type 'DirectExpensesByProjectMonth[]' is missing the following properties from type 'SupplierPaymentAnalysis': supplier, totalAmount, paidAmount, pendingAmount, and 6 more.
+lib/services/custom-reports.ts(132,87): error TS2345: Argument of type '(group: ProjectGroup) => { project: { id: any; name: any; client: any; }; month: string; year: number; directExpenses: { subcontratos: number; materiales: number; otros: number; total: number; }; totalInCRC: number; totalInUSD: number; exchangeRate: number; expenseCount: number; }' is not assignable to parameter of type '(value: unknown, index: number, array: unknown[]) => { project: { id: any; name: any; client: any; }; month: string; year: number; directExpenses: { subcontratos: number; materiales: number; otros: number; total: number; }; totalInCRC: number; totalInUSD: number; exchangeRate: number; expenseCount: number; }'.
+  Types of parameters 'group' and 'value' are incompatible.
+    Type 'unknown' is not assignable to type 'ProjectGroup'.
+lib/services/custom-reports.ts(153,25): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(154,46): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(155,38): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(159,25): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(160,46): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(161,38): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(168,23): error TS2551: Property 'project' does not exist on type 'ProjectGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(169,25): error TS2551: Property 'project' does not exist on type 'ProjectGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(170,27): error TS2551: Property 'project' does not exist on type 'ProjectGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(241,77): error TS2345: Argument of type '(group: IncomeGroup) => { project: { id: any; name: any; client: any; status: any; startDate: any; endDate: any; }; totalIncome: number; totalIncomeCRC: number; totalIncomeUSD: number; confirmedIncome: number; ... 4 more ...; averageIncomePerMonth: number; }' is not assignable to parameter of type '(value: unknown, index: number, array: unknown[]) => { project: { id: any; name: any; client: any; status: any; startDate: any; endDate: any; }; totalIncome: number; totalIncomeCRC: number; totalIncomeUSD: number; ... 5 more ...; averageIncomePerMonth: number; }'.
+  Types of parameters 'group' and 'value' are incompatible.
+    Type 'unknown' is not assignable to type 'IncomeGroup'.
+lib/services/custom-reports.ts(256,24): error TS2551: Property 'exchange_rate_usd' does not exist on type 'IncomeData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(257,49): error TS2551: Property 'exchange_rate_usd' does not exist on type 'IncomeData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(261,24): error TS2551: Property 'exchange_rate_usd' does not exist on type 'IncomeData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(262,49): error TS2551: Property 'exchange_rate_usd' does not exist on type 'IncomeData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(266,22): error TS2339: Property 'status' does not exist on type 'IncomeData'.
+lib/services/custom-reports.ts(266,55): error TS2339: Property 'status' does not exist on type 'IncomeData'.
+lib/services/custom-reports.ts(272,37): error TS2339: Property 'received_date' does not exist on type 'IncomeData'.
+lib/services/custom-reports.ts(293,23): error TS2551: Property 'project' does not exist on type 'IncomeGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(294,25): error TS2551: Property 'project' does not exist on type 'IncomeGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(295,27): error TS2339: Property 'client' does not exist on type 'IncomeGroup'.
+lib/services/custom-reports.ts(296,27): error TS2551: Property 'project' does not exist on type 'IncomeGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(297,30): error TS2551: Property 'project' does not exist on type 'IncomeGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(298,28): error TS2551: Property 'project' does not exist on type 'IncomeGroup'. Did you mean 'projectId'?
+lib/services/custom-reports.ts(369,82): error TS2345: Argument of type '(group: SupplierGroup) => { supplier: { id: any; name: any; contactName: any; email: any; }; year: number; totalExpenses: number; totalExpensesCRC: number; totalExpensesUSD: number; expenseCount: number; categories: { ...; }[]; monthlyBreakdown: { ...; }[]; projects: { ...; }[]; }' is not assignable to parameter of type '(value: unknown, index: number, array: unknown[]) => { supplier: { id: any; name: any; contactName: any; email: any; }; year: number; totalExpenses: number; totalExpensesCRC: number; totalExpensesUSD: number; expenseCount: number; categories: { ...; }[]; monthlyBreakdown: { ...; }[]; projects: { ...; }[]; }'.
+  Types of parameters 'group' and 'value' are incompatible.
+    Type 'unknown' is not assignable to type 'SupplierGroup'.
+lib/services/custom-reports.ts(384,25): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(385,52): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(389,25): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(390,52): error TS2551: Property 'exchange_rate_usd' does not exist on type 'ExpenseData'. Did you mean 'exchange_rate'?
+lib/services/custom-reports.ts(431,23): error TS2551: Property 'supplier' does not exist on type 'SupplierGroup'. Did you mean 'supplierId'?
+lib/services/custom-reports.ts(432,25): error TS2551: Property 'supplier' does not exist on type 'SupplierGroup'. Did you mean 'supplierId'?
+lib/services/custom-reports.ts(433,32): error TS2551: Property 'supplier' does not exist on type 'SupplierGroup'. Did you mean 'supplierId'?
+lib/services/custom-reports.ts(434,26): error TS2551: Property 'supplier' does not exist on type 'SupplierGroup'. Did you mean 'supplierId'?
+lib/services/custom-reports.ts(641,37): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+lib/services/custom-reports.ts(668,29): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'ExpenseData | IncomeData'.
+  No index signature with a parameter of type 'string' was found on type 'ExpenseData | IncomeData'.
+lib/services/custom-reports.ts(723,83): error TS2345: Argument of type '(group: SupplierGroup) => { supplier: { id: any; name: any; contactName: any; }; totalAmount: number; paidAmount: number; pendingAmount: number; cancelledAmount: number; paymentRate: number; averagePaymentTime: number; invoiceCount: number; projects: { ...; }[]; paymentHistory: { ...; }[]; }' is not assignable to parameter of type '(value: unknown, index: number, array: unknown[]) => { supplier: { id: any; name: any; contactName: any; }; totalAmount: number; paidAmount: number; pendingAmount: number; cancelledAmount: number; paymentRate: number; averagePaymentTime: number; invoiceCount: number; projects: { ...; }[]; paymentHistory: { ...; }[]; }'.
+  Types of parameters 'group' and 'value' are incompatible.
+    Type 'unknown' is not assignable to type 'SupplierGroup'.
+lib/services/custom-reports.ts(738,27): error TS2339: Property 'payment_status' does not exist on type 'ExpenseData'.
+lib/services/custom-reports.ts(741,27): error TS2339: Property 'payment_date' does not exist on type 'ExpenseData'.
+lib/services/custom-reports.ts(743,54): error TS2339: Property 'payment_date' does not exist on type 'ExpenseData'.
+lib/services/custom-reports.ts(770,25): error TS2339: Property 'payment_status' does not exist on type 'ExpenseData'.
+lib/services/custom-reports.ts(772,32): error TS2339: Property 'payment_status' does not exist on type 'ExpenseData'.
+lib/services/custom-reports.ts(793,23): error TS2551: Property 'supplier' does not exist on type 'SupplierGroup'. Did you mean 'supplierId'?
+lib/services/custom-reports.ts(794,25): error TS2551: Property 'supplier' does not exist on type 'SupplierGroup'. Did you mean 'supplierId'?
+lib/services/custom-reports.ts(795,32): error TS2551: Property 'supplier' does not exist on type 'SupplierGroup'. Did you mean 'supplierId'?
+lib/services/expenseService.ts(431,10): error TS2339: Property 'group' does not exist on type 'PostgrestFilterBuilder<any, any, ParserError<"Unexpected input: ::decimal as total_amount,\n          count(*)::integer as expense_count,\n          avg(amount)::decimal as avg_amount\n        ">[], "expenses", unknown>'.
+lib/services/expenseService.ts(448,21): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/services/expenseService.ts(505,10): error TS2339: Property 'group' does not exist on type 'PostgrestFilterBuilder<any, any, ParserError<"Unexpected input: ::decimal as total_amount,\n          count(*)::integer as expense_count,\n          project:projects(name)\n        ">[], "expenses", unknown>'.
+lib/services/expenseService.ts(521,21): error TS7006: Parameter 'row' implicitly has an 'any' type.
+lib/services/pdfGenerator.ts(253,122): error TS2339: Property 'expense_date' does not exist on type '{ description: string; amount: number; date: string; category: string; }'.
+lib/services/projectService.ts(135,21): error TS2339: Property 'created_by' does not exist on type 'CreateProjectDTO'.
+lib/services/projectService.ts(136,48): error TS2339: Property 'created_by' does not exist on type 'CreateProjectDTO'.
+lib/supabase/database.ts(499,52): error TS2304: Cannot find name 'data'.
+lib/supabase/database.ts(500,12): error TS2304: Cannot find name 'data'.
+lib/supabase/database.ts(1333,43): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+lib/supabase/database.ts(1486,58): error TS18047: 'error' is possibly 'null'.
+lib/supabase/database.ts(1589,58): error TS18047: 'error' is possibly 'null'.
+middleware/cacheMiddleware.ts(50,34): error TS2339: Property 'invalidateFunction' does not exist on type 'OptimizedDatabaseService'.

@@ -2,7 +2,7 @@
 
 import ExecutiveDashboard from '@/components/dashboard/ExecutiveDashboard';
 import { withAuth } from '@/components/auth/withAuth';
-import { UserRole, UserRoleType } from '@/lib/types';
+import { UserRoleType } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { FileText, BarChart3, ArrowLeft } from 'lucide-react';

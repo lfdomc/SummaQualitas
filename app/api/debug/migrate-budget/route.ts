@@ -13,75 +13,68 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('🔄 Migrando presupuesto para proyecto:', project_id);
-
+    // Migrando presupuesto para proyecto
+    
     // Obtener el proyecto actual
-    const { data: project, error: fetchError } = await supabase
+    const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', project_id)
       .single();
-
-    if (fetchError || !project) {
-      console.error('❌ Error al obtener proyecto:', fetchError);
+    
+    if (projectError || !project) {
       return NextResponse.json({ 
-        success: false, 
         error: 'Proyecto no encontrado',
-        details: fetchError 
+        details: projectError 
       }, { status: 404 });
     }
-
-    console.log('📊 Proyecto actual:', {
-      id: project.id,
-      name: project.name,
-      presupuesto_original: project.presupuesto_original,
-      presupuesto_final: project.presupuesto_final,
-      budget: project.budget,
-      presupuesto_inicial: project.presupuesto_inicial
-    });
-
-    // Determinar el valor del presupuesto a usar
-    const budgetValue = project.budget || project.presupuesto_inicial || 0;
-
-    if (budgetValue === 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'No hay valor de presupuesto válido para migrar' 
-      }, { status: 400 });
+    
+    // Proyecto actual obtenido
+    
+    // Verificar si necesita migración
+    const needsUpdate = project.presupuesto_original === null || 
+                       project.presupuesto_original === undefined || 
+                       project.presupuesto_original === 0 ||
+                       project.presupuesto_final === null || 
+                       project.presupuesto_final === undefined ||
+                       project.presupuesto_final === 0;
+    
+    if (!needsUpdate) {
+      return NextResponse.json({
+        success: true,
+        message: 'El proyecto no necesita migración',
+        project: {
+          id: project.id,
+          name: project.name,
+          presupuesto_original: project.presupuesto_original,
+          presupuesto_final: project.presupuesto_final
+        }
+      });
     }
-
+    
+    // Calcular el valor del presupuesto a usar
+    const budgetValue = project.presupuesto_inicial || project.budget || 0;
+    
     // Actualizar los campos de presupuesto
     const { data: updatedProject, error: updateError } = await supabase
       .from('projects')
       .update({
         presupuesto_original: budgetValue,
-        presupuesto_final: budgetValue
+        presupuesto_final: budgetValue,
+        updated_at: new Date().toISOString()
       })
       .eq('id', project_id)
       .select()
       .single();
-
+    
     if (updateError) {
-      console.error('❌ Error al actualizar presupuesto:', updateError);
       return NextResponse.json({ 
-        success: false, 
-        error: 'Error al actualizar presupuesto',
+        error: 'Error al migrar presupuesto',
         details: updateError 
       }, { status: 500 });
     }
-
-    console.log('✅ Presupuesto migrado exitosamente:', {
-      projectId: project_id,
-      budgetValue,
-      before: {
-        presupuesto_original: project.presupuesto_original,
-        presupuesto_final: project.presupuesto_final
-      },
-      after: {
-        presupuesto_original: updatedProject.presupuesto_original,
-        presupuesto_final: updatedProject.presupuesto_final
-      }
-    });
+    
+    // Presupuesto migrado exitosamente
 
     return NextResponse.json({
       success: true,

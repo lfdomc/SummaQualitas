@@ -40,7 +40,6 @@ function AnalyticsPage() {
   }, []);
 
   const handleProjectChange = (projectId: string) => {
-    setSelectedProjectId(projectId);
     const project = projects.find(p => p.id === projectId);
     setSelectedProject(project || null);
   };
@@ -128,7 +127,12 @@ function AnalyticsPage() {
                       <div className="flex flex-col">
                         <span className="font-medium">{project.name}</span>
                         <span className="text-sm text-gray-500">
-                          {typeof project.client === 'object' ? project.client?.name : project.client} • Estado: {project.status}
+                          {(() => {
+                            const c: any = project.client;
+                            if (Array.isArray(c)) return c[0]?.name ?? c[0] ?? 'N/A';
+                            if (typeof c === 'object' && c !== null) return c.name ?? 'N/A';
+                            return typeof c === 'string' ? c : 'N/A';
+                          })()} • Estado: {project.status}
                         </span>
                       </div>
                     </SelectItem>
@@ -142,7 +146,12 @@ function AnalyticsPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">Cliente:</span>
-                      <p className="font-medium">{typeof selectedProject.client === 'object' ? selectedProject.client?.name : selectedProject.client || 'N/A'}</p>
+                      <p className="font-medium">{(() => {
+                        const c: any = selectedProject.client;
+                        if (Array.isArray(c)) return c[0]?.name ?? c[0] ?? 'N/A';
+                        if (typeof c === 'object' && c !== null) return c.name ?? 'N/A';
+                        return typeof c === 'string' ? c : 'N/A';
+                      })()}</p>
                     </div>
                     <div>
                       <span className="text-gray-500">Estado:</span>

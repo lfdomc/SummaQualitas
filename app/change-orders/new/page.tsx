@@ -29,7 +29,8 @@ import {
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import type { Project, CreateChangeOrderData } from '@/types/database';
+import type { Project } from '@/lib/types';
+import type { CreateChangeOrderData } from '@/types/database';
 
 export default function NewChangeOrderPage() {
   const router = useRouter();
@@ -93,44 +94,38 @@ export default function NewChangeOrderPage() {
     }
   };
 
-  const handleInputChange = (field: keyof CreateChangeOrderData, value: string | number) => {
+  const handleInputChange = <K extends keyof CreateChangeOrderData>(
+    field: K,
+    value: CreateChangeOrderData[K]
+  ) => {
     setFormData(prev => {
-      const updated = {
-        ...prev,
-        [field]: value
-      };
-      
-      // Calcular automáticamente el monto en colones cuando cambie el costo o la moneda
+      const updated = { ...prev, [field]: value } as CreateChangeOrderData;
+  
+      // Recalcular automáticamente el monto en colones cuando cambie costo, moneda o tipo de cambio
       if (field === 'cost_impact' || field === 'currency' || field === 'exchange_rate') {
-        const costImpact = typeof (field === 'cost_impact' ? value : updated.cost_impact) === 'number' 
-          ? (field === 'cost_impact' ? value : updated.cost_impact) as number
-          : parseFloat(String(field === 'cost_impact' ? value : updated.cost_impact)) || 0;
-        
-        const currency = field === 'currency' ? value as string : updated.currency as string;
-        
-        const exchangeRate = typeof (field === 'exchange_rate' ? value : updated.exchange_rate) === 'number'
-          ? (field === 'exchange_rate' ? value : updated.exchange_rate) as number
-          : parseFloat(String(field === 'exchange_rate' ? value : updated.exchange_rate)) || 500;
-        
-        if (currency === 'USD') {
-          updated.cost_impact_crc = costImpact * exchangeRate;
-        } else {
-          updated.cost_impact_crc = costImpact;
-        }
+        const costImpact =
+          typeof updated.cost_impact === 'number'
+            ? (updated.cost_impact ?? 0)
+            : parseFloat(String(updated.cost_impact ?? 0)) || 0;
+  
+        const exchangeRate =
+          typeof updated.exchange_rate === 'number'
+            ? (updated.exchange_rate ?? 500)
+            : parseFloat(String(updated.exchange_rate ?? 500)) || 500;
+  
+        const currency = (updated.currency ?? 'CRC');
+  
+        updated.cost_impact_crc = currency === 'USD'
+          ? costImpact * exchangeRate
+          : costImpact;
       }
-      
+  
       return updated;
     });
   };
 
-  const handleNumberFocus = (field: keyof CreateChangeOrderData) => {
-    const currentValue = formData[field];
-    if (currentValue === 0 || currentValue === '0') {
-      setFormData(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
+  const handleNumberFocus = (field: 'cost_impact' | 'exchange_rate' | 'schedule_impact_days') => {
+    // No-op: mantenemos los campos numéricos como números para evitar problemas de tipos
   };
 
   const validateForm = () => {
@@ -262,7 +257,7 @@ export default function NewChangeOrderPage() {
                 <Label htmlFor="change_type">Tipo de Orden *</Label>
                 <Select 
                   value={formData.change_type} 
-                  onValueChange={(value) => handleInputChange('change_type', value)}
+                  onValueChange={(value) => handleInputChange('change_type', value as CreateChangeOrderData['change_type'])}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -280,7 +275,7 @@ export default function NewChangeOrderPage() {
               <Label htmlFor="impact_type">Tipo de Impacto *</Label>
               <Select 
                 value={formData.impact_type} 
-                onValueChange={(value) => handleInputChange('impact_type', value)}
+                onValueChange={(value) => handleInputChange('impact_type', value as CreateChangeOrderData['impact_type'])}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -346,7 +341,7 @@ export default function NewChangeOrderPage() {
                 <Label htmlFor="currency">Moneda *</Label>
                 <Select 
                   value={formData.currency} 
-                  onValueChange={(value) => handleInputChange('currency', value)}
+                  onValueChange={(value) => handleInputChange('currency', value as CreateChangeOrderData['currency'])}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -398,14 +393,14 @@ export default function NewChangeOrderPage() {
                     className="pl-10"
                   />
                 </div>
-                {formData.currency === 'USD' && formData.cost_impact > 0 && (
+                {formData.currency === 'USD' && Number(formData.cost_impact ?? 0) > 0 && (
                   <p className="text-sm text-blue-600 mt-1">
-                    Equivalente: ₡{new Intl.NumberFormat('es-CR').format(formData.cost_impact_crc || 0)}
+                    Equivalente: ₡{new Intl.NumberFormat('es-CR').format(Number(formData.cost_impact_crc ?? 0))}
                   </p>
                 )}
-                {formData.currency === 'CRC' && formData.cost_impact > 0 && (
+                {formData.currency === 'CRC' && Number(formData.cost_impact ?? 0) > 0 && (
                   <p className="text-sm text-blue-600 mt-1">
-                    Equivalente: ${new Intl.NumberFormat('en-US').format((formData.cost_impact / (formData.exchange_rate || 500)) || 0)}
+                    Equivalente: ${new Intl.NumberFormat('en-US').format(Number(formData.cost_impact ?? 0) / Number(formData.exchange_rate ?? 500))}
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground mt-1">
@@ -434,20 +429,20 @@ export default function NewChangeOrderPage() {
             </div>
             
             {/* Resumen del impacto */}
-            {(formData.cost_impact > 0 || formData.schedule_impact_days !== 0) && (
+            {(Number(formData.cost_impact ?? 0) > 0 || Number(formData.schedule_impact_days ?? 0) !== 0) && (
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <h4 className="font-medium text-blue-900 mb-2">Resumen del Impacto</h4>
                 <div className="space-y-1 text-sm">
-                  {formData.cost_impact > 0 && (
+                  {Number(formData.cost_impact ?? 0) > 0 && (
                     <p className="text-blue-700">
                       <strong>Financiero:</strong> {formData.impact_type === 'positivo' ? '+' : '-'}
-                      {formData.currency === 'USD' ? '$' : '₡'}{new Intl.NumberFormat('es-CR').format(formData.cost_impact)}
-                      {formData.currency === 'USD' && ` (₡${new Intl.NumberFormat('es-CR').format(formData.cost_impact_crc || 0)})`}
+                      {formData.currency === 'USD' ? '$' : '₡'}{new Intl.NumberFormat('es-CR').format(Number(formData.cost_impact ?? 0))}
+                      {formData.currency === 'USD' && ` (₡${new Intl.NumberFormat('es-CR').format(Number(formData.cost_impact_crc ?? 0))})`}
                     </p>
                   )}
-                  {formData.schedule_impact_days !== 0 && (
+                  {Number(formData.schedule_impact_days ?? 0) !== 0 && (
                     <p className="text-blue-700">
-                      <strong>Cronograma:</strong> {(formData.schedule_impact_days || 0) > 0 ? '+' : ''}{formData.schedule_impact_days || 0} días
+                      <strong>Cronograma:</strong> {Number(formData.schedule_impact_days ?? 0) > 0 ? '+' : ''}{Number(formData.schedule_impact_days ?? 0)} días
                     </p>
                   )}
                 </div>

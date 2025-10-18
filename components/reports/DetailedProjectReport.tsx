@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Project, ChangeOrder } from '@/types/database';
 import { Income, Expense } from '@/types/database';
 import { projectService, incomeService, expenseService } from '@/lib/supabase/database';
 import { AggregatedQueryService } from '@/lib/services/aggregatedQueryService';
 import { createClient } from '@/lib/supabase/client';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { toast } from 'sonner';
 import { translateCategory } from '@/lib/utils';
+import PDFAnnexesDocument from './PDFAnnexesDocument';
 import {
   FileText,
   DollarSign,
@@ -26,16 +29,22 @@ import {
   Calendar,
   AlertTriangle,
   Eye,
-  Package
+  Package,
+  Loader2
 } from 'lucide-react';
 const { format } = require('date-fns');
 const { es } = require('date-fns/locale');
-import { pdf } from '@react-pdf/renderer';
-import PDFReportDocument from './PDFReportDocument';
-import PDFAnnexesDocument from './PDFAnnexesDocument';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { ExpenseChartHTML } from './ExpenseChartHTML';
+
+// Lazy load heavy components
+const PDFReportDocument = lazy(() => import('./PDFReportDocument'));
+const ExpenseChartHTML = lazy(() => import('./ExpenseChartHTML').then(module => ({ default: module.ExpenseChartHTML })));
+
+// Lazy load heavy libraries
+const loadPDFLibraries = () => Promise.all([
+  import('@react-pdf/renderer').then(module => module.pdf),
+  import('jspdf'),
+  import('html2canvas')
+]);
 
 // Función helper para obtener el presupuesto final con fallback
 const getFinalBudget = (project: Project): number => {
@@ -193,15 +202,43 @@ const calculateTotalPages = (incomes: Income[], expenses: Expense[], changeOrder
 };
 
 export function DetailedProjectReport({ projectId }: DetailedProjectReportProps) {
+  const { user, loading: authLoading } = useAuthContext();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [currentSection, setCurrentSection] = useState<ReportSection>('incomes');
   const [loading, setLoading] = useState(false);
+
+  // Verificar autenticación
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Acceso Restringido</h3>
+          <p className="text-gray-600 mb-4">Debes iniciar sesión para acceder a los reportes.</p>
+          <Button onClick={() => window.location.href = '/login'}>
+            Iniciar Sesión
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   // Inicializar servicios
   const supabase = createClient();
-  const aggregatedQueryService = new AggregatedQueryService(supabase);
+  const aggregatedQueryService = new AggregatedQueryService();
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [exchangeRate, setExchangeRate] = useState<number>(500); // Tipo de cambio por defecto
   const [tempExchangeRate, setTempExchangeRate] = useState<string>('500'); // Estado temporal para el input
@@ -230,10 +267,14 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
   const fetchProjects = useCallback(async () => {
     try {
       const allProjects = await projectService.getAllProjects();
-      setProjects(allProjects);
-      if (!selectedProjectId && allProjects.length > 0) {
-        setSelectedProjectId(allProjects[0].id);
-      } else if (!selectedProjectId && allProjects.length === 0) {
+      const normalizedProjects = (allProjects || []).map((p: any) => {
+        const client = Array.isArray(p?.client) ? p.client[0] : p?.client;
+        return { ...p, client } as Project;
+      });
+      setProjects(normalizedProjects);
+      if (!selectedProjectId && normalizedProjects.length > 0) {
+        setSelectedProjectId(normalizedProjects[0].id);
+      } else if (!selectedProjectId && normalizedProjects.length === 0) {
         // Si no hay proyectos disponibles, intentar obtener project_ids desde ingresos
         try {
             // Usar cliente de Supabase directamente para obtener project_ids
@@ -268,7 +309,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
     }
   }, [selectedProjectId, exchangeRate]);
 
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     if (!selectedProjectId) return;
 
     try {
@@ -287,126 +328,89 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         setLoadingMessage('');
         return;
       }
+      
       setLoadingMessage('Obteniendo datos del servidor...');
       
-      // Usar el servicio agregado optimizado para obtener todos los datos en una sola consulta
-      try {
-        setLoadingMessage('Obteniendo datos optimizados...');
-        const aggregatedData = await aggregatedQueryService.getProjectReportData(selectedProjectId);
-        
-        if (aggregatedData) {
-          setReportData(aggregatedData);
-          
-          // Guardar en caché
-          dataCache.set(cacheKey, {
-            data: aggregatedData,
-            timestamp: now
-          });
-          
-          setLoading(false);
-          setLoadingMessage('');
-          return;
-        }
-      } catch (aggregatedError) {
-        console.warn('Error con consulta agregada, usando fallback:', aggregatedError);
-      }
+      // Usar solo el servicio agregado optimizado - eliminar fallback complejo
+      const aggregatedData = await aggregatedQueryService.getProjectReportData(selectedProjectId);
       
-      // Fallback: Ejecutar consultas en paralelo (método anterior optimizado)
-      setLoadingMessage('Obteniendo datos en paralelo...');
-      const [incomes, expenses, changeOrdersResponse] = await Promise.all([
-        incomeService.getProjectIncomes(selectedProjectId),
-        expenseService.getProjectExpenses(selectedProjectId),
-        fetch(`/api/change-orders?project_id=${selectedProjectId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
+      // DEBUG: Log detallado de los datos recibidos
+      console.log('🔍 DEBUG - Datos recibidos de getProjectReportData:', {
+        hasData: !!aggregatedData,
+        hasError: !!aggregatedData?.error,
+        errorMessage: aggregatedData?.error,
+        project: aggregatedData?.project ? 'PRESENTE' : 'AUSENTE',
+        incomesCount: aggregatedData?.incomes?.length || 0,
+        expensesCount: aggregatedData?.expenses?.length || 0,
+        changeOrdersCount: aggregatedData?.changeOrders?.length || 0,
+        incomesData: aggregatedData?.incomes || [],
+        expensesData: aggregatedData?.expenses || []
+      });
+      
+      if (aggregatedData && !aggregatedData.error) {
+        // Procesar los datos del servicio agregado
+        const processedData = {
+          project: aggregatedData.project || {
+            id: selectedProjectId,
+            name: `Proyecto ${selectedProjectId.substring(0, 8)}`,
+            description: 'Proyecto cargado desde datos',
+            status: 'active' as const,
+            budget: 0,
+            presupuesto_inicial: 0,
+            presupuesto_final: 0,
+            costos_directos: 0,
+            costos_indirectos: 0,
+            administracion: 0,
+            mano_obra: 0,
+            imprevistos: 0,
+            utilidad: 0,
+            estimated_start_date: new Date().toISOString().split('T')[0],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           },
-          signal: AbortSignal.timeout(30000) // 30 segundos timeout
-        }).catch(error => {
-          console.warn('Error fetching change orders:', error);
-          return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
-        })
-      ]);
-      
-
-      // Intentar obtener datos del proyecto
-      let project = projects.find(p => p.id === selectedProjectId);
-      
-      // Si no se puede obtener el proyecto (por políticas RLS), crear uno temporal
-      if (!project) {
-        console.warn('No se pudo cargar el proyecto, creando datos temporales...');
-        
-        // Intentar obtener información del cliente desde los ingresos
-        let clientInfo = null;
-        if (incomes.length > 0 && incomes[0].client) {
-          clientInfo = incomes[0].client;
-        }
-        
-        project = {
-          id: selectedProjectId,
-          name: `Proyecto ${selectedProjectId.substring(0, 8)}`,
-          description: 'Proyecto cargado desde datos de transacciones',
-          client_id: clientInfo?.id || '',
-          client: clientInfo,
-          status: 'active' as const,
-          budget: 0,
-          presupuesto_inicial: 0,
-          costos_directos: 0,
-          costos_indirectos: 0,
-          administracion: 0,
-          mano_obra: 0,
-          imprevistos: 0,
-          utilidad: 0,
-          estimated_start_date: incomes.length > 0 ? incomes[0].received_date : new Date().toISOString().split('T')[0],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          incomes: aggregatedData.incomes || [],
+          expenses: aggregatedData.expenses || [],
+          changeOrders: aggregatedData.changeOrders || [],
+          exchangeRate: exchangeRate
         };
         
-        toast.info('Datos del proyecto cargados desde transacciones');
+        // DEBUG: Log de los datos procesados
+        console.log('🔍 DEBUG - Datos procesados para reportData:', {
+          projectName: processedData.project.name,
+          incomesCount: processedData.incomes.length,
+          expensesCount: processedData.expenses.length,
+          incomesPreview: processedData.incomes.slice(0, 2),
+          expensesPreview: processedData.expenses.slice(0, 2)
+        });
+        
+        setReportData(processedData);
+        
+        // Guardar en caché
+        dataCache.set(cacheKey, {
+          data: processedData,
+          timestamp: now
+        });
+        
+        setLoading(false);
+        setLoadingMessage('');
+        return;
       }
-
-      // Procesar respuesta de órdenes de cambio con manejo robusto de errores
-      let changeOrders: ChangeOrder[] = [];
-      try {
-        if (changeOrdersResponse && changeOrdersResponse.ok) {
-          const changeOrdersData = await changeOrdersResponse.json();
-          // La API puede devolver { data: [...] } o directamente [...]
-          changeOrders = Array.isArray(changeOrdersData) ? changeOrdersData : (changeOrdersData.data || []);
-        } else {
-          console.warn('Change orders API response not ok:', changeOrdersResponse?.status);
-        }
-      } catch (error) {
-        console.warn('Error parsing change orders response:', error);
-        changeOrders = [];
-      }
-
-
-
-      const newReportData = {
-        project,
-        incomes,
-        expenses,
-        changeOrders,
-        exchangeRate: exchangeRate // Usar el tipo de cambio seleccionado por el usuario
-      };
       
-      setReportData(newReportData);
+      // Si el servicio agregado falla, mostrar error específico
+      const errorMessage = aggregatedData?.error 
+        ? `Error específico: ${typeof aggregatedData.error === 'string' ? aggregatedData.error : 'Error en base de datos'}`
+        : 'No se recibieron datos del servidor';
       
-      // Guardar en caché
-      const newCache = new Map(dataCache);
-      newCache.set(cacheKey, {
-        data: newReportData,
-        timestamp: now
-      });
-      setDataCache(newCache);
+      throw new Error(errorMessage);
+      
     } catch (error) {
       console.error('Error fetching report data:', error);
-      toast.error('Error al cargar los datos del reporte');
+      toast.error('Error al cargar los datos del reporte. Intente nuevamente.');
     } finally {
       setLoading(false);
       setLoadingMessage('');
     }
-  };
+  }, [selectedProjectId, exchangeRate, dataCache]);
 
   // Función auxiliar para extraer enlaces de una página
   const extractLinksFromPage = (pageElement: HTMLElement, pageIndex: number) => {
@@ -447,25 +451,144 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
 
   // Nueva función para exportar PDF con enlaces clickeables usando @react-pdf/renderer (solo anexos)
   const exportToPDFWithClickableLinks = async () => {
+    // Validaciones robustas de datos
     if (!reportData) {
       toast.error('No data to export');
+      return;
+    }
+
+    if (!reportData.project) {
+      toast.error('Project data is missing');
+      return;
+    }
+
+    if (!reportData.project.name) {
+      toast.error('Project name is missing');
+      return;
+    }
+
+    // Validar que las funciones de formato estén disponibles
+    if (typeof formatCurrency !== 'function') {
+      toast.error('Currency formatting function is not available');
+      return;
+    }
+
+    if (typeof convertCurrency !== 'function') {
+      toast.error('Currency conversion function is not available');
       return;
     }
 
     setIsExporting(true);
     
     try {
+      // Cargar la función pdf de @react-pdf/renderer
+      const [pdfRenderer] = await loadPDFLibraries();
+      
+      if (!pdfRenderer) {
+        throw new Error('PDF renderer library failed to load');
+      }
+
+      // Validar que el componente PDFAnnexesDocument esté disponible
+      if (!PDFAnnexesDocument) {
+        throw new Error('PDFAnnexesDocument component is not available');
+      }
+      
+      // Debug: Verificar datos antes de crear el PDF
+      console.log('=== PDF ANNEXES DEBUG ===');
+      console.log('reportData:', reportData);
+      console.log('reportData.project:', reportData?.project);
+      console.log('reportData.incomes count:', reportData?.incomes?.length || 0);
+      console.log('reportData.expenses count:', reportData?.expenses?.length || 0);
+      console.log('reportData.incomes data:', reportData?.incomes);
+      console.log('reportData.expenses data:', reportData?.expenses);
+      console.log('formatCurrency function:', typeof formatCurrency);
+      console.log('convertCurrency function:', typeof convertCurrency);
+      console.log('PDFAnnexesDocument component:', typeof PDFAnnexesDocument);
+      
+      // Verificar si hay datos con attachments
+      const incomesWithAttachments = reportData?.incomes?.filter(income => 
+        !!income && !!income.receipt_url
+      ) || [];
+      const expensesWithAttachments = reportData?.expenses?.filter(expense => 
+        expense && (expense.receipt_url || expense.reference_attachment_url)
+      ) || [];
+      
+      console.log('Incomes with attachments:', incomesWithAttachments.length);
+      console.log('Expenses with attachments:', expensesWithAttachments.length);
+      console.log('Incomes with attachments data:', incomesWithAttachments);
+      console.log('Expenses with attachments data:', expensesWithAttachments);
+      console.log('=== END PDF ANNEXES DEBUG ===');
+      
       // Crear el documento PDF usando @react-pdf/renderer (solo página de anexos)
-      const pdfDocument = (
-        <PDFAnnexesDocument 
-          reportData={reportData}
-          formatCurrency={formatCurrency}
-          convertCurrency={convertCurrency}
-        />
-      );
+      let pdfDocument;
+      try {
+        pdfDocument = (
+          <PDFAnnexesDocument 
+            reportData={(() => {
+              const p = reportData.project;
+              const start_date = p.actual_start_date || p.estimated_start_date || p.start_date || new Date().toISOString().split('T')[0];
+              const end_date = p.actual_end_date || p.estimated_end_date || p.end_date;
+              const budget_crc = getFinalBudget(p);
+              const budget_usd = convertCurrency(budget_crc, 'CRC', 'USD');
+              return {
+                project: {
+                  id: p.id,
+                  name: p.name,
+                  description: p.description,
+                  start_date,
+                  end_date,
+                  status: String(p.status),
+                  budget_crc,
+                  budget_usd
+                },
+                incomes: (reportData.incomes || []).map(inc => ({
+                  id: inc.id,
+                  description: inc.description,
+                  amount: inc.amount,
+                  currency: inc.currency === 'USD' ? 'USD' : 'CRC',
+                  received_date: inc.received_date,
+                  receipt_url: inc.receipt_url
+                })),
+                expenses: (reportData.expenses || []).map(exp => ({
+                  id: exp.id,
+                  description: exp.description,
+                  amount: exp.amount,
+                  currency: exp.currency === 'USD' ? 'USD' : 'CRC',
+                  expense_date: exp.expense_date || (exp as any).date,
+                  category: exp.category,
+                  supplier: exp.supplier?.name ? { name: exp.supplier.name } : undefined,
+                  reference: exp.reference,
+                  receipt_url: exp.receipt_url,
+                  reference_attachment_url: exp.reference_attachment_url,
+                  reference_attachment_name: exp.reference_attachment_name,
+                  reference_attachment_type: exp.reference_attachment_type,
+                  reference_attachment_size: exp.reference_attachment_size
+                })),
+                exchangeRate: reportData.exchangeRate
+              };
+            })() as any}
+            formatCurrency={formatCurrency}
+            convertCurrency={convertCurrency}
+          />
+        );
+        console.log('PDF document created successfully');
+      } catch (componentError: unknown) {
+        console.error('Error creating PDFAnnexesDocument component:', componentError);
+        const message = componentError instanceof Error ? componentError.message : String(componentError);
+        throw new Error(`Component creation failed: ${message}`);
+      }
       
       // Generar el blob del PDF
-      const blob = await pdf(pdfDocument).toBlob();
+      let blob;
+      try {
+        console.log('Starting PDF blob generation...');
+        blob = await pdfRenderer(pdfDocument).toBlob();
+        console.log('PDF blob generated successfully');
+      } catch (renderError: unknown) {
+        console.error('Error during PDF rendering:', renderError);
+        const message = renderError instanceof Error ? renderError.message : String(renderError);
+        throw new Error(`PDF rendering failed: ${message}`);
+      }
       
       // Crear URL para descarga
       const url = URL.createObjectURL(blob);
@@ -524,6 +647,9 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       }
 
       // Crear PDF con formato Letter optimizado
+      const [pdfRenderer, jsPDFModule, html2canvasModule] = await loadPDFLibraries();
+      const { jsPDF } = jsPDFModule as any;
+      const html2canvas = (html2canvasModule as any).default || (html2canvasModule as any);
       const jsPdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -581,14 +707,14 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
             imageTimeout: 15000,
             x: 0,
             y: 0,
-             ignoreElements: (element) => {
+             ignoreElements: (element: Element) => {
               // Ignorar elementos que puedan causar problemas de renderizado
               return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
             },
-            onclone: (clonedDoc) => {
+            onclone: (clonedDoc: Document) => {
               // Asegurar que los estilos se apliquen en el documento clonado
               const clonedElements = clonedDoc.querySelectorAll('.pdf-page');
-              clonedElements.forEach((element) => {
+              clonedElements.forEach((element: Element) => {
                 const htmlElement = element as HTMLElement;
                 htmlElement.style.display = 'block';
                 htmlElement.style.visibility = 'visible';
@@ -606,7 +732,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
               
               // Preservar todos los colores de texto y fondo
               const allElements = clonedDoc.querySelectorAll('*');
-              allElements.forEach((element) => {
+              allElements.forEach((element: Element) => {
                 const htmlElement = element as HTMLElement;
                 const computedStyle = window.getComputedStyle(element);
                 
@@ -628,7 +754,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
               
               // Asegurar que los elementos SVG se rendericen correctamente
               const svgElements = clonedDoc.querySelectorAll('svg');
-              svgElements.forEach((svg) => {
+              svgElements.forEach((svg: SVGElement) => {
                 const svgElement = svg as SVGElement;
                 svgElement.style.display = 'block';
                 svgElement.style.visibility = 'visible';
@@ -643,7 +769,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
               
               // Asegurar que los elementos de texto SVG se rendericen
               const textElements = clonedDoc.querySelectorAll('svg text, svg tspan');
-              textElements.forEach((text) => {
+              textElements.forEach((text: Element) => {
                 const textElement = text as SVGTextElement;
                 textElement.style.fontFamily = 'Arial, sans-serif';
                 textElement.style.fontSize = textElement.style.fontSize || '12px';
@@ -749,9 +875,51 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
 
       // Generar anexos usando @react-pdf/renderer
       toast.info('Generando anexos con enlaces clickeables...');
-      const annexBlob = await pdf((
+      const annexBlob = await pdfRenderer((
         <PDFAnnexesDocument 
-          reportData={reportData}
+          reportData={(() => {
+            const p = reportData.project;
+            const start_date = p.actual_start_date || p.estimated_start_date || p.start_date || new Date().toISOString().split('T')[0];
+            const end_date = p.actual_end_date || p.estimated_end_date || p.end_date;
+            const budget_crc = getFinalBudget(p);
+            const budget_usd = convertCurrency(budget_crc, 'CRC', 'USD');
+            return {
+              project: {
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                start_date,
+                end_date,
+                status: String(p.status),
+                budget_crc,
+                budget_usd
+              },
+              incomes: (reportData.incomes || []).map(inc => ({
+                id: inc.id,
+                description: inc.description,
+                amount: inc.amount,
+                currency: inc.currency === 'USD' ? 'USD' : 'CRC',
+                received_date: inc.received_date,
+                receipt_url: inc.receipt_url
+              })),
+              expenses: (reportData.expenses || []).map(exp => ({
+                id: exp.id,
+                description: exp.description,
+                amount: exp.amount,
+                currency: exp.currency === 'USD' ? 'USD' : 'CRC',
+                expense_date: exp.expense_date || (exp as any).date,
+                category: exp.category,
+                supplier: exp.supplier?.name ? { name: exp.supplier.name } : undefined,
+                reference: exp.reference,
+                receipt_url: exp.receipt_url,
+                reference_attachment_url: exp.reference_attachment_url,
+                reference_attachment_name: exp.reference_attachment_name,
+                reference_attachment_type: exp.reference_attachment_type,
+                reference_attachment_size: exp.reference_attachment_size
+              })),
+              exchangeRate: reportData.exchangeRate
+            };
+          })() as any}
           convertCurrency={convertCurrency}
           formatCurrency={formatCurrency}
         />
@@ -845,12 +1013,69 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            {loadingMessage || 'Cargando datos del reporte...'}
-          </p>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-80" />
+                <Skeleton className="h-4 w-96" />
+              </div>
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Loading Progress */}
+        <Card>
+          <CardContent className="p-8">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Cargando Reporte
+                </h3>
+                <p className="text-gray-600 max-w-md">
+                  {loadingMessage || 'Obteniendo datos del proyecto...'}
+                </p>
+              </div>
+              
+              {/* Progress Steps */}
+              <div className="flex items-center space-x-2 mt-4">
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-gray-500">Datos del proyecto</span>
+                </div>
+                <div className="w-4 h-px bg-gray-300"></div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                  <span className="text-xs text-gray-500">Ingresos</span>
+                </div>
+                <div className="w-4 h-px bg-gray-300"></div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                  <span className="text-xs text-gray-500">Gastos</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32 mb-1" />
+                <Skeleton className="h-3 w-20" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Project, Expense, Supplier, EXPENSE_CATEGORIES, DIRECT_COST_SUBCATEGORIES, INDIRECT_COST_SUBCATEGORIES } from '@/types/database';
+import type { Project } from '@/lib/types';
+import { Expense, Supplier, EXPENSE_CATEGORIES, DIRECT_COST_SUBCATEGORIES, INDIRECT_COST_SUBCATEGORIES } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,10 +41,11 @@ interface CreateExpenseData {
   reference?: string;
   details?: string;
   notes?: string;
-  attachment_url?: string;
-  attachment_name?: string;
-  attachment_type?: string;
-  attachment_size?: number;
+  // Campos de comprobante de referencia, alineados con types/database Expense
+  reference_attachment_url?: string;
+  reference_attachment_name?: string;
+  reference_attachment_type?: string;
+  reference_attachment_size?: number;
 }
 
 interface ProjectExpensesProps {
@@ -146,7 +148,10 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
         reference: expenseForm.reference || null,
         details: expenseForm.details || null,
         notes: expenseForm.notes || null,
-        receipt_url: expenseForm.attachment_url || null
+        reference_attachment_url: expenseForm.reference_attachment_url || null,
+        reference_attachment_name: expenseForm.reference_attachment_name || null,
+        reference_attachment_type: expenseForm.reference_attachment_type || null,
+        reference_attachment_size: expenseForm.reference_attachment_size || null
       };
 
       const { data, error } = await supabase
@@ -188,7 +193,10 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
           reference: expenseForm.reference || null,
           details: expenseForm.details || null,
           notes: expenseForm.notes || null,
-          receipt_url: expenseForm.attachment_url || null
+          reference_attachment_url: expenseForm.reference_attachment_url || null,
+          reference_attachment_name: expenseForm.reference_attachment_name || null,
+          reference_attachment_type: expenseForm.reference_attachment_type || null,
+          reference_attachment_size: expenseForm.reference_attachment_size || null
         })
         .eq('id', editingExpense.id);
 
@@ -240,10 +248,10 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
       reference: '',
       details: '',
       notes: '',
-      attachment_url: undefined,
-      attachment_name: undefined,
-      attachment_type: undefined,
-      attachment_size: undefined
+      reference_attachment_url: undefined,
+      reference_attachment_name: undefined,
+      reference_attachment_type: undefined,
+      reference_attachment_size: undefined
     });
   };
 
@@ -252,10 +260,10 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
       const result = await fileService.uploadFile(file, 'expense-attachments');
       setExpenseForm({
         ...expenseForm,
-        attachment_url: result.url,
-        attachment_name: result.name,
-        attachment_type: result.type,
-        attachment_size: result.size
+        reference_attachment_url: result.url,
+        reference_attachment_name: result.name,
+        reference_attachment_type: result.type,
+        reference_attachment_size: result.size
       });
       return result;
     } catch (error) {
@@ -282,10 +290,10 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
       reference: expense.reference || '',
       details: expense.details || '',
       notes: expense.notes || '',
-      attachment_url: expense.receipt_url || undefined,
-      attachment_name: expense.attachment_name || undefined,
-      attachment_type: expense.attachment_type || undefined,
-      attachment_size: expense.attachment_size || undefined
+      reference_attachment_url: expense.reference_attachment_url || undefined,
+      reference_attachment_name: expense.reference_attachment_name || undefined,
+      reference_attachment_type: expense.reference_attachment_type || undefined,
+      reference_attachment_size: expense.reference_attachment_size || undefined
     });
     setIsEditDialogOpen(true);
   };
@@ -382,9 +390,11 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                       <Select
                         value={expenseForm.category}
                         onValueChange={(value: string) => {
+                          // Asegurar el tipo correcto para la categoría
+                          const typedCategory = value as CreateExpenseData['category'];
                           setExpenseForm({ 
                             ...expenseForm, 
-                            category: value,
+                            category: typedCategory,
                             subcategory_direct: undefined,
                             subcategory_indirect: undefined
                           });
@@ -556,10 +566,10 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
                       onFileRemove={() => {
                         setExpenseForm({
                           ...expenseForm,
-                          attachment_url: undefined,
-                          attachment_name: undefined,
-                          attachment_type: undefined,
-                          attachment_size: undefined
+                          reference_attachment_url: undefined,
+                          reference_attachment_name: undefined,
+                          reference_attachment_type: undefined,
+                          reference_attachment_size: undefined
                         });
                       }}
                       acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
@@ -784,9 +794,11 @@ Equivalent in dollars
                 <Select
                   value={expenseForm.category}
                   onValueChange={(value: string) => {
+                    // Asegurar el tipo correcto para la categoría
+                    const typedCategory = value as CreateExpenseData['category'];
                     setExpenseForm({ 
                       ...expenseForm, 
-                      category: value,
+                      category: typedCategory,
                       subcategory_direct: undefined,
                       subcategory_indirect: undefined
                     });
@@ -958,19 +970,19 @@ Equivalent in dollars
                 onFileRemove={() => {
                   setExpenseForm({
                     ...expenseForm,
-                    attachment_url: undefined,
-                    attachment_name: undefined,
-                    attachment_type: undefined,
-                    attachment_size: undefined
+                    reference_attachment_url: undefined,
+                    reference_attachment_name: undefined,
+                    reference_attachment_type: undefined,
+                    reference_attachment_size: undefined
                   });
                 }}
                 acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']}
                 maxFileSize={10 * 1024 * 1024} // 10MB
-                existingFile={expenseForm.attachment_name ? {
-                  name: expenseForm.attachment_name,
-                  url: expenseForm.attachment_url,
-                  type: expenseForm.attachment_type,
-                  size: expenseForm.attachment_size
+                existingFile={expenseForm.reference_attachment_name ? {
+                  name: expenseForm.reference_attachment_name,
+                  url: expenseForm.reference_attachment_url,
+                  type: expenseForm.reference_attachment_type,
+                  size: expenseForm.reference_attachment_size
                 } : undefined}
               />
             </div>

@@ -39,9 +39,9 @@ export default function DebugSessionPage() {
         const localStorageAuth = localStorage.getItem('sb-hypravgvtrlfpepslhmc-auth-token');
         console.log('💾 [DebugSession] LocalStorage auth:', localStorageAuth);
         
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('❌ [DebugSession] Error:', err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
         setLoading(false);
       }
@@ -75,9 +75,9 @@ export default function DebugSessionPage() {
         window.location.reload();
       }, 1000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ [DebugSession] Error en login:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -103,9 +103,9 @@ export default function DebugSessionPage() {
         window.location.reload();
       }, 1000);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ [DebugSession] Error en logout:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }

@@ -411,7 +411,7 @@ const PDFReportDocument: React.FC<PDFReportDocumentProps> = ({
                   </View>
                   {(category.title === 'DIRECT COSTS' || category.title === 'INDIRECT COSTS') && (
                     <View style={styles.tableCol}>
-                      <Text style={styles.tableCell}>{expense.reference || expense.invoice_number || '-'}</Text>
+                      <Text style={styles.tableCell}>{expense.reference || '-'}</Text>
                     </View>
                   )}
                   <View style={styles.tableCol}>

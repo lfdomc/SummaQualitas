@@ -1,10 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useAuth, UseAuthReturn } from '@/lib/hooks/useAuth';
-import { useAuthSimple } from '@/lib/hooks/useAuthSimple';
-import { useAuthDirect } from '@/lib/hooks/useAuthDirect';
-import { useAuthFixed } from '@/lib/hooks/useAuthFixed';
+// Usamos la versión fija del hook de autenticación y su tipo, que incluye hasRole/hasAnyRole
+import { useAuthFixed, UseAuthReturn } from '@/lib/hooks/useAuthFixed';
 
 const AuthContext = createContext<UseAuthReturn | undefined>(undefined);
 

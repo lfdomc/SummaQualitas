@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { UserRole } from '@/lib/types';
 import { useMobileClasses } from '@/hooks/useMobileState';
 import { MobileMenu } from '@/components/MobileMenu';
 import {
@@ -44,6 +43,7 @@ import {
   Truck,
   FileEdit,
   Menu,
+  Package,
 } from 'lucide-react';
 import { useAuthWorking } from '@/lib/hooks/useAuthWorking';
 import { createClient } from '@/lib/supabase/client';
@@ -125,6 +125,12 @@ const navigationGroups: NavigationGroup[] = [
         icon: Wrench,
         roles: ['cliente', 'gerencia', 'administrativo'],
       },
+      {
+        title: 'Sumitals',
+        href: '/sumitals',
+        icon: Package,
+        roles: ['cliente', 'gerencia', 'administrativo'],
+      },
     ],
   },
   {
@@ -196,9 +202,9 @@ function SidebarContentWithAutoClose({
   handleLogout, 
   isLoggingOut 
 }: {
-  filteredNavigationGroups: any[];
+  filteredNavigationGroups: NavigationGroup[];
   pathname: string;
-  profile: any;
+  profile: { role?: string; name?: string; email?: string } | null;
   handleLogout: () => void;
   isLoggingOut: boolean;
 }) {
@@ -263,8 +269,8 @@ function SidebarContentWithAutoClose({
               <div className="flex flex-col">
                 <span className="font-medium">{profile?.name || 'Usuario'}</span>
                 <span className="text-xs text-muted-foreground">
-                  {profile?.role === UserRole.GERENCIA ? 'Gerencia' :
-           profile?.role === UserRole.ADMINISTRATIVO ? 'Administrativo' : 'Cliente'}
+                  {profile?.role === 'gerencia' ? 'Gerencia' :
+           profile?.role === 'administrativo' ? 'Administrativo' : 'Cliente'}
                 </span>
               </div>
             </div>
@@ -307,15 +313,25 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
       
       if (error) {
         toast.error('Error al cerrar sesión');
+        setIsLoggingOut(false);
         return;
       }
       
       toast.success('Sesión cerrada exitosamente');
-      router.push('/login');
+      
+      // Forzar refresh completo después del logout manual
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 1000); // Dar tiempo para que se muestre el toast
+      
     } catch (error) {
       toast.error('Error inesperado al cerrar sesión');
-    } finally {
       setIsLoggingOut(false);
+      
+      // Forzar refresh incluso si hay error
+      setTimeout(() => {
+        window.location.href = '/?reason=manual_logout';
+      }, 1000);
     }
   };
 

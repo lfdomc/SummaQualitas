@@ -57,8 +57,8 @@ interface ReportData {
 
 interface PDFAnnexesDocumentProps {
   reportData: ReportData;
-  formatCurrency: (amount: number, currency: 'CRC' | 'USD') => string;
-  convertCurrency: (amount: number, fromCurrency: 'CRC' | 'USD', toCurrency: 'CRC' | 'USD') => number;
+  formatCurrency: (amount: number, currency: string) => string;
+  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string) => number;
 }
 
 // Estilos para el PDF
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 20,
     textAlign: 'center',
-    borderBottom: 2,
+    borderBottomWidth: 2,
     borderBottomColor: '#2c3e50',
     paddingBottom: 10
   },
@@ -102,12 +102,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   table: {
-    display: 'table',
+    display: 'flex',
+    flexDirection: 'column',
     width: 'auto',
-    borderStyle: 'solid',
     borderWidth: 1,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
+    borderStyle: 'solid',
     borderColor: '#bdc3c7',
     marginBottom: 10
   },
@@ -163,14 +162,16 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   link: {
-    color: '#3498db',
+    color: '#2563eb',
     textDecoration: 'underline',
     fontSize: 8,
     textAlign: 'center',
     margin: 'auto',
     marginTop: 5,
-    marginBottom: 5
+    marginBottom: 5,
+    fontWeight: 'normal'
   },
+
   footer: {
     position: 'absolute',
     bottom: 30,
@@ -179,7 +180,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#7f8c8d',
     fontSize: 8,
-    borderTop: 1,
+    borderTopWidth: 1,
+    borderTopStyle: 'solid',
     borderTopColor: '#bdc3c7',
     paddingTop: 10
   },
@@ -230,16 +232,59 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
   formatCurrency, 
   convertCurrency 
 }) => {
-  const { project, incomes, expenses } = reportData;
+  // Debug logs
+  console.log('=== PDFAnnexesDocument DEBUG ===');
+  console.log('reportData:', reportData);
+  console.log('reportData?.incomes:', reportData?.incomes);
+  console.log('reportData?.expenses:', reportData?.expenses);
+  console.log('incomes length:', reportData?.incomes?.length);
+  console.log('expenses length:', reportData?.expenses?.length);
+  
+  // Validación de seguridad para evitar errores de propiedades nulas
+  if (!reportData) {
+    console.log('ERROR: reportData is null');
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Error: No data available</Text>
+          </View>
+        </Page>
+      </Document>
+    );
+  }
+
+  const { project, incomes = [], expenses = [] } = reportData;
+
+  // Debug logs for extracted data
+  console.log('Extracted project:', project);
+  console.log('Extracted incomes:', incomes);
+  console.log('Extracted expenses:', expenses);
+
+  // Validación adicional para project
+  if (!project) {
+    console.log('ERROR: project is null');
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Error: Project data not available</Text>
+          </View>
+        </Page>
+      </Document>
+    );
+  }
 
   return (
     <Document>
       {/* Página única: Solo Anexos */}
       <Page size="LETTER" style={styles.page}>
-        <PageHeader projectName={project.name} />
+        <PageHeader projectName={project.name || 'Unknown Project'} />
         
+
+
         {/* Adjuntos de Ingresos */}
-        {incomes.some(income => income.receipt_url) && (
+        {incomes && incomes.length > 0 && (
           <View>
             <Text style={[styles.summaryTitle, { marginTop: 10 }]}>INCOME ATTACHMENTS</Text>
             
@@ -263,7 +308,7 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
               </View>
               
               {incomes
-                .filter(income => income.receipt_url)
+                .filter(income => income) // Show all incomes, not just those with attachments
                 .map((income, index) => (
                   <View key={income.id} style={[styles.tableRow, index % 2 === 0 ? styles.tableRowEven : {}]}>
                     <View style={styles.tableCol}>
@@ -271,7 +316,7 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
                     </View>
                     <View style={styles.tableCol}>
                       <Text style={styles.tableCell}>
-                        {income.description.length > 20 ? income.description.substring(0, 17) + '...' : income.description}
+                        {(income.description || '').length > 20 ? (income.description || '').substring(0, 17) + '...' : (income.description || 'No description')}
                       </Text>
                     </View>
                     <View style={styles.tableCol}>
@@ -288,7 +333,7 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
                           Receipt
                         </Link>
                       ) : (
-                        <Text style={styles.tableCell}>Receipt</Text>
+                        <Text style={styles.tableCell}>-</Text>
                       )}
                     </View>
                     <View style={styles.tableCol}>
@@ -301,8 +346,23 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
           </View>
         )}
         
+        {/* Debug: Información de expenses */}
+        <View style={{ padding: 10, backgroundColor: '#f0f0f0', margin: 5 }}>
+          <Text style={{ fontSize: 10 }}>
+            DEBUG - Total expenses: {expenses ? expenses.length : 0}
+          </Text>
+          <Text style={{ fontSize: 10 }}>
+            DEBUG - Expenses with receipt_url: {expenses ? expenses.filter(expense => expense.receipt_url).length : 0}
+          </Text>
+          {expenses && expenses.slice(0, 3).map((expense, i) => (
+            <Text key={i} style={{ fontSize: 8 }}>
+              Expense {i+1}: receipt_url={expense.receipt_url ? 'YES' : 'NO'}, description={expense.description?.substring(0, 30)}...
+            </Text>
+          ))}
+        </View>
+
         {/* Adjuntos de Gastos */}
-        {expenses.some(expense => expense.receipt_url || expense.reference_attachment_url) && (
+        {expenses && expenses.some(expense => expense.receipt_url) && (
           <View>
             <Text style={[styles.summaryTitle, { marginTop: 15 }]}>EXPENSE ATTACHMENTS</Text>
             
@@ -329,7 +389,7 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
               </View>
               
               {expenses
-                .filter(expense => expense.receipt_url || expense.reference_attachment_url)
+                .filter(expense => expense.receipt_url) // Show only expenses with receipt attachments
                 .map((expense, index) => (
                   <View key={expense.id} style={[styles.tableRow, index % 2 === 0 ? styles.tableRowEven : {}]}>
                     <View style={[styles.tableCol, { width: '8%' }]}>
@@ -337,7 +397,7 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
                     </View>
                     <View style={[styles.tableCol, { width: '25%' }]}>
                       <Text style={styles.tableCell}>
-                        {expense.description.length > 15 ? expense.description.substring(0, 12) + '...' : expense.description}
+                        {(expense.description || '').length > 15 ? (expense.description || '').substring(0, 12) + '...' : (expense.description || 'No description')}
                       </Text>
                     </View>
                     <View style={[styles.tableCol, { width: '20%' }]}>
@@ -382,8 +442,7 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
         <View style={styles.noteContainer}>
           <Text style={styles.noteText}>
             <Text style={{ fontWeight: 'bold' }}>Note:</Text> The attached files listed in this section are available 
-            digitally in the system. Click on the file name to view the original document 
-            and verify its content.
+            digitally in the system. Underlined text indicates clickable links to view attachments.
           </Text>
         </View>
         

@@ -5,13 +5,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { UserRole } from '@/lib/types';
+import { type UserRoleType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+
+const ROLE_VALUES = ['gerencia', 'administrativo', 'cliente'] as const;
 
 const registerSchema = z.object({
   email: z
@@ -28,13 +30,7 @@ const registerSchema = z.object({
     .string()
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(100, 'El nombre no puede exceder 100 caracteres'),
-  // phone: z
-  //   .string()
-  //   .optional()
-  //   .refine((val) => !val || /^[+]?[1-9]\d{1,14}$/.test(val), {
-  //     message: 'Formato de teléfono inválido',
-  //   }), // Campo removido del esquema
-  role: z.nativeEnum(UserRole, {
+  role: z.enum(ROLE_VALUES, {
     errorMap: () => ({ message: 'Selecciona un rol válido' }),
   }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -42,18 +38,18 @@ const registerSchema = z.object({
   path: ['confirmPassword'],
 });
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterFormData = z.infer<typeof registerSchema> & { role: UserRoleType };
 
 interface RegisterFormProps {
   onSuccess?: () => void;
   redirectTo?: string;
-  allowedRoles?: UserRole[];
+  allowedRoles?: UserRoleType[];
 }
 
 export function RegisterForm({ 
   onSuccess, 
   redirectTo = '/dashboard',
-  allowedRoles = [UserRole.ADMINISTRATIVO, UserRole.CLIENTE]
+  allowedRoles = ['administrativo', 'cliente']
 }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -75,9 +71,8 @@ export function RegisterForm({
   const onSubmit = async (data: RegisterFormData) => {
     try {
       const { error } = await signUp(data.email, data.password, {
-        full_name: data.full_name,
+        name: data.full_name,
         role: data.role,
-        // phone: data.phone, // Campo removido del esquema
       });
       
       if (error) {
@@ -103,26 +98,26 @@ export function RegisterForm({
     }
   };
 
-  const getRoleLabel = (role: UserRole): string => {
+  const getRoleLabel = (role: UserRoleType): string => {
     switch (role) {
-      case UserRole.GERENCIA:
+      case 'gerencia':
         return 'Gerencia';
-      case UserRole.ADMINISTRATIVO:
+      case 'administrativo':
         return 'Administrativo';
-      case UserRole.CLIENTE:
+      case 'cliente':
         return 'Cliente';
       default:
         return role;
     }
   };
 
-  const getRoleDescription = (role: UserRole): string => {
+  const getRoleDescription = (role: UserRoleType): string => {
     switch (role) {
-      case UserRole.GERENCIA:
+      case 'gerencia':
         return 'Acceso completo: crear proyectos, aprobar cambios, generar informes';
-      case UserRole.ADMINISTRATIVO:
+      case 'administrativo':
         return 'Registrar gastos, ingresos, actualizar avances, generar reportes';
-      case UserRole.CLIENTE:
+      case 'cliente':
         return 'Ver avance de proyectos, pagos realizados y reportes autorizados';
       default:
         return '';
@@ -172,26 +167,10 @@ export function RegisterForm({
             )}
           </div>
 
-          {/* Phone Field - Removido del esquema
-          <div className="space-y-2">
-            <Label htmlFor="phone">Teléfono (Opcional)</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+1234567890"
-              {...register('phone')}
-              className={errors.phone ? 'border-red-500' : ''}
-            />
-            {errors.phone && (
-              <p className="text-sm text-red-600">{errors.phone.message}</p>
-            )}
-          </div>
-          */}
-
           {/* Role Field */}
           <div className="space-y-2">
             <Label htmlFor="role">Rol</Label>
-            <Select onValueChange={(value) => setValue('role', value as UserRole)}>
+            <Select onValueChange={(value) => setValue('role', value as UserRoleType)}>
               <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Selecciona tu rol" />
               </SelectTrigger>

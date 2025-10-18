@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/client';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
@@ -63,7 +64,6 @@ export async function POST(request: NextRequest) {
       });
     
     if (error) {
-      console.error('Error subiendo archivo:', error);
       return NextResponse.json(
         { error: `Error al subir archivo: ${error.message}` },
         { status: 500 }
@@ -84,7 +84,6 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error en API de upload:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -113,7 +112,6 @@ export async function DELETE(request: NextRequest) {
       .remove([filePath]);
     
     if (error) {
-      console.error('Error eliminando archivo:', error);
       return NextResponse.json(
         { error: `Error al eliminar archivo: ${error.message}` },
         { status: 500 }
@@ -123,7 +121,84 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
     
   } catch (error) {
-    console.error('Error en API de delete:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Verificar autenticación del usuario
+    const supabaseServer = createServerClient(request);
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const bucket = searchParams.get('bucket') || 'attachments';
+    const prefix = searchParams.get('prefix') || '';
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 100, 1), 1000) : 100;
+
+    const supabaseAdmin = createAdminClient();
+
+    const { data: files, error: listError } = await supabaseAdmin
+      .storage
+      .from(bucket)
+      .list(prefix, { limit, sortBy: { column: 'name', order: 'asc' } });
+
+    if (listError) {
+      return NextResponse.json(
+        { error: `Error al listar archivos: ${listError.message}` },
+        { status: 500 }
+      );
+    }
+
+    const results = await Promise.all((files || []).map(async (file) => {
+      const path = prefix ? `${prefix}/${file.name}` : file.name;
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      const guessedType = ext === 'pdf' ? 'application/pdf'
+        : ext === 'png' ? 'image/png'
+        : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+        : ext === 'gif' ? 'image/gif'
+        : ext === 'webp' ? 'image/webp'
+        : undefined;
+      const size = (file as any)?.metadata?.size ?? undefined;
+
+      if (bucket === 'attachments') {
+        const { data: urlData } = supabaseAdmin.storage
+          .from(bucket)
+          .getPublicUrl(path);
+        return {
+          name: file.name,
+          path,
+          size,
+          updated_at: (file as any)?.updated_at,
+          type: guessedType,
+          url: urlData.publicUrl
+        };
+      } else {
+        const { data: signed, error: signedError } = await supabaseAdmin.storage
+          .from(bucket)
+          .createSignedUrl(path, 3600);
+        return {
+          name: file.name,
+          path,
+          size,
+          updated_at: (file as any)?.updated_at,
+          type: guessedType,
+          url: signedError ? null : signed?.signedUrl,
+          signed: true
+        };
+      }
+    }));
+
+    return NextResponse.json({ bucket, prefix, count: results.length, files: results });
+
+  } catch (error) {
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
