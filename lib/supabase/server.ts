@@ -1,17 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
-import { type NextRequest, type NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 
 /**
- * Create a Supabase client for server-side operations
- * This version is compatible with both server components and middleware
- * Optimized for performance and better error handling
+ * Supabase server client para SSR, Server Components y Route Handlers.
+ * Usa cookies() de next/headers de forma síncrona para evitar problemas
+ * con el Edge Runtime y el análisis estático del build.
  */
-export function createClient(request?: NextRequest, response?: NextResponse) {
-  if (typeof window !== 'undefined') {
-    // Client-side fallback
-    throw new Error('createClient from server.ts should not be used on the client side');
+export function createClient(_request?: NextRequest) {
+  if (typeof window !== "undefined") {
+    // No se debe usar en el cliente
+    throw new Error("createClient from server.ts should not be used on the client side");
   }
+
+  const cookieStore = cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,49 +21,27 @@ export function createClient(request?: NextRequest, response?: NextResponse) {
     {
       cookies: {
         getAll() {
-          if (response) {
-            return response.cookies.getAll();
-          }
-          // Fallback para server components
-          const cookieStore = cookies();
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          if (response) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              try {
-                response.cookies.set(name, value, {
-                  ...options,
-                  httpOnly: true,
-                  secure: process.env.NODE_ENV === 'production',
-                  sameSite: 'lax'
-                });
-              } catch (error) {
-                console.warn(`Failed to set cookie ${name}:`, error);
-              }
-            });
-          } else {
-            // Fallback para server components
-            const cookieStore = cookies();
-            cookiesToSet.forEach(({ name, value, options }) => {
-              try {
-                cookieStore.set(name, value, {
-                  ...options,
-                  httpOnly: true,
-                  secure: process.env.NODE_ENV === 'production',
-                  sameSite: 'lax'
-                });
-              } catch (error) {
-                console.warn(`Failed to set cookie ${name} in server component:`, error);
-              }
-            });
-          }
+          cookiesToSet.forEach(({ name, value, options }) => {
+            try {
+              cookieStore.set(name, value, {
+                ...options,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax'
+              });
+            } catch (error) {
+              console.warn(`Failed to set cookie ${name}:`, error);
+            }
+          });
         },
       },
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false // Disabled for server-side
+        detectSessionInUrl: false, // Deshabilitado en server-side
       },
       db: {
         schema: 'public'

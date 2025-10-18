@@ -4,6 +4,8 @@ import { UserService } from '@/lib/supabase/database';
 
 // Ensure this route is always treated as dynamic and never prerendered/cached at build time
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
