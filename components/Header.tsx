@@ -13,11 +13,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const { isAuthenticated, loading } = useAuthContext()
+  const { isAuthenticated, loading, signOut } = useAuthContext()
+  const router = useRouter()
   
   // Detectar si es dispositivo móvil
   useEffect(() => {
@@ -99,25 +101,17 @@ export function Header() {
           {/* Right side - Auth buttons y Mobile menu */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="flex items-center space-x-2 min-h-touch min-w-touch p-2 sm:px-3"
-                  >
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline text-mobile-sm sm:text-sm truncate max-w-32">
-                      Usuario
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem className="cursor-pointer">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Cerrar Sesión
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button 
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-full text-mobile-sm sm:text-sm"
+                onClick={async () => {
+                  await signOut();
+                  router.push('/');
+                  router.refresh();
+                }}
+              >
+                Cerrar Sesión
+              </Button>
             ) : (
               <>
                 <Link href="/login" className="hidden sm:inline-block">

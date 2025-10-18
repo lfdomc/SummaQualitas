@@ -56,15 +56,23 @@ export async function GET(request: NextRequest) {
     
     if (error) {
       console.error('Error fetching equipment rentals:', error);
-      return NextResponse.json(
-        { success: false, error: 'Error al obtener alquileres' },
-        { status: 500 }
-      );
+      // Responder con 200 pero con success=false para permitir fallback en el frontend
+      return NextResponse.json({
+        success: false,
+        error: 'Error al obtener alquileres de equipos',
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0
+        }
+      });
     }
     
     return NextResponse.json({
       success: true,
-      data: rentals,
+      data: rentals || [],
       pagination: {
         page,
         limit,
@@ -75,10 +83,18 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Error in equipment rentals GET:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    // Responder con 200 pero con success=false para permitir fallback en el frontend
+    return NextResponse.json({
+      success: false,
+      error: 'Error interno en alquileres de equipos',
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 0,
+        total: 0,
+        totalPages: 0
+      }
+    });
   }
 }
 

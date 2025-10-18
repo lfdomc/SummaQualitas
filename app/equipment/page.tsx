@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthContext } from '@/lib/contexts/AuthContext';
-import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { usePermissions } from '@/hooks/usePermissions';
 
 import { Equipment, EquipmentRental, Project, Client } from '@/types/database';
@@ -272,7 +271,7 @@ const equipmentCategories = [
 
 export default function EquipmentPage() {
   const router = useRouter();
-  const { profile } = useRequireAuth();
+  const { isAuthenticated, loading, profile } = useAuth();
   const permissions = usePermissions();
 
 
@@ -390,13 +389,18 @@ export default function EquipmentPage() {
 
   // Load data
   useEffect(() => {
-    if (profile) {
-      loadEquipment();
-      loadRentals();
-      loadProjects();
+    if (loading) return; // Esperar a que termine la verificación de auth
+    // Cargar datos públicos sin depender del perfil
+    loadEquipment();
+    loadRentals();
+    loadProjects();
+    // Las estadísticas requieren auth; solo cargar si está autenticado
+    if (isAuthenticated) {
       loadMonthlyStats();
+    } else {
+      setMonthlyStats(null);
     }
-  }, [profile]);
+  }, [loading, isAuthenticated]);
 
   const loadEquipment = async (): Promise<void> => {
     try {
@@ -957,8 +961,14 @@ export default function EquipmentPage() {
     });
   };
 
-  if (!profile) {
-    return null;
+  // Mostrar un estado de carga mientras se verifica autenticación o se redirige
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        Cargando datos...
+      </div>
+    );
   }
 
   return (

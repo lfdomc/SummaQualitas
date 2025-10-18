@@ -45,7 +45,7 @@ import {
   Menu,
   Package,
 } from 'lucide-react';
-import { useAuthWorking } from '@/lib/hooks/useAuthWorking';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -292,7 +292,7 @@ function SidebarContentWithAutoClose({
 }
 
 export function GlobalSidebar({ children }: GlobalSidebarProps) {
-  const { user, profile, loading, isAuthenticated } = useAuthWorking();
+  const { user, profile, loading, isAuthenticated } = useAuthContext();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
