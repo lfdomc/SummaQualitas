@@ -4,6 +4,11 @@ import { createProject } from '@/lib/services/projectService'
 import { mapProjectStatus } from '@/types/database'
 import type { CreateProjectDTO } from '@/lib/types'
 
+// Asegurar runtime y comportamiento dinámico para evitar prerender en build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const runtime = 'nodejs';
+
 // Cache headers para optimizar rendimiento
 const CACHE_HEADERS = {
   'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600',
@@ -74,6 +79,25 @@ const mockProjects = [
 
 export async function GET(request: NextRequest) {
   try {
+    // Si faltan variables de entorno, usar mock y evitar crear cliente
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      const response = NextResponse.json({
+        success: true,
+        data: mockProjects,
+        pagination: {
+          page: 1,
+          limit: mockProjects.length,
+          total: mockProjects.length,
+          totalPages: 1
+        },
+        warning: 'Supabase no configurado: usando datos mock'
+      });
+      Object.entries(CACHE_HEADERS).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
+    }
+
     const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     
@@ -172,7 +196,8 @@ export async function GET(request: NextRequest) {
     // Usar datos mock como fallback en caso de error
     return NextResponse.json({
       success: true,
-      data: mockProjects
+      data: mockProjects,
+      warning: 'Error inesperado: usando datos mock'
     });
   }
 }
@@ -219,6 +244,14 @@ export async function POST(request: NextRequest) {
           error: 'El presupuesto inicial excede el límite permitido (máximo ₡9,999,999,999,999.99). Use un número menor o contacte soporte.'
         },
         { status: 400 }
+      );
+    }
+
+    // Antes de crear cliente Supabase, validar entorno
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.json(
+        { success: false, error: 'Supabase no está configurado en el entorno (URL o ANON KEY faltante). Configure variables de entorno y reintente.' },
+        { status: 503 }
       );
     }
 
