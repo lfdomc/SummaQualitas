@@ -9,6 +9,18 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
+    // Validar variables de entorno críticas para el cliente de Supabase
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('❌ Falta configuración de Supabase: NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY');
+      // No lanzar error de build: responder que no está autenticado
+      return NextResponse.json({
+        user: null,
+        profile: null,
+        error: 'Configuración de Supabase incompleta en el entorno',
+        isAuthenticated: false
+      }, { status: 200 });
+    }
+
     const supabase = createClient();
     const userService = new UserService();
 
@@ -65,6 +77,7 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
+    console.error('❌ Error en /api/auth/status:', error);
     return NextResponse.json({
       user: null,
       profile: null,
