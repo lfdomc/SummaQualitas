@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { UserService } from '@/lib/supabase/database';
 
 // Ensure this route is always treated as dynamic and never prerendered/cached at build time
 export const dynamic = 'force-dynamic';
@@ -22,7 +21,6 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const userService = new UserService();
 
     // Obtener la sesión actual
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -45,24 +43,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Obtener el perfil del usuario
-    try {
-      const profile = await userService.getUserProfile(session.user.id);
-      
-      return NextResponse.json({
-        user: {
-          id: session.user.id,
-          email: session.user.email,
-          email_confirmed_at: session.user.email_confirmed_at,
-          created_at: session.user.created_at,
-          updated_at: session.user.updated_at
-        },
-        profile,
-        error: null,
-        isAuthenticated: true
-      });
-    } catch (profileError) {
-      // Devolver usuario sin perfil si hay error
+    // Obtener el perfil del usuario directamente con el cliente de servidor
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (profileError) {
+      // Si falla la consulta de perfil, seguir marcando como autenticado pero sin perfil
       return NextResponse.json({
         user: {
           id: session.user.id,
@@ -76,6 +66,19 @@ export async function GET(request: NextRequest) {
         isAuthenticated: true
       });
     }
+
+    return NextResponse.json({
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        email_confirmed_at: session.user.email_confirmed_at,
+        created_at: session.user.created_at,
+        updated_at: session.user.updated_at
+      },
+      profile: profile || null,
+      error: null,
+      isAuthenticated: true
+    });
   } catch (error) {
     console.error('❌ Error en /api/auth/status:', error);
     return NextResponse.json({
