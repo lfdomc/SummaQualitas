@@ -324,35 +324,8 @@ export class AggregatedQueryService {
 
         this.supabase
           .from('expenses')
-          .select(`
-            id,
-            project_id,
-            category,
-            subcategory_direct,
-            subcategory_indirect,
-            description,
-            amount,
-            currency,
-            exchange_rate_usd,
-            expense_date,
-            supplier_id,
-            invoice_number,
-            payment_status,
-            payment_date,
-            notes,
-            receipt_url,
-            reference,
-            reference_attachment_url,
-            reference_attachment_name,
-            reference_attachment_type,
-            reference_attachment_size,
-            details,
-            created_by,
-            created_at,
-            updated_at
-          `)
+          .select('*')
           .eq('project_id', projectId)
-          .order('expense_date', { ascending: false })
           .limit(200), // Limitar a los 200 gastos más recientes
 
         this.supabase
