@@ -14,8 +14,8 @@ interface RouteParams {
 // GET - Obtener una orden de cambio específica
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const supabase = createClient(request);
-    const { id } = await params;
+    const supabase = await createClient(request);
+    const { id } = params;
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -75,8 +75,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   // PUT request received
   
   try {
-    const supabase = createClient(request);
-    const { id } = await params;
+    const supabase = await createClient(request);
+    const { id } = params;
     // PUT request for ID processed
     
     // Verificar autenticación
@@ -191,8 +191,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE - Eliminar una orden de cambio
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const supabase = createClient(request);
-    const { id } = await params;
+    const supabase = await createClient(request);
+    const { id } = params;
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();

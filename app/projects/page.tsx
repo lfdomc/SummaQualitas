@@ -27,11 +27,7 @@ import { useMobileState } from '@/hooks/useMobileState';
 import { Project, Client } from '@/types/database';
 import { ProjectStatus } from '@/lib/types';
 import { toast } from 'sonner';
-import {
-  getProjects, 
-  deleteProject, 
-  getActiveClients
-} from '@/lib/services/projectService';
+import { getActiveClients } from '@/lib/services/projectService.client';
 import ClientForm from '@/components/clients/ClientForm';
 import { ProjectService } from '@/lib/supabase/database';
 import ProjectTableSkeleton from '@/components/projects/ProjectTableSkeleton';

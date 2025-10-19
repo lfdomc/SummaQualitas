@@ -14,7 +14,7 @@ interface MonthlyExpenseUpdateData {
 // GET - Obtener gastos mensuales de equipos
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 // POST - Crear nuevo gasto mensual
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
 // PUT - Actualizar gasto mensual existente
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -300,7 +300,7 @@ export async function PUT(request: NextRequest) {
 // DELETE - Eliminar gasto mensual
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();

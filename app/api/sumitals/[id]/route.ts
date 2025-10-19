@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -42,7 +42,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -114,7 +114,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();

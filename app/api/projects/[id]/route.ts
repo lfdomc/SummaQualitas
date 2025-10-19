@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   try {
     const projectId = params.id;
     const body = await request.json();
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
 
     // Validar sesión
     const { data: { user }, error: authError } = await supabase.auth.getUser();

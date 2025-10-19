@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Create SSR supabase client using cookies/session
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Optional: verify user session
     const { data: { user }, error: userError } = await supabase.auth.getUser();

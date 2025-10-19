@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       }, { status: 200 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const userService = new UserService();
 
     // Obtener la sesión actual

@@ -74,7 +74,7 @@ const mockProjects = [
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     
     // Parámetros de paginación y filtros
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener usuario autenticado para asignar created_by
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(

@@ -14,7 +14,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { id } = params;
     
     const { data: equipment, error } = await supabase
@@ -59,7 +59,7 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { id } = params;
     const body: UpdateEquipmentData = await request.json();
     
@@ -128,7 +128,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { id } = params;
     
     // Verificar autenticación

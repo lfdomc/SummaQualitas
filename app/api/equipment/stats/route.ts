@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 // GET - Obtener estadísticas de equipos y gastos mensuales
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
@@ -198,14 +198,14 @@ export async function GET(request: NextRequest) {
           total: totalMonthlyExpense,
           byCategory: expensesByCategory,
           byProject: expensesByProject,
-          daily: dailyExpenses
-        },
-        topEquipment
+          daily: dailyExpenses,
+          topEquipment
+        }
       }
     });
     
   } catch (error) {
-    console.error('Error in equipment stats GET:', error);
+    console.error('Error in equipment stats GET endpoint:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }

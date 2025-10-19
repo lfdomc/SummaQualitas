@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 // GET - Listar todas las órdenes de cambio para debug
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();

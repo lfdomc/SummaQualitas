@@ -5,7 +5,7 @@ import { Equipment, CreateEquipmentData, UpdateEquipmentData } from '@/types/dat
 // GET - Obtener todos los equipos
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     
     // Parámetros de filtrado
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 // POST - Crear nuevo equipo
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const body: CreateEquipmentData = await request.json();
     
     // Validaciones básicas
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 // PUT - Actualizar equipo
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const body: UpdateEquipmentData & { id: string } = await request.json();
     
     if (!body.id) {
@@ -199,7 +199,7 @@ export async function PUT(request: NextRequest) {
 // DELETE - Eliminar equipo (soft delete)
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     

@@ -5,7 +5,7 @@ import { EquipmentRental, CreateEquipmentRentalData, UpdateEquipmentRentalData }
 // GET - Obtener todos los alquileres de equipos
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     
     // Parámetros de filtrado
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 // POST - Crear nuevo alquiler de equipo
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const body: CreateEquipmentRentalData = await request.json();
     
     // Validaciones básicas
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
 // PUT - Actualizar alquiler
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const body: UpdateEquipmentRentalData & { id: string } = await request.json();
     
     if (!body.id) {

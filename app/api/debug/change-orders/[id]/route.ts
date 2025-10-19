@@ -8,7 +8,7 @@ export async function GET(
   try {
     console.log('🔍 [DEBUG] Obteniendo orden de cambio:', params.id);
     
-    const supabase = createClient();
+    const supabase = await createClient();
     
     // Obtener la orden de cambio SIN autenticación para debugging
     const { data: changeOrder, error } = await supabase

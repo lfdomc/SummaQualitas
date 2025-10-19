@@ -16,8 +16,8 @@ interface ProjectUpdateData {
 // POST - Implementar una orden de cambio
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const supabase = createClient(request);
-    const { id } = await params;
+    const supabase = await createClient(request);
+    const { id } = params;
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();

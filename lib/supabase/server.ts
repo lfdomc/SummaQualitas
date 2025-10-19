@@ -4,16 +4,17 @@ import { cookies } from "next/headers";
 
 /**
  * Supabase server client para SSR, Server Components y Route Handlers.
- * Usa cookies() de next/headers de forma síncrona para evitar problemas
- * con el Edge Runtime y el análisis estático del build.
+ * Usa cookies() de next/headers de forma asíncrona (Next 15+) y asegura
+ * opciones de cookies apropiadas para producción.
  */
-export function createClient(_request?: NextRequest) {
+export async function createClient(_request?: NextRequest) {
   if (typeof window !== "undefined") {
     // No se debe usar en el cliente
     throw new Error("createClient from server.ts should not be used on the client side");
   }
 
-  const cookieStore = cookies();
+  // En Next.js 15+, cookies() puede ser asíncrono y su tipo es ReadonlyRequestCookies
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,11 +27,15 @@ export function createClient(_request?: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             try {
-              cookieStore.set(name, value, {
+              // El tipo de cookies() es ReadonlyRequestCookies en compilación,
+              // pero en Route Handlers admite mutación en tiempo de ejecución.
+              // Usamos un cast para evitar errores de tipado.
+              (cookieStore as any).set(name, value, {
                 ...options,
+                path: options?.path ?? '/',
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax'
+                sameSite: 'lax',
               });
             } catch (error) {
               console.warn(`Failed to set cookie ${name}:`, error);

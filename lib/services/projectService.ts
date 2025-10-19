@@ -5,15 +5,24 @@ import type { Client } from '@/types/database';
 import { normalizeBudgetFields, migrateProjectBudgetFields } from '@/lib/utils/budget-migration';
 
 // Helper para crear el cliente correcto según el entorno (cliente o servidor)
-function getSupabaseClient(): SupabaseClient {
-  // En SSR usar service role si está disponible
-  try {
-    // @ts-ignore - createClient puede usar service role en el servidor
+async function getSupabaseClient(): Promise<SupabaseClient> {
+  // En el navegador, usar el cliente de browser
+  if (typeof window !== 'undefined') {
     const supabase = createClient();
     return supabase as unknown as SupabaseClient;
+  }
+
+  // En el servidor, usar el cliente de server con cookies() de Next
+  try {
+    const { createClient: createServerClient } = await import('@/lib/supabase/server');
+    const supabase = await createServerClient();
+    return supabase as unknown as SupabaseClient;
   } catch (e) {
-    // Fallback al cliente regular
-    return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    // Fallback al cliente regular (anon) si hay algún problema importando el cliente de servidor
+    return createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
   }
 }
 
@@ -22,7 +31,7 @@ function getSupabaseClient(): SupabaseClient {
  */
 export async function getProjects(): Promise<Project[]> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = await getSupabaseClient();
     const { data, error } = await supabase
       .from('projects')
       .select(`
@@ -46,7 +55,7 @@ export async function getProjects(): Promise<Project[]> {
  */
 export async function getProjectById(id: string): Promise<Project | null> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = await getSupabaseClient();
     const { data, error } = await supabase
       .from('projects')
       .select(`
@@ -85,7 +94,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
  */
 export async function createProject(projectData: CreateProjectDTO): Promise<Project> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = await getSupabaseClient();
 
     // Intentar insertar directamente con los campos esperados
     const { data, error } = await supabase
@@ -135,7 +144,7 @@ export async function createProject(projectData: CreateProjectDTO): Promise<Proj
  */
 export async function updateProject(id: string, updates: UpdateProjectDTO): Promise<Project> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = await getSupabaseClient();
 
     // Si se modifican campos de presupuesto, asegurarse de mantener consistencia
     const { data: existingProject } = await supabase
@@ -192,7 +201,7 @@ export async function updateProject(id: string, updates: UpdateProjectDTO): Prom
  */
 export async function deleteProject(id: string): Promise<void> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = await getSupabaseClient();
     
     // Verificar permisos si es necesario (implementación futura)
     const { error } = await supabase
@@ -213,7 +222,7 @@ export async function deleteProject(id: string): Promise<void> {
  */
 export async function getActiveClients(): Promise<Client[]> {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = await getSupabaseClient();
     const { data, error } = await supabase
       .from('clients')
       .select('*')

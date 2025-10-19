@@ -131,7 +131,7 @@ export async function DELETE(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación del usuario
-    const supabaseServer = createServerClient(request);
+    const supabaseServer = await createServerClient(request);
     const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });

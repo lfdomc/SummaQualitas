@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { id } = params;
     
     if (!id) {
@@ -75,7 +75,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { id } = params;
     const body: UpdateEquipmentRentalData = await request.json();
     
@@ -199,7 +199,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient(request);
+    const supabase = await createClient(request);
     const { id } = params;
     
     if (!id) {

@@ -1795,4 +1795,4 @@ export const equipmentService = new EquipmentService();
 export const supplierService = new SupplierService();
 export const incomeService = new IncomeService();
 export const expenseService = new ExpenseService();
-export { getActiveClients } from '../services/projectService';
+export { getActiveClients } from '../services/projectService.client';
