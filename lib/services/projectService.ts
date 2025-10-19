@@ -106,12 +106,42 @@ export async function createProject(projectData: CreateProjectDTO): Promise<Proj
     if (error) {
       // Manejar error de columnas desconocidas
       const err: any = error;
-      const isUnknownColumn = err?.code === '42703' || (err?.message && err.message.includes('column') && err.message.includes('does not exist'));
-      
+      const isUnknownColumn = err?.code === '42703' || (err?.message && err.message.toLowerCase().includes('does not exist') && err.message.toLowerCase().includes('column'));
+
       if (isUnknownColumn) {
-        console.warn('Columnas desconocidas detectadas, aplicando migración de presupuesto...');
-        
-        // Intentar migración de presupuesto
+        // Intentar detectar el nombre de la columna y reintentar sin esa propiedad
+        const msg = String(err?.message || '').toLowerCase();
+        const match = msg.match(/column\s+"?([a-z0-9_]+)"?\s+.*does not exist/);
+        const unknownCol = match?.[1];
+
+        const cleaned: Record<string, any> = { ...projectData };
+        if (unknownCol && unknownCol in cleaned) {
+          console.warn(`Columna desconocida en projects: ${unknownCol}. Reintentando insert sin ese campo...`);
+          // Si falta presupuesto_inicial pero existe budget en la BD legacy, mapear
+          if (unknownCol === 'presupuesto_inicial' && typeof cleaned.presupuesto_inicial !== 'undefined') {
+            cleaned.budget = cleaned.presupuesto_inicial;
+          }
+          delete cleaned[unknownCol];
+
+          const { data: retryData, error: retryError } = await supabase
+            .from('projects')
+            .insert(cleaned)
+            .select('*')
+            .single();
+
+          if (!retryError && retryData) {
+            return retryData as Project;
+          }
+
+          // Si el reintento también falló, continuar con manejo estándar
+          if (retryError) {
+            console.error('Reintento de insert tras eliminar columna desconocida falló:', retryError);
+          }
+        } else {
+          console.warn('Columna desconocida detectada pero no se pudo extraer del mensaje; no se aplica limpieza automática.');
+        }
+
+        // Intentar migración de presupuesto como fallback (para columnas de presupuesto)
         const projectId = (data as any)?.id;
         if (projectId) {
           const migratedProject = await migrateProjectBudgetFields(projectId)
@@ -119,13 +149,12 @@ export async function createProject(projectData: CreateProjectDTO): Promise<Proj
               console.error('Error en migración de presupuesto:', migrationErr);
               return null;
             });
-          
           if (migratedProject) {
             return migratedProject;
           }
         }
       }
-      
+
       throw error;
     }
 
@@ -133,7 +162,7 @@ export async function createProject(projectData: CreateProjectDTO): Promise<Proj
       throw new Error('No se pudo crear el proyecto');
     }
 
-    return data;
+    return data as Project;
   } catch (error) {
     throw error;
   }

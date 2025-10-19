@@ -339,11 +339,20 @@ export async function POST(request: NextRequest) {
     ) {
       status = 400;
     }
-    console.error('Error en POST /api/projects:', message);
+    // Log detallado del error para diagnóstico
+    const e: any = error;
+    console.error('Error en POST /api/projects:', {
+      message,
+      code: e?.code,
+      details: e?.details,
+      hint: e?.hint,
+      name: e?.name
+    });
     return NextResponse.json(
       {
         success: false,
-        error: message
+        error: message,
+        ...(process.env.NODE_ENV !== 'production' ? { code: e?.code, details: e?.details, hint: e?.hint } : {})
       },
       { status }
     );
