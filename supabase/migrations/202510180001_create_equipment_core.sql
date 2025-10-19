@@ -19,13 +19,13 @@ CREATE TABLE IF NOT EXISTS public.projects (
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read of projects (for listing and filters)
-CREATE POLICY IF NOT EXISTS "Public can read projects" ON public.projects
+CREATE POLICY "Public can read projects" ON public.projects
   FOR SELECT USING (true);
 
 -- Allow authenticated users to insert/update projects
-CREATE POLICY IF NOT EXISTS "Authenticated can insert projects" ON public.projects
+CREATE POLICY "Authenticated can insert projects" ON public.projects
   FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Authenticated can update projects" ON public.projects
+CREATE POLICY "Authenticated can update projects" ON public.projects
   FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
 -- Alias view for singular table name used by some endpoints
@@ -62,13 +62,13 @@ CREATE INDEX IF NOT EXISTS idx_equipment_is_active ON public.equipment(is_active
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read of equipment
-CREATE POLICY IF NOT EXISTS "Public can read equipment" ON public.equipment
+CREATE POLICY "Public can read equipment" ON public.equipment
   FOR SELECT USING (true);
 
 -- Allow authenticated users to insert/update equipment
-CREATE POLICY IF NOT EXISTS "Authenticated can insert equipment" ON public.equipment
+CREATE POLICY "Authenticated can insert equipment" ON public.equipment
   FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Authenticated can update equipment" ON public.equipment
+CREATE POLICY "Authenticated can update equipment" ON public.equipment
   FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
 -- EQUIPMENT_RENTALS table
@@ -100,13 +100,13 @@ CREATE INDEX IF NOT EXISTS idx_equipment_rentals_created_at ON public.equipment_
 ALTER TABLE public.equipment_rentals ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read of rentals (used by public /equipment page)
-CREATE POLICY IF NOT EXISTS "Public can read equipment rentals" ON public.equipment_rentals
+CREATE POLICY "Public can read equipment rentals" ON public.equipment_rentals
   FOR SELECT USING (true);
 
 -- Allow authenticated users to create/update/cancel rentals
-CREATE POLICY IF NOT EXISTS "Authenticated can insert equipment rentals" ON public.equipment_rentals
+CREATE POLICY "Authenticated can insert equipment rentals" ON public.equipment_rentals
   FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Authenticated can update equipment rentals" ON public.equipment_rentals
+CREATE POLICY "Authenticated can update equipment rentals" ON public.equipment_rentals
   FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
 -- USERS profile table used by useAuth
@@ -124,13 +124,13 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Public can read users" ON public.users
+CREATE POLICY "Public can read users" ON public.users
   FOR SELECT USING (true);
 
-CREATE POLICY IF NOT EXISTS "Authenticated can insert users" ON public.users
+CREATE POLICY "Authenticated can insert users" ON public.users
   FOR INSERT TO authenticated WITH CHECK (id = auth.uid());
 
-CREATE POLICY IF NOT EXISTS "Authenticated can update own user" ON public.users
+CREATE POLICY "Authenticated can update own user" ON public.users
   FOR UPDATE TO authenticated USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 
 -- Seed minimal data if not present
