@@ -13,69 +13,81 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // With Fluid compute, don't put this client in a global environment
-  // variable. Always create a new one on each request.
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
+  try {
+    // With Fluid compute, don't put this client in a global environment
+    // variable. Always create a new one on each request.
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value),
+            );
+            supabaseResponse = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options),
+            );
+          },
         },
       },
-    },
-  );
+    );
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+    // Do not run code between createServerClient and
+    // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
+    // issues with users being randomly logged out.
 
-  // IMPORTANT: If you remove getUser() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  const { data: { user }, error } = await supabase.auth.getUser();
+    // IMPORTANT: If you remove getUser() and you use server-side rendering
+    // with the Supabase client, your users may be randomly logged out.
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-  // Define public routes that don't require authentication
-  const publicRoutes = [
-    "/",
-    "/proyectos",
-    "/nosotros",
-    "/servicios",
-    "/contacto",
-    "/cotizacion"
-  ];
+    // Define public routes that don't require authentication
+    const publicRoutes = [
+      "/",
+      "/proyectos",
+      "/nosotros",
+      "/servicios",
+      "/contacto",
+      "/cotizacion"
+    ];
 
-  const isPublicRoute = publicRoutes.some(route => 
-    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + "/")
-  );
+    const isPublicRoute = publicRoutes.some(route => 
+      request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + "/")
+    );
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login") || 
-                     request.nextUrl.pathname.startsWith("/auth");
+    const isAuthRoute = request.nextUrl.pathname.startsWith("/login") || 
+                       request.nextUrl.pathname.startsWith("/auth");
 
-  // Check if authenticated user is trying to access auth pages
-  if (user && isAuthRoute) {
-    // User is authenticated but trying to access auth pages, redirect to dashboard
-    const url = request.nextUrl.clone();
-    url.pathname = "/projects";
-    return NextResponse.redirect(url);
-  }
+    // Check if authenticated user is trying to access auth pages
+    if (user && isAuthRoute) {
+      // User is authenticated but trying to access auth pages, redirect to dashboard
+      const url = request.nextUrl.clone();
+      url.pathname = "/projects";
+      return NextResponse.redirect(url);
+    }
 
-  if (!user && !isPublicRoute && !isAuthRoute) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    if (!user && !isPublicRoute && !isAuthRoute) {
+      // no user, potentially respond by redirecting the user to the login page
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
+  } catch (err: any) {
+    // Fail-safe: nunca tumbar el sitio por errores del middleware.
+    console.error('Supabase middleware error: fallback to NextResponse.next()', {
+      message: err?.message,
+      name: err?.name,
+      stack: err?.stack,
+      path: request.nextUrl.pathname,
+      hasEnvVars,
+    });
+    // Continuar normalmente sin forzar redirects si Supabase falla
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
