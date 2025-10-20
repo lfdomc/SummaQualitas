@@ -96,73 +96,111 @@ export async function createProject(projectData: CreateProjectDTO): Promise<Proj
   try {
     const supabase = await getSupabaseClient();
 
-    // Intentar insertar directamente con los campos esperados
-    const { data, error } = await supabase
+    // Helpers para manejo de errores de columnas desconocidas y sanitización de payload
+    const isUnknownColumnError = (err: any): boolean => {
+      const msg = String(err?.message || '').toLowerCase();
+      return err?.code === '42703' || (msg.includes('column') && msg.includes('does not exist'));
+    };
+
+    const extractUnknownColumn = (err: any): string | null => {
+      const msg = String(err?.message || '');
+      let m = msg.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+.*does\s+not\s+exist/i);
+      if (m && m[1]) return m[1];
+      m = msg.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation/i);
+      if (m && m[1]) return m[1];
+      m = msg.match(/column\s+([a-zA-Z0-9_]+)\s+does\s+not\s+exist/i);
+      if (m && m[1]) return m[1];
+      return null;
+    };
+
+    const sanitizeMinimalPayload = (src: Record<string, any>): Record<string, any> => {
+      const minimal: Record<string, any> = {};
+      minimal.name = src.name;
+      minimal.client_id = src.client_id;
+      if (src.status) minimal.status = src.status;
+      if (typeof src.description !== 'undefined') minimal.description = src.description;
+      if (typeof src.location !== 'undefined') minimal.location = src.location;
+      if (src.created_by) minimal.created_by = src.created_by;
+      // Intentar conservar presupuesto si existe en algún formato
+      if (typeof src.budget !== 'undefined') minimal.budget = src.budget;
+      else if (typeof src.presupuesto_inicial !== 'undefined') minimal.budget = src.presupuesto_inicial;
+      return minimal;
+    };
+
+    const sanitizeStrictPayload = (src: Record<string, any>): Record<string, any> => {
+      const strict: Record<string, any> = {};
+      strict.name = src.name;
+      strict.client_id = src.client_id;
+      return strict;
+    };
+
+    // Intento inicial y reintentos eliminando columnas desconocidas de forma iterativa
+    let payload: Record<string, any> = { ...projectData };
+    const maxUnknownRemovals = 8;
+
+    for (let i = 0; i <= maxUnknownRemovals; i++) {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert(payload)
+        .select('*')
+        .single();
+
+      if (!error && data) {
+        return data as Project;
+      }
+
+      const err: any = error;
+      if (err && isUnknownColumnError(err)) {
+        const col = extractUnknownColumn(err);
+        if (!col) {
+          console.warn('Error 42703 sin nombre de columna; aplicando payload mínimo...');
+          break; // salimos del bucle para probar con payload mínimo
+        }
+        console.warn(`Columna desconocida en projects: ${col}. Eliminando y reintentando...`);
+        if (col === 'presupuesto_inicial' && typeof payload.presupuesto_inicial !== 'undefined') {
+          // Mapear al campo legacy si existe
+          payload.budget = payload.presupuesto_inicial;
+        }
+        delete payload[col];
+        continue; // reintentar con el payload limpiado
+      } else {
+        if (error) throw error;
+        throw new Error('No se pudo crear el proyecto');
+      }
+    }
+
+    // Fallback 1: payload mínimo (conservar campos esenciales)
+    const minimalPayload = sanitizeMinimalPayload(payload);
+    const { data: dataMin, error: errorMin } = await supabase
       .from('projects')
-      .insert(projectData)
+      .insert(minimalPayload)
       .select('*')
       .single();
 
-    if (error) {
-      // Manejar error de columnas desconocidas
-      const err: any = error;
-      const isUnknownColumn = err?.code === '42703' || (err?.message && err.message.toLowerCase().includes('does not exist') && err.message.toLowerCase().includes('column'));
+    if (!errorMin && dataMin) {
+      return dataMin as Project;
+    }
 
-      if (isUnknownColumn) {
-        // Intentar detectar el nombre de la columna y reintentar sin esa propiedad
-        const msg = String(err?.message || '').toLowerCase();
-        const match = msg.match(/column\s+"?([a-z0-9_]+)"?\s+.*does not exist/);
-        const unknownCol = match?.[1];
+    // Fallback 2: payload estricto (solo name y client_id)
+    if (errorMin && isUnknownColumnError(errorMin)) {
+      console.warn('Persisten columnas desconocidas con payload mínimo; probando payload estricto (name, client_id)');
+      const strictPayload = sanitizeStrictPayload(payload);
+      const { data: dataStrict, error: errorStrict } = await supabase
+        .from('projects')
+        .insert(strictPayload)
+        .select('*')
+        .single();
 
-        const cleaned: Record<string, any> = { ...projectData };
-        if (unknownCol && unknownCol in cleaned) {
-          console.warn(`Columna desconocida en projects: ${unknownCol}. Reintentando insert sin ese campo...`);
-          // Si falta presupuesto_inicial pero existe budget en la BD legacy, mapear
-          if (unknownCol === 'presupuesto_inicial' && typeof cleaned.presupuesto_inicial !== 'undefined') {
-            cleaned.budget = cleaned.presupuesto_inicial;
-          }
-          delete cleaned[unknownCol];
-
-          const { data: retryData, error: retryError } = await supabase
-            .from('projects')
-            .insert(cleaned)
-            .select('*')
-            .single();
-
-          if (!retryError && retryData) {
-            return retryData as Project;
-          }
-
-          // Si el reintento también falló, continuar con manejo estándar
-          if (retryError) {
-            console.error('Reintento de insert tras eliminar columna desconocida falló:', retryError);
-          }
-        } else {
-          console.warn('Columna desconocida detectada pero no se pudo extraer del mensaje; no se aplica limpieza automática.');
-        }
-
-        // Intentar migración de presupuesto como fallback (para columnas de presupuesto)
-        const projectId = (data as any)?.id;
-        if (projectId) {
-          const migratedProject = await migrateProjectBudgetFields(projectId)
-            .catch(migrationErr => {
-              console.error('Error en migración de presupuesto:', migrationErr);
-              return null;
-            });
-          if (migratedProject) {
-            return migratedProject;
-          }
-        }
+      if (!errorStrict && dataStrict) {
+        return dataStrict as Project;
       }
 
-      throw error;
+      if (errorStrict) throw errorStrict;
     }
 
-    if (!data) {
-      throw new Error('No se pudo crear el proyecto');
-    }
+    if (errorMin) throw errorMin;
 
-    return data as Project;
+    throw new Error('No se pudo crear el proyecto');
   } catch (error) {
     throw error;
   }

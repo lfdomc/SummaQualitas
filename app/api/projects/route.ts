@@ -207,6 +207,11 @@ export async function GET(request: NextRequest) {
  * Crea un nuevo proyecto
  */
 export async function POST(request: NextRequest) {
+  // Permitir modo debug en producción con ?debug=1 o ?debug=true
+  const { searchParams } = new URL(request.url);
+  const debugParam = searchParams.get('debug');
+  const isDebug = debugParam === '1' || debugParam === 'true';
+
   try {
     const body = await request.json();
 
@@ -352,7 +357,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: message,
-        ...(process.env.NODE_ENV !== 'production' ? { code: e?.code, details: e?.details, hint: e?.hint } : {})
+        ...(isDebug || process.env.NODE_ENV !== 'production' ? { code: e?.code, details: e?.details, hint: e?.hint } : {})
       },
       { status }
     );
