@@ -282,6 +282,7 @@ export async function POST(request: NextRequest) {
       // Mapear presupuesto_inicial a presupuesto_original (campo requerido en DB)
       presupuesto_original: initialBudget,
       presupuesto_inicial: initialBudget, // Mantener por compatibilidad
+      budget: initialBudget, // Fijar budget para esquemas locales con NOT NULL
       costos_directos: body.costos_directos || 0,
       costos_indirectos: body.costos_indirectos || 0,
       mano_obra: body.mano_obra || 0,
