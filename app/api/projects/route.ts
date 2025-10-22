@@ -279,7 +279,9 @@ export async function POST(request: NextRequest) {
       // Mapear estado a español si viene en inglés
       status: mapProjectStatus(body.status),
       manager_id: body.manager_id,
-      presupuesto_inicial: body.presupuesto_inicial || 0,
+      // Mapear presupuesto_inicial a presupuesto_original (campo requerido en DB)
+      presupuesto_original: initialBudget,
+      presupuesto_inicial: initialBudget, // Mantener por compatibilidad
       costos_directos: body.costos_directos || 0,
       costos_indirectos: body.costos_indirectos || 0,
       mano_obra: body.mano_obra || 0,
