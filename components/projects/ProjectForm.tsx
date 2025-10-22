@@ -238,7 +238,7 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
           budget: data.presupuesto_inicial || 0,
         } as CreateProjectDTO;
         
-        const response = await fetch('/api/projects', {
+        const response = await fetch('/api/projects?debug=1', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
