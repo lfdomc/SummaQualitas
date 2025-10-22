@@ -307,11 +307,20 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Error interno del servidor';
+    const e: any = error;
+    const rawMessage = e?.message || (error instanceof Error ? error.message : '') || '';
+    const message = rawMessage || 'Error interno del servidor';
+    // Intentar extraer columna en violación NOT NULL: "null value in column \"<col>\" violates not-null constraint"
+    let notNullColumn: string | undefined = undefined;
+    const m = rawMessage.match(/null value in column\s+\"([a-zA-Z0-9_]+)\"\s+violates not-null constraint/i);
+    if (m && m[1]) notNullColumn = m[1];
+
     // Mapear a códigos HTTP más apropiados
     let status = 500;
     const lower = message.toLowerCase();
-    if (lower.includes('no autorizado')) {
+    if (e?.code === '23502') {
+      status = 400; // NOT NULL violation -> Bad Request
+    } else if (lower.includes('no autorizado')) {
       status = 401;
     } else if (
       lower.includes('no tienes permisos') ||
@@ -347,19 +356,19 @@ export async function POST(request: NextRequest) {
       status = 400;
     }
     // Log detallado del error para diagnóstico
-    const e: any = error;
     console.error('Error en POST /api/projects:', {
       message,
       code: e?.code,
       details: e?.details,
       hint: e?.hint,
-      name: e?.name
+      name: e?.name,
+      column: notNullColumn
     });
     return NextResponse.json(
       {
         success: false,
         error: message,
-        ...(isDebug || process.env.NODE_ENV !== 'production' ? { code: e?.code, details: e?.details, hint: e?.hint } : {})
+        ...(isDebug || process.env.NODE_ENV !== 'production' ? { code: e?.code, details: e?.details, hint: e?.hint, message: rawMessage, column: notNullColumn } : {})
       },
       { status }
     );
