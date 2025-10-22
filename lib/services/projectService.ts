@@ -164,6 +164,30 @@ export async function createProject(projectData: CreateProjectDTO): Promise<Proj
         delete payload[col];
         continue; // reintentar con el payload limpiado
       } else {
+        // Manejo específico de violación NOT NULL (23502)
+        const rawMsg = String(err?.message || '');
+        const mNotNull = rawMsg.match(/null value in column\s+"?([a-zA-Z0-9_]+)"?\s+violates not-null constraint/i);
+        const notNullCol = mNotNull?.[1];
+        if (err?.code === '23502' && notNullCol) {
+          console.warn(`Violación NOT NULL en columna ${notNullCol}; ajustando payload y reintentando...`);
+          if (notNullCol === 'budget') {
+            // Asegurar budget desde presupuesto_inicial o budget existente
+            const initial = typeof payload.presupuesto_inicial !== 'undefined' ? Number(payload.presupuesto_inicial) : undefined;
+            const existing = typeof payload.budget !== 'undefined' ? Number(payload.budget) : undefined;
+            const fixed = Number.isFinite(initial) && initial > 0 ? initial : (Number.isFinite(existing) ? existing : 0);
+            payload.budget = fixed;
+            continue;
+          }
+          if (notNullCol === 'presupuesto_original') {
+            const initial = typeof payload.presupuesto_inicial !== 'undefined' ? Number(payload.presupuesto_inicial) : undefined;
+            const existing = typeof payload.presupuesto_original !== 'undefined' ? Number(payload.presupuesto_original) : undefined;
+            const fixed = Number.isFinite(initial) && initial > 0 ? initial : (Number.isFinite(existing) ? existing : 0);
+            payload.presupuesto_original = fixed;
+            continue;
+          }
+          // Si no podemos ajustar, romper para probar con payload mínimo
+          break;
+        }
         if (error) throw error;
         throw new Error('No se pudo crear el proyecto');
       }
