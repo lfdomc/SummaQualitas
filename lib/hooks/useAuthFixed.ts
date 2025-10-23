@@ -64,28 +64,27 @@ export function useAuthFixed(): UseAuthReturn {
         return data as UserProfile;
       }
 
-      // Si no existe, intentar crearlo automáticamente (RLS permite insertar cuando id = auth.uid())
-      const defaultName = (user.user_metadata?.name as string) || (user.email?.split('@')[0] ?? 'Usuario');
-      const { data: created, error: insertError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          email: user.email!,
-          name: defaultName,
-          role: 'operativo',
-          company: (user.user_metadata?.company as string) || null,
-          avatar_url: (user.user_metadata?.avatar_url as string) || null,
-          is_active: true,
-        })
-        .select('id, email, name, role, company, avatar_url, is_active, created_at, updated_at')
-        .single();
-
-      if (insertError) {
-        console.warn('⚠️ [useAuthFixed] No se pudo crear perfil automáticamente:', insertError.message);
+      // Si no existe, pedir al servidor que lo cree de forma segura (service role)
+      const res = await fetch('/api/auth/ensure-profile', { method: 'POST' });
+      if (!res.ok) {
+        const msg = await res.text().catch(() => res.statusText);
+        console.warn('⚠️ [useAuthFixed] No se pudo crear perfil automáticamente vía servidor:', msg);
         return null;
       }
 
-      return created as UserProfile;
+      // Re-intentar obtener el perfil
+      const { data: createdProfile, error: refetchError } = await supabase
+        .from('users')
+        .select('id, email, name, role, company, avatar_url, is_active, created_at, updated_at')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (refetchError) {
+        console.warn('⚠️ [useAuthFixed] Error tras crear perfil (re-fetch):', refetchError.message);
+        return null;
+      }
+
+      return (createdProfile as UserProfile) ?? null;
     } catch (err) {
       console.warn('⚠️ [useAuthFixed] Error inesperado obteniendo/creando perfil:', err);
       return null;
