@@ -109,10 +109,12 @@ export default function ProjectsPage() {
           ...(filters.client_id && { client_id: filters.client_id }),
           ...(filters.search && { search: filters.search })
         });
+        // Cache-buster para evitar respuestas en caché del navegador/CDN
+        params.set('_ts', Date.now().toString());
         
         const url = `/api/projects/admin?${params}`;
         
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'no-store' });
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

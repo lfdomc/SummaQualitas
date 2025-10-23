@@ -13,10 +13,17 @@ function NewProjectPage() {
 
   const handleSuccess = (project: Project) => {
     router.push('/projects');
+    // Forzar revalidación tras navegar, para asegurar datos frescos
+    setTimeout(() => {
+      try { router.refresh(); } catch {}
+    }, 200);
   };
 
   const handleCancel = () => {
      router.push('/projects');
+     setTimeout(() => {
+       try { router.refresh(); } catch {}
+     }, 200);
    };
 
   return (
