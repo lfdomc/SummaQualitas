@@ -45,23 +45,49 @@ export function useAuthFixed(): UseAuthReturn {
 
   const supabase = useMemo(() => createClient(), []);
 
-  // Función para obtener el perfil del usuario
-  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  // Función para obtener/crear el perfil del usuario
+  const fetchUserProfile = async (user: User): Promise<UserProfile | null> => {
     try {
+      // Seleccionar solo columnas que existen en public.users
       const { data, error } = await supabase
         .from('users')
-        .select('id, email, name, role, company, avatar_url, is_active, created_at, updated_at, bio, address, department')
-        .eq('id', userId)
-        .single();
+        .select('id, email, name, role, company, avatar_url, is_active, created_at, updated_at')
+        .eq('id', user.id)
+        .maybeSingle();
 
       if (error) {
         console.warn('⚠️ [useAuthFixed] Error obteniendo perfil:', error.message);
+      }
+
+      // Si el perfil existe, devolverlo
+      if (data) {
+        return data as UserProfile;
+      }
+
+      // Si no existe, intentar crearlo automáticamente (RLS permite insertar cuando id = auth.uid())
+      const defaultName = (user.user_metadata?.name as string) || (user.email?.split('@')[0] ?? 'Usuario');
+      const { data: created, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: user.id,
+          email: user.email!,
+          name: defaultName,
+          role: 'operativo',
+          company: (user.user_metadata?.company as string) || null,
+          avatar_url: (user.user_metadata?.avatar_url as string) || null,
+          is_active: true,
+        })
+        .select('id, email, name, role, company, avatar_url, is_active, created_at, updated_at')
+        .single();
+
+      if (insertError) {
+        console.warn('⚠️ [useAuthFixed] No se pudo crear perfil automáticamente:', insertError.message);
         return null;
       }
 
-      return data as UserProfile;
+      return created as UserProfile;
     } catch (err) {
-      console.warn('⚠️ [useAuthFixed] Error inesperado obteniendo perfil:', err);
+      console.warn('⚠️ [useAuthFixed] Error inesperado obteniendo/creando perfil:', err);
       return null;
     }
   };
@@ -92,8 +118,8 @@ export function useAuthFixed(): UseAuthReturn {
         return;
       }
 
-      // Obtener perfil del usuario
-      const profile = await fetchUserProfile(session.user.id);
+      // Obtener o crear perfil del usuario
+      const profile = await fetchUserProfile(session.user);
 
       setAuthState({
         user: session.user,
