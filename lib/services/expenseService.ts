@@ -452,7 +452,7 @@ export class ExpenseService {
         const count = parseInt(row.expense_count) || 0;
         
         // Conversión aproximada a USD (se puede mejorar con tipo de cambio real)
-        const amountUSD = row.currency === 'USD' ? amount : amount / 600;
+        const amountUSD = row.currency === 'USD' ? amount : amount / 500;
         grandTotalUSD += amountUSD;
 
         if (!categoryMap.has(category)) {
@@ -527,7 +527,7 @@ export class ExpenseService {
         const count = parseInt(row.expense_count) || 0;
         
         // Conversión aproximada a USD (se puede mejorar con tipo de cambio real)
-        const amountUSD = row.currency === 'USD' ? amount : amount / 600;
+        const amountUSD = row.currency === 'USD' ? amount : amount / 500;
         grandTotalUSD += amountUSD;
 
         if (!projectMap.has(projectId)) {

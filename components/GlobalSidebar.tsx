@@ -82,19 +82,19 @@ const navigationGroups: NavigationGroup[] = [
         title: 'Proyectos',
         href: '/projects',
         icon: FolderOpen,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Órdenes de Cambio',
         href: '/change-orders',
         icon: FileEdit,
-        roles: ['gerencia', 'administrativo'],
+        roles: ['gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Análisis y KPIs',
         href: '/analytics',
         icon: BarChart3,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
     ],
   },
@@ -105,31 +105,31 @@ const navigationGroups: NavigationGroup[] = [
         title: 'Ingresos',
         href: '/incomes',
         icon: Receipt,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Gastos',
         href: '/expenses',
         icon: DollarSign,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Proveedores',
         href: '/suppliers',
         icon: Truck,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Equipos',
         href: '/equipment',
         icon: Wrench,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Sumitals',
         href: '/sumitals',
         icon: Package,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
     ],
   },
@@ -140,13 +140,13 @@ const navigationGroups: NavigationGroup[] = [
         title: 'Generador de Reportes',
         href: '/reports',
         icon: FileText,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Historial de Reportes',
         href: '/reports/history',
         icon: PieChart,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
     ],
   },
@@ -157,13 +157,13 @@ const navigationGroups: NavigationGroup[] = [
         title: 'Centro de Alertas',
         href: '/alerts',
         icon: Bell,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
       {
         title: 'Configuración',
         href: '/settings',
         icon: Settings,
-        roles: ['cliente', 'gerencia', 'administrativo'],
+        roles: ['cliente', 'gerencia', 'administrativo', 'operativo'],
       },
     ],
   },
@@ -270,7 +270,8 @@ function SidebarContentWithAutoClose({
                 <span className="font-medium">{profile?.name || 'Usuario'}</span>
                 <span className="text-xs text-muted-foreground">
                   {profile?.role === 'gerencia' ? 'Gerencia' :
-           profile?.role === 'administrativo' ? 'Administrativo' : 'Cliente'}
+                   profile?.role === 'administrativo' ? 'Administrativo' :
+                   profile?.role === 'operativo' ? 'Operativo' : 'Cliente'}
                 </span>
               </div>
             </div>

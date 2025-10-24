@@ -28,10 +28,11 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 interface ProjectKPIsProps {
   project: Project | null;
+  options?: { from?: string; to?: string; usdRate?: number };
 }
 
-export default function ProjectKPIs({ project }: ProjectKPIsProps) {
-  const { kpis, evmData, chartData, loading, error } = useAnalyticsData(project);
+export default function ProjectKPIs({ project, options }: ProjectKPIsProps) {
+  const { kpis, evmData, chartData, loading, error } = useAnalyticsData(project, options);
 
   const getPerformanceStatus = useCallback((value: number, threshold: number = 1) => {
     if (value >= threshold) return { status: 'good', color: 'text-green-600', icon: TrendingUp };
@@ -61,6 +62,9 @@ export default function ProjectKPIs({ project }: ProjectKPIsProps) {
     evmData ? getPerformanceStatus(evmData.schedulePerformanceIndex) : { status: 'poor', color: 'text-gray-400', icon: Clock }
   , [evmData, getPerformanceStatus]);
 
+  // Usar un componente dinámico seguro para el ícono de CPI
+  const CpiIcon = cpiStatus.icon;
+
   if (loading) {
     return <AnalyticsLoader />;
   }
@@ -86,7 +90,7 @@ export default function ProjectKPIs({ project }: ProjectKPIsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">CPI (Índice de Rendimiento de Costos)</CardTitle>
-            <cpiStatus.icon className={`h-4 w-4 ${cpiStatus.color}`} />
+            <CpiIcon className={`h-4 w-4 ${cpiStatus.color}`} />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{evmData.costPerformanceIndex.toFixed(2)}</div>
@@ -230,6 +234,22 @@ export default function ProjectKPIs({ project }: ProjectKPIsProps) {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              <div className="mt-4 text-sm text-muted-foreground space-y-2">
+                 <p className="font-medium">Cómo leer este gráfico:</p>
+                 <ul className="list-disc pl-5 space-y-1">
+                   <li><span className="font-semibold">PV (Valor Planeado):</span> referencia de lo planificado por mes.</li>
+                   <li><span className="font-semibold">EV (Valor Ganado):</span> valor del avance real del proyecto por mes.</li>
+                   <li><span className="font-semibold">AC (Costo Real):</span> gasto efectivamente incurrido por mes.</li>
+                 </ul>
+                 <p className="font-medium">Interpretación rápida:</p>
+                 <ul className="list-disc pl-5 space-y-1">
+                   <li>EV ≈ PV: avance según cronograma.</li>
+                   <li>EV &gt; PV: adelanto; EV &lt; PV: retraso.</li>
+                   <li>AC &lt; EV: bajo costo; AC &gt; EV: sobrecosto.</li>
+                   <li>CPI = EV/AC, SPI = EV/PV (ver tarjetas superiores).</li>
+                 </ul>
+                 <p>Montos en CRC. Eje X: Mes Año.</p>
+               </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
-const ROLE_VALUES = ['gerencia', 'administrativo', 'cliente'] as const;
+const ROLE_VALUES = ['gerencia', 'administrativo', 'cliente', 'operativo'] as const;
 
 const registerSchema = z.object({
   email: z
@@ -106,6 +106,8 @@ export function RegisterForm({
         return 'Administrativo';
       case 'cliente':
         return 'Cliente';
+      case 'operativo':
+        return 'Operativo';
       default:
         return role;
     }
@@ -119,6 +121,8 @@ export function RegisterForm({
         return 'Registrar gastos, ingresos, actualizar avances, generar reportes';
       case 'cliente':
         return 'Ver avance de proyectos, pagos realizados y reportes autorizados';
+      case 'operativo':
+        return 'Acceso limitado: registrar avances de obra y tareas operativas';
       default:
         return '';
     }

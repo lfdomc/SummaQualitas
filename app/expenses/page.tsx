@@ -538,9 +538,12 @@ export default function ExpensesPage() {
 
   const projectSummary: ProjectSummary[] = projects.map(project => {
     const projectExpenses = filteredExpenses.filter(expense => expense.project_id === project.id);
-    const total = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const total = projectExpenses.reduce((sum, expense) => {
+      const exchangeRate = expense.exchange_rate_usd || 500;
+      return sum + (expense.currency === 'CRC' ? expense.amount : expense.amount * exchangeRate);
+    }, 0);
     const totalUSD = Math.round(projectExpenses.reduce((sum, expense) => {
-      return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 600));
+      return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 500));
     }, 0) * 100) / 100;
     
     // Calcular porcentaje respecto al presupuesto del proyecto
@@ -557,10 +560,18 @@ export default function ExpensesPage() {
     };
   }).filter(summary => summary.count > 0).sort((a, b) => b.total - a.total);
 
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => {
+    const exchangeRate = expense.exchange_rate_usd || 500;
+    return sum + (expense.currency === 'CRC' ? expense.amount : expense.amount * exchangeRate);
+  }, 0);
   const totalExpensesUSD = Math.round(filteredExpenses.reduce((sum, expense) => {
-    return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 600));
+    return sum + (expense.currency === 'USD' ? expense.amount : expense.amount / (expense.exchange_rate_usd || 500));
   }, 0) * 100) / 100;
+  const effectiveExchangeRate = totalExpensesUSD > 0 
+     ? (totalExpenses / totalExpensesUSD)
+     : 500;
+
+
 
   // Función optimizada para calcular totales por categoría
   const calculateCategoryTotals = (expenses: Expense[]) => {
@@ -579,7 +590,7 @@ export default function ExpensesPage() {
       if (totals[category]) {
         totals[category].count++;
         
-        const exchangeRate = expense.exchange_rate_usd || 600;
+        const exchangeRate = expense.exchange_rate_usd || 500;
         
         if (expense.currency === 'USD') {
           totals[category].total_usd += expense.amount;
@@ -1447,8 +1458,8 @@ export default function ExpensesPage() {
               <div className="text-base sm:text-lg font-semibold text-green-600">${totalExpensesUSD.toLocaleString()}</div>
             </div>
             <p className="text-xs text-muted-foreground">
-              <span className="sm:hidden">{filteredExpenses.length} gastos</span>
-              <span className="hidden sm:inline">{filteredExpenses.length} expenses registered</span>
+              <span className="sm:hidden">TC efectivo (sobre totales): ₡{effectiveExchangeRate.toLocaleString('es-CR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} por $1 • {filteredExpenses.length} gastos</span>
+              <span className="hidden sm:inline">Effective FX (from totals): ₡{effectiveExchangeRate.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} per $1 • {filteredExpenses.length} expenses registered</span>
             </p>
           </CardContent>
         </Card>
@@ -1740,14 +1751,14 @@ export default function ExpensesPage() {
                               <>
                                 <div className="text-green-600 font-medium">${expense.amount.toLocaleString()}</div>
                                 <div className="text-xs text-gray-500">
-                                  ₡{(expense.amount * (expense.exchange_rate_usd || 600)).toLocaleString()}
+                                  ₡{(expense.amount * (expense.exchange_rate_usd || 500)).toLocaleString()}
                                 </div>
                               </>
                             ) : (
                               <>
                                 <div className="font-medium">₡{expense.amount.toLocaleString()}</div>
                                 <div className="text-xs text-green-600">
-                                  ${(expense.amount / (expense.exchange_rate_usd || 600)).toLocaleString()}
+                                  ${(expense.amount / (expense.exchange_rate_usd || 500)).toLocaleString()}
                                 </div>
                               </>
                             )}
@@ -1840,14 +1851,14 @@ export default function ExpensesPage() {
                             <>
                               <div className="text-green-600">${expense.amount.toLocaleString()}</div>
                               <div className="text-sm text-gray-500">
-                                ₡{(expense.amount * (expense.exchange_rate_usd || 600)).toLocaleString()}
+                                ₡{(expense.amount * (expense.exchange_rate_usd || 500)).toLocaleString()}
                               </div>
                             </>
                           ) : (
                             <>
                               <div>₡{expense.amount.toLocaleString()}</div>
                               <div className="text-sm text-green-600">
-                                ${(expense.amount / (expense.exchange_rate_usd || 600)).toLocaleString()}
+                                ${(expense.amount / (expense.exchange_rate_usd || 500)).toLocaleString()}
                               </div>
                             </>
                           )}

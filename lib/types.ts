@@ -7,10 +7,11 @@ import type { Expense } from './types/expense';
 export enum UserRole {
   GERENCIA = 'gerencia',
   ADMINISTRATIVO = 'administrativo',
-  CLIENTE = 'cliente'
+  CLIENTE = 'cliente',
+  OPERATIVO = 'operativo'
 }
 
-export type UserRoleType = 'gerencia' | 'administrativo' | 'cliente';
+export type UserRoleType = 'gerencia' | 'administrativo' | 'cliente' | 'operativo';
 // Tipos alineados con el esquema SQL de la base de datos
 export type ProjectStatus = 'planificacion' | 'en_progreso' | 'pausado' | 'completado' | 'cancelado';
 

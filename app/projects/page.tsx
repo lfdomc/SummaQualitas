@@ -369,7 +369,7 @@ export default function ProjectsPage() {
                   {filteredProjects.map((project) => {
                     const client = project.client || clients.find(c => c.id === project.client_id);
                     const totalExpenses = (project as any)?.actualExpenses ?? (project as any)?.actual_expenses ?? 0;
-                    const budgetValue = project.presupuesto_final ?? project.presupuesto_inicial ?? project.budget;
+                    const budgetValue = Number((project as any)?.presupuesto_final || (project as any)?.presupuesto_inicial || (project as any)?.budget || 0);
                     const progressPercentage = budgetValue && budgetValue > 0
                       ? Math.min(((totalExpenses || 0) / budgetValue) * 100, 100)
                       : 0;
@@ -505,7 +505,7 @@ export default function ProjectsPage() {
                       {filteredProjects.map((project) => {
                         const client = project.client || clients.find(c => c.id === project.client_id);
                         const totalExpenses = (project as any)?.actualExpenses ?? (project as any)?.actual_expenses ?? 0;
-                        const budgetValue = project.presupuesto_final ?? project.presupuesto_inicial ?? project.budget;
+                        const budgetValue = Number((project as any)?.presupuesto_final || (project as any)?.presupuesto_inicial || (project as any)?.budget || 0);
                         const progressPercentage = budgetValue && budgetValue > 0
               ? Math.min(((totalExpenses || 0) / budgetValue) * 100, 100)
               : 0;

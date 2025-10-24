@@ -129,12 +129,12 @@ export class AggregatedQueryService {
       // Conversión a USD optimizada
       const totalIncomesUSD = incomes.reduce((sum, income) => {
         const amount = income.amount || 0;
-        return sum + (income.currency === 'USD' ? amount : amount / 600); // Tipo de cambio aproximado
+        return sum + (income.currency === 'USD' ? amount : amount / 500); // Tipo de cambio aproximado (fallback unificado a 500)
       }, 0);
 
       const totalExpensesUSD = expenses.reduce((sum, expense) => {
         const amount = expense.amount || 0;
-        const exchangeRate = expense.exchange_rate_usd || 600;
+        const exchangeRate = expense.exchange_rate_usd || 500;
         return sum + (expense.currency === 'USD' ? amount : amount / exchangeRate);
       }, 0);
 
@@ -195,7 +195,7 @@ export class AggregatedQueryService {
       data?.forEach(expense => {
         const category = expense.category;
         const amount = expense.amount || 0;
-        const exchangeRate = expense.exchange_rate_usd || 600;
+        const exchangeRate = expense.exchange_rate_usd || 500;
         
         const amountUSD = expense.currency === 'USD' ? amount : amount / exchangeRate;
         grandTotalUSD += amountUSD;
@@ -404,7 +404,7 @@ export class AggregatedQueryService {
       const normalizedChangeOrders = rawChangeOrders.map((co: any) => {
         const currency: 'CRC' | 'USD' = (co.currency === 'USD' ? 'USD' : 'CRC');
         // Usar exchange_rate si existe, sino intentar exchange_rate_usd, sino 600 por defecto
-        const exchangeRate: number = co.exchange_rate ?? co.exchange_rate_usd ?? 600;
+        const exchangeRate: number = co.exchange_rate ?? co.exchange_rate_usd ?? 500;
         const baseAmount: number = co.cost_impact ?? co.amount ?? 0;
         const costImpactCRC: number = co.cost_impact_crc ?? (currency === 'USD' ? baseAmount * exchangeRate : baseAmount);
 
@@ -419,7 +419,7 @@ export class AggregatedQueryService {
           description: co.description ?? '',
           cost_impact: typeof baseAmount === 'number' ? baseAmount : Number(baseAmount) || 0,
           currency,
-          exchange_rate: typeof exchangeRate === 'number' ? exchangeRate : Number(exchangeRate) || 600,
+          exchange_rate: typeof exchangeRate === 'number' ? exchangeRate : Number(exchangeRate) || 500,
           cost_impact_crc: costImpactCRC,
           status: (co.status ?? 'pendiente') as 'pendiente' | 'aprobado' | 'rechazado' | 'implementado',
           schedule_impact_days: co.schedule_impact_days ?? 0,

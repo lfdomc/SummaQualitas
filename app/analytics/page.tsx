@@ -16,6 +16,20 @@ function AnalyticsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
+  const [usdRate, setUsdRate] = useState<number>(540);
+
+  const formatCRC = (amount: number) => new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  const toNumber = (value: any): number => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'string') {
+      const digits = value.replace(/[^0-9.\-]/g, '');
+      const num = Number(digits);
+      return Number.isFinite(num) ? num : 0;
+    }
+    return 0;
+  };
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -139,6 +153,38 @@ function AnalyticsPage() {
                   ))}
                 </SelectContent>
               </Select>
+
+              {/* Filtros de fecha y tasa USD→CRC */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Desde</label>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Hasta</label>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Tasa USD→CRC</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={usdRate}
+                    onChange={(e) => setUsdRate(Number(e.target.value) || 0)}
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
               
               {selectedProject && (
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -160,12 +206,19 @@ function AnalyticsPage() {
                     <div>
                       <span className="text-gray-500">Presupuesto:</span>
                       <p className="font-medium">
-                        ${(selectedProject.presupuesto_final || selectedProject.budget || selectedProject.presupuesto_inicial || 0).toLocaleString()}
+                        {formatCRC(
+                          toNumber((selectedProject as any).presupuesto_final) ||
+                          toNumber((selectedProject as any).presupuesto_inicial) ||
+                          toNumber(selectedProject.budget) ||
+                          0
+                        )}
                       </p>
                     </div>
                     <div>
                       <span className="text-gray-500">Progreso:</span>
-                      <p className="font-medium">{selectedProject.progress || 0}%</p>
+                      <p className="font-medium">
+                        {(toNumber((selectedProject as any).progress_percentage) || toNumber((selectedProject as any).progress) || 0)}%
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -179,6 +232,7 @@ function AnalyticsPage() {
       {selectedProject && (
         <ProjectKPIs 
           project={selectedProject}
+          options={{ from: fromDate || undefined, to: toDate || undefined, usdRate }}
         />
       )}
       

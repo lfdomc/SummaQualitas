@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { expenseService, incomeService } from '@/lib/supabase/database';
 import { toast } from 'sonner';
-import type { Project, ProjectKPIs as ProjectKPIsType, Expense, Income } from '@/lib/types';
+import type { Project, ProjectKPIs as ProjectKPIsType } from '@/lib/types';
 
 interface EVMData {
   plannedValue: number;
@@ -35,20 +34,34 @@ interface UseAnalyticsDataReturn {
   refetch: () => Promise<void>;
 }
 
-export function useAnalyticsData(project: Project | null): UseAnalyticsDataReturn {
+export function useAnalyticsData(project: Project | null, options?: { from?: string; to?: string; usdRate?: number }): UseAnalyticsDataReturn {
   const [kpis, setKpis] = useState<ProjectKPIsType | null>(null);
   const [evmData, setEvmData] = useState<EVMData | null>(null);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Utilidad: convertir valores a número de forma robusta
+  const toNumber = (value: any): number => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'string') {
+      const digits = value.replace(/[^0-9.\-]/g, '');
+      const num = Number(digits);
+      return Number.isFinite(num) ? num : 0;
+    }
+    return 0;
+  };
+
   // Memoizar los valores clave del proyecto para evitar re-renders innecesarios
   const projectKey = useMemo(() => {
     if (!project) return null;
     return {
       id: project.id,
+      presupuesto_final: project.presupuesto_final,
+      presupuesto_inicial: project.presupuesto_inicial,
       budget: project.budget,
-      progress: project.progress,
+      progress_percentage: (project as any).progress_percentage,
+      progress: (project as any).progress,
       estimated_start_date: project.estimated_start_date,
       estimated_end_date: project.estimated_end_date,
       actual_start_date: project.actual_start_date,
@@ -68,118 +81,89 @@ export function useAnalyticsData(project: Project | null): UseAnalyticsDataRetur
     setError(null);
 
     try {
-      // Usar Promise.allSettled para manejar errores individuales
-      const [expensesResult, incomesResult] = await Promise.allSettled([
-        expenseService.getProjectExpenses(project.id),
-        incomeService.getProjectIncomes(project.id)
-      ]);
+      const params = new URLSearchParams({ projectId: project.id });
+      if (options?.from) params.set('from', options.from);
+      if (options?.to) params.set('to', options.to);
+      if (options?.usdRate) params.set('usdRate', String(options.usdRate));
 
-      let projectExpenses: Expense[] = [];
-      let projectIncomes: Income[] = [];
+      const res = await fetch(`/api/analytics?${params.toString()}`);
+      const json = await res.json();
 
-      if (expensesResult.status === 'fulfilled') {
-        projectExpenses = expensesResult.value;
-      } else {
-        console.error('Error fetching expenses:', expensesResult.reason);
-        toast.error('Error al cargar los gastos del proyecto');
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'Error al obtener datos de analytics');
       }
 
-      if (incomesResult.status === 'fulfilled') {
-        projectIncomes = incomesResult.value;
-      } else {
-        console.error('Error fetching incomes:', incomesResult.reason);
-        toast.error('Error al cargar los ingresos del proyecto');
-      }
+      const summary = json?.data?.summary || {};
+      const series = json?.data?.series || [];
 
-      // Calcular métricas básicas
-      const actualCost = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-      const actualIncome = projectIncomes.reduce((sum, income) => sum + income.amount, 0);
-      const projectBudget = project.budget || 0;
-      const projectProgress = project.progress || 0;
-      const earnedValue = projectBudget * (projectProgress / 100);
+      const budgetAtCompletion = toNumber(summary?.budgetAtCompletion) || 0;
+      const completionPercentage = toNumber(summary?.completionPercentage) || 0;
+      const totalPV = toNumber(summary?.totalPV) || 0;
+      const totalEV = toNumber(summary?.totalEV) || 0;
+      const totalActualCost = toNumber(summary?.totalActualCost) || 0;
+      const cpi = toNumber(summary?.cpi) || 0;
+      const spi = toNumber(summary?.spi) || 0;
+      const eac = toNumber(summary?.eac) || budgetAtCompletion;
+      const vac = toNumber(summary?.vac) || (budgetAtCompletion - eac);
 
-      // Calcular Planned Value basado en las fechas del proyecto
-      const calculatePlannedValue = (): number => {
-        const now = new Date();
-        const start = project.actual_start_date ? new Date(project.actual_start_date) : 
-                     project.estimated_start_date ? new Date(project.estimated_start_date) : now;
-        const end = project.actual_end_date ? new Date(project.actual_end_date) : 
-                   project.estimated_end_date ? new Date(project.estimated_end_date) : 
-                   new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 días por defecto
-
-        if (now < start) return 0;
-        if (now >= end) return projectBudget;
-
-        const totalDuration = end.getTime() - start.getTime();
-        const elapsedTime = now.getTime() - start.getTime();
-        const timeProgress = Math.min(100, Math.max(0, (elapsedTime / totalDuration) * 100));
-
-        return projectBudget * (timeProgress / 100);
-      };
-
-      const plannedValue = calculatePlannedValue();
-
-      // Calcular métricas EVM
-      const costPerformanceIndex = actualCost > 0 ? earnedValue / actualCost : 0;
-      const schedulePerformanceIndex = plannedValue > 0 ? earnedValue / plannedValue : 0;
-      const costVariance = earnedValue - actualCost;
-      const scheduleVariance = earnedValue - plannedValue;
-      const estimateAtCompletion = actualCost > 0 && earnedValue > 0 ? projectBudget * (actualCost / earnedValue) : projectBudget;
-      const estimateToComplete = estimateAtCompletion - actualCost;
-      const varianceAtCompletion = projectBudget - estimateAtCompletion;
-
-      // Crear objeto KPIs
       const calculatedKPIs: ProjectKPIsType = {
         id: `calc-${project.id}`,
         project_id: project.id,
-        planned_value: plannedValue,
-        earned_value: earnedValue,
-        actual_cost: actualCost,
-        cost_performance_index: costPerformanceIndex,
-        schedule_performance_index: schedulePerformanceIndex,
-        budget_at_completion: projectBudget,
-        estimate_at_completion: estimateAtCompletion,
-        cost_variance: costVariance,
-        schedule_variance: scheduleVariance,
-        estimate_to_complete: estimateToComplete,
-        variance_at_completion: varianceAtCompletion,
-        completion_percentage: projectProgress,
+        planned_value: totalPV,
+        earned_value: totalEV,
+        actual_cost: totalActualCost,
+        cost_performance_index: cpi,
+        schedule_performance_index: spi,
+        budget_at_completion: budgetAtCompletion,
+        estimate_at_completion: eac,
+        cost_variance: totalEV - totalActualCost,
+        schedule_variance: totalEV - totalPV,
+        estimate_to_complete: eac - totalActualCost,
+        variance_at_completion: vac,
+        completion_percentage: completionPercentage,
         quality_score: 8.5,
-        // No existe la categoría 'seguridad' en ExpenseCategory; usar subcategoría 'control_calidad' como aproximación
-        safety_incidents: projectExpenses.filter(e => e.subcategory_indirect === 'control_calidad').length,
-        productivity_index: earnedValue > 0 && actualCost > 0 ? earnedValue / actualCost : 1.0,
-        resource_utilization: Math.min(100, (actualCost / projectBudget) * 100),
+        safety_incidents: 0,
+        productivity_index: totalActualCost > 0 ? totalEV / totalActualCost : 1.0,
+        resource_utilization: budgetAtCompletion > 0 ? Math.min(100, (totalActualCost / budgetAtCompletion) * 100) : 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
       setKpis(calculatedKPIs);
 
-      // Crear objeto EVM
       const evm: EVMData = {
-        plannedValue: calculatedKPIs.planned_value || 0,
-        earnedValue: calculatedKPIs.earned_value || 0,
-        actualCost: calculatedKPIs.actual_cost || 0,
-        budgetAtCompletion: calculatedKPIs.budget_at_completion || 0,
-        estimateAtCompletion: calculatedKPIs.estimate_at_completion || 0,
-        costVariance: calculatedKPIs.cost_variance || 0,
-        scheduleVariance: calculatedKPIs.schedule_variance || 0,
-        costPerformanceIndex: calculatedKPIs.cost_performance_index || 0,
-        schedulePerformanceIndex: calculatedKPIs.schedule_performance_index || 0,
-        estimateToComplete: calculatedKPIs.estimate_to_complete || 0,
-        varianceAtCompletion: calculatedKPIs.variance_at_completion || 0
+        plannedValue: totalPV,
+        earnedValue: totalEV,
+        actualCost: totalActualCost,
+        budgetAtCompletion,
+        estimateAtCompletion: eac,
+        costVariance: totalEV - totalActualCost,
+        scheduleVariance: totalEV - totalPV,
+        costPerformanceIndex: cpi,
+        schedulePerformanceIndex: spi,
+        estimateToComplete: eac - totalActualCost,
+        varianceAtCompletion: vac
       };
 
       setEvmData(evm);
 
-      // Generar datos de gráfico
-      const monthlyData: ChartData[] = [
-        { month: 'Ene', planned: plannedValue * 0.2, earned: earnedValue * 0.2, actual: actualCost * 0.2 },
-        { month: 'Feb', planned: plannedValue * 0.4, earned: earnedValue * 0.4, actual: actualCost * 0.4 },
-        { month: 'Mar', planned: plannedValue * 0.6, earned: earnedValue * 0.6, actual: actualCost * 0.6 },
-        { month: 'Abr', planned: plannedValue * 0.8, earned: earnedValue * 0.8, actual: actualCost * 0.8 },
-        { month: 'May', planned: plannedValue, earned: earnedValue, actual: actualCost }
-      ];
+      const formatMonthKey = (key: string): string => {
+        const parts = String(key).split('-');
+        const y = parts[0];
+        const m = parts[1];
+        const monthIndex = Number(m) - 1;
+        const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        if (!Number.isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) return String(key);
+        return `${months[monthIndex]} ${y}`;
+      };
+
+      const monthlyData: ChartData[] = (series as any[]).map((item) => ({
+        month: formatMonthKey(String(item?.month || '')),
+        planned: toNumber(item?.planned) || 0,
+        earned: toNumber(item?.earned) || 0,
+        actual: toNumber(item?.actual) || 0
+      }));
+
       setChartData(monthlyData);
 
     } catch (error) {
@@ -189,7 +173,7 @@ export function useAnalyticsData(project: Project | null): UseAnalyticsDataRetur
     } finally {
       setLoading(false);
     }
-  }, [project, projectKey]);
+  }, [project, projectKey, options]);
 
   useEffect(() => {
     fetchAnalyticsData();
