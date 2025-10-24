@@ -365,6 +365,29 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       });
       
       if (aggregatedData && !aggregatedData.error) {
+        // Aplicar un filtro defensivo en el frontend por si el backend no filtra correctamente
+        let filteredIncomes = aggregatedData.incomes || [];
+        let filteredExpenses = aggregatedData.expenses || [];
+
+        if (dateFrom || dateTo) {
+          // Comparación por string ISO (YYYY-MM-DD) para evitar problemas de zona horaria
+          filteredIncomes = filteredIncomes.filter((inc) => {
+            const d = inc.received_date || '';
+            if (!d) return false; // si hay filtro activo y el ingreso no tiene fecha, lo excluimos
+            const fromOk = dateFrom ? d >= dateFrom : true;
+            const toOk = dateTo ? d <= dateTo : true;
+            return fromOk && toOk;
+          });
+
+          filteredExpenses = filteredExpenses.filter((exp) => {
+            const d = exp.expense_date || (exp as any).date || '';
+            if (!d) return false;
+            const fromOk = dateFrom ? d >= dateFrom : true;
+            const toOk = dateTo ? d <= dateTo : true;
+            return fromOk && toOk;
+          });
+        }
+
         // Procesar los datos del servicio agregado
         const processedData = {
           project: aggregatedData.project || {
@@ -385,8 +408,8 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           },
-          incomes: aggregatedData.incomes || [],
-          expenses: aggregatedData.expenses || [],
+          incomes: filteredIncomes,
+          expenses: filteredExpenses,
           changeOrders: aggregatedData.changeOrders || [],
           exchangeRate: exchangeRate
         };
@@ -427,7 +450,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       setLoading(false);
       setLoadingMessage('');
     }
-  }, [selectedProjectId, exchangeRate, dataCache]);
+  }, [selectedProjectId, exchangeRate, dateFrom, dateTo, dataCache]);
 
   // Función auxiliar para extraer enlaces de una página
   const extractLinksFromPage = (pageElement: HTMLElement, pageIndex: number) => {
