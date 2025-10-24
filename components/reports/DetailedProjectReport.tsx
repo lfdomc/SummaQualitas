@@ -370,18 +370,20 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         let filteredExpenses = aggregatedData.expenses || [];
 
         if (dateFrom || dateTo) {
-          // Comparación por string ISO (YYYY-MM-DD) para evitar problemas de zona horaria
+          // Normalizar a fecha (YYYY-MM-DD) para comparación confiable
           filteredIncomes = filteredIncomes.filter((inc) => {
-            const d = inc.received_date || '';
-            if (!d) return false; // si hay filtro activo y el ingreso no tiene fecha, lo excluimos
+            const raw = inc.received_date || '';
+            if (!raw) return false; // si hay filtro activo y el ingreso no tiene fecha, lo excluimos
+            const d = typeof raw === 'string' ? raw.slice(0, 10) : raw; // tomar solo YYYY-MM-DD
             const fromOk = dateFrom ? d >= dateFrom : true;
             const toOk = dateTo ? d <= dateTo : true;
             return fromOk && toOk;
           });
 
           filteredExpenses = filteredExpenses.filter((exp) => {
-            const d = exp.expense_date || (exp as any).date || '';
-            if (!d) return false;
+            const raw = exp.expense_date || (exp as any).date || '';
+            if (!raw) return false;
+            const d = typeof raw === 'string' ? raw.slice(0, 10) : raw;
             const fromOk = dateFrom ? d >= dateFrom : true;
             const toOk = dateTo ? d <= dateTo : true;
             return fromOk && toOk;
