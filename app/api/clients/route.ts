@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from '@/lib/supabase/server'
-import type { Database } from '@/types/database'
+import type { Client } from '@/types/database'
 
 // Asegurar runtime y comportamiento dinámico para evitar prerender en build
 export const dynamic = 'force-dynamic';
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     query = query.range(from, to).order('created_at', { ascending: false });
 
-    const { data: clients, error, count } = await query as unknown as { data: Database['public']['Tables']['clients']['Row'][]; error: any; count: number | null };
+    const { data: clients, error, count } = await query as unknown as { data: Client[] | null; error: any; count: number | null };
 
     if (error) {
       // fallback mock con paginación

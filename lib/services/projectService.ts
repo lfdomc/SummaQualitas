@@ -172,16 +172,24 @@ export async function createProject(projectData: CreateProjectDTO): Promise<Proj
           console.warn(`Violación NOT NULL en columna ${notNullCol}; ajustando payload y reintentando...`);
           if (notNullCol === 'budget') {
             // Asegurar budget desde presupuesto_inicial o budget existente
-            const initial = typeof payload.presupuesto_inicial !== 'undefined' ? Number(payload.presupuesto_inicial) : undefined;
-            const existing = typeof payload.budget !== 'undefined' ? Number(payload.budget) : undefined;
-            const fixed = Number.isFinite(initial) && initial > 0 ? initial : (Number.isFinite(existing) ? existing : 0);
+            const initialRaw = payload.presupuesto_inicial;
+            const existingRaw = payload.budget;
+            const initial = typeof initialRaw === 'number' ? initialRaw : Number(initialRaw);
+            const existing = typeof existingRaw === 'number' ? existingRaw : Number(existingRaw);
+            const fixed = (typeof initial === 'number' && Number.isFinite(initial) && initial > 0)
+              ? initial
+              : (typeof existing === 'number' && Number.isFinite(existing) ? existing : 0);
             payload.budget = fixed;
             continue;
           }
           if (notNullCol === 'presupuesto_original') {
-            const initial = typeof payload.presupuesto_inicial !== 'undefined' ? Number(payload.presupuesto_inicial) : undefined;
-            const existing = typeof payload.presupuesto_original !== 'undefined' ? Number(payload.presupuesto_original) : undefined;
-            const fixed = Number.isFinite(initial) && initial > 0 ? initial : (Number.isFinite(existing) ? existing : 0);
+            const initialRaw = payload.presupuesto_inicial;
+            const existingRaw = payload.presupuesto_original;
+            const initial = typeof initialRaw === 'number' ? initialRaw : Number(initialRaw);
+            const existing = typeof existingRaw === 'number' ? existingRaw : Number(existingRaw);
+            const fixed = (typeof initial === 'number' && Number.isFinite(initial) && initial > 0)
+              ? initial
+              : (typeof existing === 'number' && Number.isFinite(existing) ? existing : 0);
             payload.presupuesto_original = fixed;
             continue;
           }
