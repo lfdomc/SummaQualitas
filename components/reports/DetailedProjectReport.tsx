@@ -1059,7 +1059,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
         {/* Header Skeleton */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div className="space-y-2">
                 <Skeleton className="h-8 w-80" />
                 <Skeleton className="h-4 w-96" />
@@ -1128,18 +1128,18 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       {/* Header del Reporte */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
               <CardTitle className="text-2xl">Reporte Detallado de Proyecto</CardTitle>
               <CardDescription>
                 Análisis completo de ingresos, costos y resumen financiero
               </CardDescription>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-end gap-4">
               <div className="flex flex-col space-y-1">
                 <label className="text-sm font-medium text-gray-700">Proyecto</label>
                 <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                  <SelectTrigger className="w-64">
+                  <SelectTrigger className="w-full sm:w-64">
                     <SelectValue placeholder="Seleccionar proyecto" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1158,7 +1158,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
                   type="number"
                   placeholder="Ingrese el tipo de cambio"
                   value={tempExchangeRate}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm w-40"
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full sm:w-40"
                   min="1"
                   step="0.01"
                   onChange={(e) => {
@@ -1178,23 +1178,24 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
               </div>
               <div className="flex flex-col space-y-1">
                 <label className="text-sm font-medium text-gray-700">Rango de fechas</label>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full sm:w-auto min-w-[160px]"
                   />
                   <span className="text-gray-500">a</span>
                   <input
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm w-full sm:w-auto min-w-[160px]"
                   />
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setDateFrom('');
                       setDateTo('');
