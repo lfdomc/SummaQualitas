@@ -276,7 +276,7 @@ export class AggregatedQueryService {
   /**
    * Obtiene datos completos para reportes con una sola consulta optimizada
    */
-  async getProjectReportData(projectId: string): Promise<ProjectReportData> {
+  async getProjectReportData(projectId: string, options?: { date_from?: string; date_to?: string }): Promise<ProjectReportData> {
     try {
       console.log('🔍 Iniciando getProjectReportData para proyecto:', projectId);
       
@@ -312,30 +312,38 @@ export class AggregatedQueryService {
           .eq('id', projectId)
           .single(),
 
-        this.supabase
-          .from('incomes')
-          .select(`
-            *,
-            client:clients(id, name)
-          `)
-          .eq('project_id', projectId)
-          .order('received_date', { ascending: false })
-          .limit(100), // Limitar a los 100 ingresos más recientes
+        (() => {
+          let q = this.supabase
+            .from('incomes')
+            .select(`
+              *,
+              client:clients(id, name)
+            `)
+            .eq('project_id', projectId)
+            .order('received_date', { ascending: false })
+            .limit(100);
+          if (options?.date_from) q = q.gte('received_date', options.date_from);
+          if (options?.date_to) q = q.lte('received_date', options.date_to);
+          return q;
+        })(),
 
-        this.supabase
-          .from('expenses')
-          .select('*')
-          .eq('project_id', projectId)
-          .limit(200), // Limitar a los 200 gastos más recientes
+        (() => {
+          let q = this.supabase
+            .from('expenses')
+            .select('*')
+            .eq('project_id', projectId)
+            .limit(200);
+          if (options?.date_from) q = q.gte('expense_date', options.date_from);
+          if (options?.date_to) q = q.lte('expense_date', options.date_to);
+          return q;
+        })(),
 
         this.supabase
           .from('change_orders')
-          // Selección flexible para evitar errores de columna inexistente en esquemas antiguos
-          // Usamos * y luego normalizamos en memoria a la estructura esperada
           .select('*')
           .eq('project_id', projectId)
           .order('created_at', { ascending: false })
-          .limit(50) // Limitar a las 50 órdenes de cambio más recientes
+          .limit(50)
       ]);
 
       // Logging detallado de errores con manejo específico para autenticación

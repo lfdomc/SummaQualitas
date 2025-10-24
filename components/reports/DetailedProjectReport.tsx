@@ -245,6 +245,8 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
   const [dataCache, setDataCache] = useState<Map<string, { data: ReportData; timestamp: number }>>(new Map());
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   
   // Configuración de caché (5 minutos)
   const CACHE_DURATION = 5 * 60 * 1000;
@@ -307,7 +309,7 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
     if (selectedProjectId) {
       fetchReportData();
     }
-  }, [selectedProjectId, exchangeRate]);
+  }, [selectedProjectId, exchangeRate, dateFrom, dateTo]);
 
   const fetchReportData = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -316,8 +318,20 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       setLoading(true);
       setLoadingMessage('Verificando datos en caché...');
       
+      // Validar rango de fechas
+      if (dateFrom && dateTo) {
+        const from = new Date(dateFrom);
+        const to = new Date(dateTo);
+        if (from > to) {
+          toast.error('La fecha "desde" no puede ser mayor que la fecha "hasta".');
+          setLoading(false);
+          setLoadingMessage('');
+          return;
+        }
+      }
+      
       // Verificar caché primero
-      const cacheKey = `${selectedProjectId}-${exchangeRate}`;
+      const cacheKey = `${selectedProjectId}-${exchangeRate}-${dateFrom || 'all'}-${dateTo || 'all'}`;
       const cachedData = dataCache.get(cacheKey);
       const now = Date.now();
       
@@ -332,7 +346,10 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
       setLoadingMessage('Obteniendo datos del servidor...');
       
       // Usar solo el servicio agregado optimizado - eliminar fallback complejo
-      const aggregatedData = await aggregatedQueryService.getProjectReportData(selectedProjectId);
+      const aggregatedData = await aggregatedQueryService.getProjectReportData(selectedProjectId, {
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+      });
       
       // DEBUG: Log detallado de los datos recibidos
       console.log('🔍 DEBUG - Datos recibidos de getProjectReportData:', {
@@ -1133,6 +1150,35 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
                     }
                   }}
                 />
+              </div>
+              <div className="flex flex-col space-y-1">
+                <label className="text-sm font-medium text-gray-700">Rango de fechas</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <span className="text-gray-500">a</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDateFrom('');
+                      setDateTo('');
+                    }}
+                  >
+                    Todos
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">Filtra ingresos (received_date) y gastos (expense_date). Dejar vacío para todo.</p>
               </div>
               <div className="flex flex-col space-y-2">
                 <Button 
