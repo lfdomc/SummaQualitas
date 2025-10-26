@@ -24,6 +24,24 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
     };
   }).filter(item => item.amount > 0);
 
+  // Presupuesto por categoría (USD)
+  const getBudgetForSectionUSD = (title: string): number => {
+    const t = title.toLowerCase();
+    let budgetCRC = 0;
+    if (t.includes('direct')) {
+      budgetCRC = project.costos_directos || 0;
+    } else if (t.includes('indirect')) {
+      budgetCRC = project.costos_indirectos || 0;
+    } else if (t.includes('labor') || t.includes('mano') || t.includes('obra')) {
+      budgetCRC = project.mano_obra || 0;
+    } else if (t.includes('contingenc') || t.includes('imprev')) {
+      budgetCRC = project.imprevistos || 0;
+    } else if (t.includes('admin')) {
+      budgetCRC = project.administracion || 0;
+    }
+    return convertCurrency(budgetCRC, 'CRC', 'USD');
+  };
+
   const maxAmount = Math.max(...chartData.map(item => item.amount));
   const totalAmount = chartData.reduce((sum, item) => sum + item.amount, 0);
 
@@ -47,7 +65,7 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
         <div className="mb-8">
           {/* Título del gráfico */}
           <h3 className="text-lg font-semibold mb-28 text-center text-gray-700">
-            Expense Distribution (USD)
+            Expense vs Budget (USD)
           </h3>
           
           {/* Contenedor del gráfico vertical */}
@@ -77,8 +95,10 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                   {/* Barras verticales */}
                   <div className="flex items-end justify-center h-80 space-x-6 relative z-10">
                     {chartData.map((item, index) => {
-                      const percentage = (item.amount / maxAmount) * 100;
+                      const percentageHeight = (item.amount / maxAmount) * 100;
                       const colorSet = colorSets[index % colorSets.length];
+                      const budgetUSD = getBudgetForSectionUSD(item.title);
+                      const usedPct = budgetUSD > 0 ? (item.amount / budgetUSD) * 100 : 0;
                       
                       return (
                         <div key={item.title} className="flex flex-col items-center space-y-2">
@@ -102,9 +122,9 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                             {formatCurrency(item.amount, 'USD')}
                           </div>
                           
-                          {/* Porcentaje */}
+                          {/* Porcentaje relativo al presupuesto */}
                           <div className="text-xs font-medium text-gray-600">
-                            {((item.amount / totalAmount) * 100).toFixed(1)}%
+                            {usedPct.toFixed(1)}%
                           </div>
                           
                           {/* Barra vertical */}
@@ -113,13 +133,15 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                               <div 
                                 className="w-full rounded-t-lg transition-all duration-500 absolute bottom-0"
                                 style={{ 
-                                  height: `${percentage}%`,
+                                  height: `${percentageHeight}%`,
                                   backgroundColor: colorSet.main,
                                   background: `linear-gradient(to top, ${colorSet.main}, ${colorSet.light})`
                                 }}
                               ></div>
                             </div>
                           </div>
+                          {/* Presupuesto mostrado debajo */}
+                          <div className="text-[10px] text-gray-500">Budget: {formatCurrency(budgetUSD, 'USD')}</div>
                         </div>
                       );
                     })}
@@ -144,14 +166,16 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="px-3 py-2 text-left font-semibold text-gray-700">Category</th>
-                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Amount (USD)</th>
-                    <th className="px-3 py-2 text-right font-semibold text-gray-700">%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Actual (USD)</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Budget (USD)</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-700">Used %</th>
                   </tr>
                 </thead>
                 <tbody>
                   {chartData.map((item, index) => {
-                    const percentage = (item.amount / totalAmount) * 100;
                     const colorSet = colorSets[index % colorSets.length];
+                    const budgetUSD = getBudgetForSectionUSD(item.title);
+                    const usedPct = budgetUSD > 0 ? (item.amount / budgetUSD) * 100 : 0;
                     
                     return (
                       <tr key={item.title} className="hover:bg-gray-50" style={{ backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white' }}>
@@ -167,21 +191,41 @@ export function ExpenseChartHTML({ costSections, convertCurrency, formatCurrency
                         <td className="px-3 py-2 text-right font-bold text-gray-800 border-b border-gray-200">
                           {formatCurrency(item.amount, 'USD')}
                         </td>
+                        <td className="px-3 py-2 text-right font-bold text-gray-800 border-b border-gray-200">
+                          {formatCurrency(budgetUSD, 'USD')}
+                        </td>
                         <td className="px-3 py-2 text-right border-b border-gray-200">
-                          <span className="font-semibold text-gray-700">{percentage.toFixed(1)}%</span>
+                          <span className="font-semibold text-gray-700">{usedPct.toFixed(1)}%</span>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-gray-100 border-t-2 border-gray-300">
-                    <td className="px-3 py-2 font-semibold text-gray-800">TOTAL</td>
-                    <td className="px-3 py-2 text-right font-semibold text-gray-800">
-                      {formatCurrency(totalAmount, 'USD')}
-                    </td>
-                    <td className="px-3 py-2 text-right font-semibold text-gray-800">100.0%</td>
-                  </tr>
+                  {(() => {
+                    const totalBudgetUSD = convertCurrency(
+                      (project.costos_directos || 0) +
+                      (project.costos_indirectos || 0) +
+                      (project.mano_obra || 0) +
+                      (project.imprevistos || 0) +
+                      (project.administracion || 0),
+                      'CRC',
+                      'USD'
+                    );
+                    const usedPctTotal = totalBudgetUSD > 0 ? (totalAmount / totalBudgetUSD) * 100 : 0;
+                    return (
+                      <tr className="bg-gray-100 border-t-2 border-gray-300">
+                        <td className="px-3 py-2 font-semibold text-gray-800">TOTAL</td>
+                        <td className="px-3 py-2 text-right font-semibold text-gray-800">
+                          {formatCurrency(totalAmount, 'USD')}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-gray-800">
+                          {formatCurrency(totalBudgetUSD, 'USD')}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-gray-800">{usedPctTotal.toFixed(1)}%</td>
+                      </tr>
+                    );
+                  })()}
                 </tfoot>
               </table>
             </div>

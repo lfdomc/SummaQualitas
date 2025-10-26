@@ -78,7 +78,7 @@ interface DetailedProjectReportProps {
 }
 
 // Componente para header de página
-const PageHeader = ({ pageNumber, totalPages, projectName }: { pageNumber: number; totalPages: number; projectName: string }) => (
+const PageHeader = ({ pageNumber, totalPages, projectName, dateRangeText }: { pageNumber: number; totalPages: number; projectName: string; dateRangeText?: string }) => (
   <div className="flex items-center justify-between mb-6 pb-4 border-b-2" style={{ borderColor: '#2980b9' }}>
     <div className="flex items-center">
       <img 
@@ -97,6 +97,9 @@ const PageHeader = ({ pageNumber, totalPages, projectName }: { pageNumber: numbe
       <div className="ml-2">
         <h1 className="text-lg font-bold" style={{ color: '#34495e' }}>PROJECT EXECUTIVE REPORT</h1>
         <p className="text-sm text-gray-600">{projectName}</p>
+        {dateRangeText && (
+          <p className="text-xs text-gray-500">Report date range: {dateRangeText}</p>
+        )}
       </div>
     </div>
     <div className="text-right">
@@ -112,6 +115,7 @@ interface PageHeaderProps {
   pageNumber: number;
   totalPages: number;
   projectName: string;
+  dateRangeText?: string;
 }
 
 interface PageFooterProps {
@@ -126,6 +130,7 @@ interface StandardPageProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
+  dateRangeText?: string;
 }
 
 // Componente para footer de página
@@ -137,9 +142,9 @@ const PageFooter = ({ pageNumber, totalPages }: PageFooterProps) => (
 );
 
 // Componente base unificado para todas las páginas
-const StandardPage = ({ pageNumber, totalPages, projectName, title, children, className = '' }: StandardPageProps) => (
+const StandardPage = ({ pageNumber, totalPages, projectName, title, children, className = '', dateRangeText }: StandardPageProps) => (
   <div className={`pdf-page ${className}`}>
-    <PageHeader pageNumber={pageNumber} totalPages={totalPages} projectName={projectName} />
+    <PageHeader pageNumber={pageNumber} totalPages={totalPages} projectName={projectName} dateRangeText={dateRangeText} />
     <div className="page-content">
       {title && (
         <div className="section-spacing">
@@ -1405,6 +1410,8 @@ export function DetailedProjectReport({ projectId }: DetailedProjectReportProps)
               reportData={reportData}
               convertCurrency={convertCurrency}
               formatCurrency={formatCurrency}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
             />
           </CardContent>
         </Card>
@@ -1418,10 +1425,31 @@ interface PDFPreviewProps {
   reportData: ReportData;
   convertCurrency: (amount: number, from: string, to: string) => number;
   formatCurrency: (amount: number, currency: string) => string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
-function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewProps) {
+function PDFPreview({ reportData, convertCurrency, formatCurrency, dateFrom, dateTo }: PDFPreviewProps) {
   const { project, incomes, expenses, changeOrders, exchangeRate } = reportData;
+
+  // Construir texto de rango de fechas para el header
+  // Parsear fechas en formato YYYY-MM-DD en hora LOCAL para evitar desfaces por zona horaria
+  const parseLocalISODate = (iso?: string): Date => {
+    if (!iso) return new Date();
+    const [y, m, d] = iso.split('-').map(Number);
+    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return new Date();
+    return new Date(y, m - 1, d);
+  };
+
+  const startDate = dateFrom
+    ? parseLocalISODate(dateFrom)
+    : (project.actual_start_date
+        ? parseLocalISODate(project.actual_start_date)
+        : (project.estimated_start_date
+            ? parseLocalISODate(project.estimated_start_date)
+            : new Date()));
+  const endDate = dateTo ? parseLocalISODate(dateTo) : new Date();
+  const dateRangeText = `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`;
 
   // Calcular totales en ambas monedas
   const totalIncomesCRC = incomes.reduce((sum, income) => {
@@ -1693,6 +1721,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
             pageNumber={currentPageNumber++} 
             totalPages={totalPages} 
             projectName={project.name}
+            dateRangeText={dateRangeText}
             title="CHANGE ORDERS & FINAL BUDGET"
           >
         <div className="letter-section">
@@ -1858,6 +1887,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
           pageNumber={currentPageNumber++} 
           totalPages={totalPages} 
           projectName={project.name}
+          dateRangeText={dateRangeText}
           title="PROJECT INCOME"
         >
         <div className="table-section">
@@ -1914,6 +1944,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
             pageNumber={currentPageNumber} 
             totalPages={calculateTotalPages(incomes, expenses, changeOrders)} 
             projectName={project.name}
+            dateRangeText={dateRangeText}
             title={section.title}
           >
             <div className="table-section">
@@ -1987,6 +2018,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
         pageNumber={1 + costSections.filter(s => s.expenses.length > 0).length + 1} 
         totalPages={calculateTotalPages(incomes, expenses, changeOrders)} 
         projectName={project.name}
+        dateRangeText={dateRangeText}
         title="EXECUTIVE SUMMARY"
       >
         <div className="letter-section flex justify-center">
@@ -2083,6 +2115,7 @@ function PDFPreview({ reportData, convertCurrency, formatCurrency }: PDFPreviewP
         pageNumber={1 + costSections.filter(s => s.expenses.length > 0).length + 2} 
         totalPages={calculateTotalPages(incomes, expenses, changeOrders)} 
         projectName={project.name}
+        dateRangeText={dateRangeText}
         title="EXPENSE ANALYSIS BY CATEGORY"
         className="chart-container"
       >
