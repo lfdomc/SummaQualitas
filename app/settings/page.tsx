@@ -24,8 +24,40 @@ function SettingsPage() {
     timezone: 'America/Mexico_City',
   });
 
+  const [isBackingUp, setIsBackingUp] = useState(false);
+
   const handleSaveSettings = () => {
     toast.success('Configuración guardada correctamente');
+  };
+
+  const handleBackup = async () => {
+    try {
+      setIsBackingUp(true);
+      const res = await fetch('/api/backup', { method: 'POST' });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Error HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename=([^;]+)/i);
+      const filename = match ? match[1] : `backup-${new Date().toISOString().replace(/[:.]/g, '-')}.zip`;
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Respaldo generado y descarga iniciada');
+    } catch (error) {
+      console.error('Error al generar respaldo:', error);
+      toast.error('No se pudo generar el respaldo. Intenta de nuevo.');
+    } finally {
+      setIsBackingUp(false);
+    }
   };
 
   return (
@@ -305,9 +337,9 @@ function SettingsPage() {
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <span className="hidden sm:inline">Exportar datos</span>
-                    <span className="sm:hidden">Exportar</span>
+                  <Button onClick={handleBackup} disabled={isBackingUp} variant="outline" size="sm" className="w-full flex items-center gap-2">
+                    <Save className="h-3 w-3 sm:h-4 sm:w-4" />
+                    {isBackingUp ? 'Generando…' : 'Descargar respaldo (.zip)'}
                   </Button>
                   <Button variant="outline" size="sm" className="w-full">
                     <span className="hidden sm:inline">Generar reporte de actividad</span>
