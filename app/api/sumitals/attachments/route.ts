@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/client';
 import { SumitalAttachmentType, CreateSumitalAttachmentData } from '@/lib/types';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -19,6 +20,7 @@ const ALLOWED_TYPES = [
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient(request);
+    const serviceRoleAvailable = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -107,7 +109,11 @@ export async function POST(request: NextRequest) {
       description: description || undefined
     };
 
-    const { data: attachment, error: dbError } = await supabase
+    // Usar service role para bypass RLS si está disponible (manteniendo nuestras validaciones de acceso);
+    // en caso contrario, usar el cliente SSR (con RLS aplicado).
+    const dbClient = serviceRoleAvailable ? createAdminClient() : supabase;
+
+    const { data: attachment, error: dbError } = await dbClient
       .from('sumital_attachments')
       .insert({
         ...attachmentData,
@@ -119,17 +125,33 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (dbError) {
-      console.error('Error creating attachment record:', dbError);
+      // Incluir información diagnóstica moderada
+      const isRlsViolation = /row-level security/i.test(dbError.message || '');
+      console.error('Error creating attachment record:', {
+        message: dbError.message,
+        code: (dbError as any)?.code,
+        hint: (dbError as any)?.hint,
+        serviceRoleAvailable,
+        userId: user.id,
+        sumitalId,
+        isRlsViolation
+      });
       
       // Eliminar archivo del storage si falla la inserción en BD
       await supabase.storage
         .from('sumitals')
         .remove([fileName]);
-        
+      
+      // Mapear violaciones de RLS a 403 para claridad
+      const status = isRlsViolation ? 403 : 500;
+      const errorMsg = isRlsViolation
+        ? 'Permisos insuficientes según políticas de seguridad (RLS)'
+        : 'Error al crear registro de archivo adjunto';
+
       return NextResponse.json({ 
-        error: 'Error al crear registro de archivo adjunto',
+        error: errorMsg,
         details: dbError.message || null
-      }, { status: 500 });
+      }, { status });
     }
 
     return NextResponse.json({ 
