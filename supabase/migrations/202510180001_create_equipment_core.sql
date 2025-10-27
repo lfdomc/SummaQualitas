@@ -133,6 +133,11 @@ CREATE POLICY "Authenticated can insert users" ON public.users
 CREATE POLICY "Authenticated can update own user" ON public.users
   FOR UPDATE TO authenticated USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 
+-- Temporarily disable RLS to allow seed inserts by migration runner
+ALTER TABLE public.projects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment_rentals DISABLE ROW LEVEL SECURITY;
+
 -- Seed minimal data if not present
 INSERT INTO public.projects (name, status)
 SELECT 'Construcción Escuela', 'en_progreso'
@@ -165,3 +170,8 @@ BEGIN
       );
   END IF;
 END $$;
+
+-- Re-enable RLS after seeding
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment_rentals ENABLE ROW LEVEL SECURITY;
