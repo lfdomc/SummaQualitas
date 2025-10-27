@@ -8,8 +8,9 @@ ALTER TABLE IF EXISTS public.sumital_attachments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can view attachments of sumitals they have access to" ON public.sumital_attachments;
 DROP POLICY IF EXISTS "Users can insert attachments to sumitals they have access to" ON public.sumital_attachments;
 
--- Ensure current policies exist (idempotent re-create)
-CREATE POLICY IF NOT EXISTS "Users can view attachments of their own sumitals" ON public.sumital_attachments
+-- Re-create current policies to ensure consistency
+DROP POLICY IF EXISTS "Users can view attachments of their own sumitals" ON public.sumital_attachments;
+CREATE POLICY "Users can view attachments of their own sumitals" ON public.sumital_attachments
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM public.sumitals s
@@ -18,7 +19,8 @@ CREATE POLICY IF NOT EXISTS "Users can view attachments of their own sumitals" O
         )
     );
 
-CREATE POLICY IF NOT EXISTS "Users can insert attachments to their own sumitals" ON public.sumital_attachments
+DROP POLICY IF EXISTS "Users can insert attachments to their own sumitals" ON public.sumital_attachments;
+CREATE POLICY "Users can insert attachments to their own sumitals" ON public.sumital_attachments
     FOR INSERT WITH CHECK (
         EXISTS (
             SELECT 1 FROM public.sumitals s
@@ -28,11 +30,13 @@ CREATE POLICY IF NOT EXISTS "Users can insert attachments to their own sumitals"
         AND uploaded_by = auth.uid()
     );
 
-CREATE POLICY IF NOT EXISTS "Users can update their own attachments" ON public.sumital_attachments
+DROP POLICY IF EXISTS "Users can update their own attachments" ON public.sumital_attachments;
+CREATE POLICY "Users can update their own attachments" ON public.sumital_attachments
     FOR UPDATE USING (uploaded_by = auth.uid())
     WITH CHECK (uploaded_by = auth.uid());
 
-CREATE POLICY IF NOT EXISTS "Users can delete their own attachments" ON public.sumital_attachments
+DROP POLICY IF EXISTS "Users can delete their own attachments" ON public.sumital_attachments;
+CREATE POLICY "Users can delete their own attachments" ON public.sumital_attachments
     FOR DELETE USING (uploaded_by = auth.uid());
 
 -- Base privileges for PostgREST roles
