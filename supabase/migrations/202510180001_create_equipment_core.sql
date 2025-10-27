@@ -133,45 +133,5 @@ CREATE POLICY "Authenticated can insert users" ON public.users
 CREATE POLICY "Authenticated can update own user" ON public.users
   FOR UPDATE TO authenticated USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 
--- Temporarily disable RLS to allow seed inserts by migration runner
-ALTER TABLE public.projects DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.equipment DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.equipment_rentals DISABLE ROW LEVEL SECURITY;
-
--- Seed minimal data if not present
-INSERT INTO public.projects (name, status)
-SELECT 'Construcción Escuela', 'en_progreso'
-WHERE NOT EXISTS (SELECT 1 FROM public.projects WHERE name = 'Construcción Escuela');
-
-INSERT INTO public.projects (name, status)
-SELECT 'Centro Comunitario', 'en_progreso'
-WHERE NOT EXISTS (SELECT 1 FROM public.projects WHERE name = 'Centro Comunitario');
-
-INSERT INTO public.equipment (name, category, description, daily_rental_rate, status, condition, is_active)
-SELECT 'Excavadora', 'Maquinaria Pesada', 'Excavadora hidráulica de 20T', 150000, 'available', 'good', TRUE
-WHERE NOT EXISTS (SELECT 1 FROM public.equipment WHERE name = 'Excavadora');
-
-INSERT INTO public.equipment (name, category, description, daily_rental_rate, status, condition, is_active)
-SELECT 'Hormigonera', 'Concreto', 'Mezcladora de concreto 300L', 50000, 'available', 'good', TRUE
-WHERE NOT EXISTS (SELECT 1 FROM public.equipment WHERE name = 'Hormigonera');
-
--- Seed a sample rental linking Excavadora to Construcción Escuela if both exist and there is no active rental yet
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM public.equipment WHERE name = 'Excavadora') AND EXISTS (SELECT 1 FROM public.projects WHERE name = 'Construcción Escuela') THEN
-    INSERT INTO public.equipment_rentals (equipment_id, project_id, start_date, daily_rate, status, total_days, total_cost)
-    SELECT e.id, p.id, CURRENT_DATE - INTERVAL '10 days', e.daily_rental_rate, 'active', 10, e.daily_rental_rate * 10
-    FROM public.equipment e
-    JOIN public.projects p ON p.name = 'Construcción Escuela'
-    WHERE e.name = 'Excavadora'
-      AND NOT EXISTS (
-        SELECT 1 FROM public.equipment_rentals r
-        WHERE r.equipment_id = e.id AND r.project_id = p.id AND r.status = 'active'
-      );
-  END IF;
-END $$;
-
--- Re-enable RLS after seeding
-ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.equipment_rentals ENABLE ROW LEVEL SECURITY;
+-- Note: Seeding removed to avoid conflicts with existing remote schema (e.g., NOT NULL columns like client_id).
+--       If needed, seed data should be applied via environment-specific scripts or guarded DO blocks.
