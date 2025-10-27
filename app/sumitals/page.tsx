@@ -177,8 +177,8 @@ export default function SumitalsPage() {
         
         // Formatear attachments de la tabla (crear URLs de descarga)
         const tableAttachmentLinks = tableAttachments.map((attachment: any) => {
-          const downloadUrl = `/api/sumitals/attachments/${attachment.id}`;
-          return `${attachment.file_name}: ${window.location.origin}${downloadUrl}`;
+          const stableUrl = `/api/sumitals/attachments/${attachment.id}/open`;
+          return `${attachment.file_name}: ${window.location.origin}${stableUrl}`;
         });
         
         // Combinar todos los enlaces

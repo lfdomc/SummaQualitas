@@ -210,15 +210,9 @@ export default function FileUpload({
 
   const downloadFile = async (attachment: SumitalAttachment) => {
     try {
-      const response = await fetch(`/api/sumitals/attachments/${attachment.id}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Error al obtener URL de descarga');
-      }
-
-      // Abrir en nueva ventana para descargar
-      window.open(result.download_url, '_blank');
+      // Usar el endpoint estable que genera la URL firmada en tiempo real
+      const stableUrl = `/api/sumitals/attachments/${attachment.id}/open`;
+      window.open(stableUrl, '_blank');
     } catch (error) {
       console.error('Error downloading file:', error);
       toast.error('Error al descargar archivo');
@@ -313,6 +307,19 @@ export default function FileUpload({
                         {attachment.description}
                       </p>
                     )}
+                    {/* Enlace clickeable siguiendo la metodología de anexos de reportes */}
+                    <div className="mt-1">
+                      <a
+                        href={`/api/sumitals/attachments/${attachment.id}/open`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 underline"
+                        title="Abrir / Descargar documento"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Abrir / Descargar documento
+                      </a>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
