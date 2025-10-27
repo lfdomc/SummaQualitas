@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/client';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import path from 'path';
 import fs from 'fs';
@@ -10,6 +11,8 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient(request);
+    const adminSupabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : null;
+    const origin = request.nextUrl.origin || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -90,6 +93,35 @@ export async function GET(
     const pdfDoc = await PDFDocument.create();
     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Helper: agrega una anotación de enlace clicable en la página
+    const addUriLink = (page: any, x: number, y: number, width: number, height: number, url?: string) => {
+      try {
+        if (!url) return;
+        const uriAction = pdfDoc.context.obj({
+          Type: 'Action',
+          S: 'URI',
+          URI: pdfDoc.context.str(url),
+        });
+        const uriActionRef = pdfDoc.context.register(uriAction);
+        const linkAnnot = pdfDoc.context.obj({
+          Type: 'Annot',
+          Subtype: 'Link',
+          Rect: [x, y, x + width, y + height],
+          Border: [0, 0, 0],
+          A: uriActionRef,
+        });
+        const linkAnnotRef = pdfDoc.context.register(linkAnnot);
+        const annots = (page as any).node.get('Annots');
+        if (annots) {
+          annots.push(linkAnnotRef);
+        } else {
+          (page as any).node.set('Annots', pdfDoc.context.obj([linkAnnotRef]));
+        }
+      } catch (e: any) {
+        console.warn('No se pudo agregar enlace al PDF:', e?.message || e);
+      }
+    };
 
     // Configuración de página
     const pageWidth = 595.28; // A4 width in points
@@ -783,34 +815,58 @@ export async function GET(
         });
         yPosition -= 25;
 
-        documentAttachments.forEach((attachment, index) => {
+        for (let index = 0; index < documentAttachments.length; index++) {
+          const attachment = documentAttachments[index];
           const isJsonAttachment = attachment.is_json_attachment;
           const displayText = isJsonAttachment 
             ? `${index + 1}. ${attachment.file_name} (Enlace)`
             : `${index + 1}. ${attachment.file_name}`;
-          
+
+          // Dibujar nombre
+          const textX = margin + 40;
+          const textY = yPosition;
           currentPage.drawText(displayText, {
-            x: margin + 40,
-            y: yPosition,
+            x: textX,
+            y: textY,
             size: 11,
             font: helveticaFont,
             color: rgb(0.2, 0.2, 0.2),
           });
-          
-          // Si es un adjunto JSON, mostrar la URL en la siguiente línea
+
+          // URL estable: adjuntos físicos apuntan al endpoint /api/sumitals/attachments/:id/open
+          // adjuntos JSON usan su propia URL externa
+          let urlToOpen: string | undefined;
+          if (isJsonAttachment && attachment.url) {
+            urlToOpen = attachment.url;
+          } else if (attachment.id) {
+            urlToOpen = `${origin}/api/sumitals/attachments/${attachment.id}/open`;
+          }
+
+          // Agregar enlace sobre el texto dibujado
+          if (urlToOpen) {
+            const w = helveticaFont.widthOfTextAtSize(displayText, 11);
+            addUriLink(currentPage, textX, textY - 2, w, 12, urlToOpen);
+          }
+
+          // Si es un adjunto JSON, mostrar la URL en la siguiente línea y hacerla clicable también
           if (isJsonAttachment && attachment.url) {
             yPosition -= 15;
-            currentPage.drawText(`   URL: ${attachment.url}`, {
-              x: margin + 40,
-              y: yPosition,
+            const urlLabel = `   URL: ${attachment.url}`;
+            const urlX = margin + 40;
+            const urlY = yPosition;
+            currentPage.drawText(urlLabel, {
+              x: urlX,
+              y: urlY,
               size: 9,
               font: helveticaFont,
               color: rgb(0.5, 0.5, 0.5),
             });
+            const wUrl = helveticaFont.widthOfTextAtSize(urlLabel, 9);
+            addUriLink(currentPage, urlX, urlY - 2, wUrl, 10, attachment.url);
           }
-          
+
           yPosition -= 18;
-        });
+        }
         yPosition -= 10;
       }
 
@@ -824,16 +880,32 @@ export async function GET(
         });
         yPosition -= 25;
 
-        signedAttachments.forEach((attachment, index) => {
-          currentPage.drawText(`${index + 1}. ${attachment.file_name}`, {
-            x: margin + 40,
-            y: yPosition,
+        for (let index = 0; index < signedAttachments.length; index++) {
+          const attachment = signedAttachments[index];
+          const label = `${index + 1}. ${attachment.file_name}`;
+          const x = margin + 40;
+          const y = yPosition;
+          currentPage.drawText(label, {
+            x,
+            y,
             size: 11,
             font: helveticaFont,
             color: rgb(0.2, 0.2, 0.2),
           });
+
+          // Enlace estable a archivo físico
+          let urlToOpen: string | undefined;
+          if (attachment.id) {
+            urlToOpen = `${origin}/api/sumitals/attachments/${attachment.id}/open`;
+          }
+
+          if (urlToOpen) {
+            const w = helveticaFont.widthOfTextAtSize(label, 11);
+            addUriLink(currentPage, x, y - 2, w, 12, urlToOpen);
+          }
+
           yPosition -= 18;
-        });
+        }
       }
     }
 
@@ -897,23 +969,29 @@ export async function GET(
                 urlParts.push(url.substring(i, i + maxUrlLength));
               }
               urlParts.forEach((part, index) => {
+                const lineY = attachmentY - (index * 15);
                 attachmentPage.drawText(part, {
                   x: margin,
-                  y: attachmentY - (index * 15),
+                  y: lineY,
                   size: 10,
                   font: helveticaFont,
                   color: rgb(0.3, 0.3, 0.3),
                 });
+                const w = helveticaFont.widthOfTextAtSize(part, 10);
+                addUriLink(attachmentPage, margin, lineY - 2, w, 10, url);
               });
               attachmentY -= (urlParts.length * 15) + 20;
             } else {
+              const linkY = attachmentY;
               attachmentPage.drawText(url, {
                 x: margin,
-                y: attachmentY,
+                y: linkY,
                 size: 10,
                 font: helveticaFont,
                 color: rgb(0.3, 0.3, 0.3),
               });
+              const w = helveticaFont.widthOfTextAtSize(url, 10);
+              addUriLink(attachmentPage, margin, linkY - 2, w, 10, url);
               attachmentY -= 35;
             }
 
@@ -1012,7 +1090,22 @@ export async function GET(
             font: helveticaFont,
             color: rgb(0.5, 0.5, 0.5),
           });
-          attachmentY -= 40;
+          // Agregar un enlace directo estable para abrir/descargar el adjunto
+          const stableLabel = 'Abrir / Descargar documento';
+          const stableLinkY = attachmentY;
+          const stableUrl = attachment.id ? `${origin}/api/sumitals/attachments/${attachment.id}/open` : undefined;
+          attachmentPage.drawText(stableLabel, {
+            x: margin,
+            y: stableLinkY,
+            size: 12,
+            font: helveticaBoldFont,
+            color: rgb(0.16, 0.50, 0.73),
+          });
+          const wStable = helveticaBoldFont.widthOfTextAtSize(stableLabel, 12);
+          addUriLink(attachmentPage, margin, stableLinkY - 2, wStable, 12, stableUrl);
+          attachmentY -= 20;
+
+          attachmentY -= 20;
 
           // Si es un PDF, intentar embebido
           if (attachment.file_type === 'application/pdf') {
