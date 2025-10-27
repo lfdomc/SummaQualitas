@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/client';
  *
  * GET /api/sumitals/attachments/:id/open
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await createClient(request);
     const adminSupabase = process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : null;
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: 'Falta el id del adjunto' }, { status: 400 });
     }
