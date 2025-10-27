@@ -863,6 +863,21 @@ export async function GET(
             });
             const wUrl = helveticaFont.widthOfTextAtSize(urlLabel, 9);
             addUriLink(currentPage, urlX, urlY - 2, wUrl, 10, attachment.url);
+          } else if (!isJsonAttachment && urlToOpen) {
+            // Para adjuntos físicos, agregar explícitamente un enlace visible debajo del nombre
+            yPosition -= 15;
+            const openLabel = '   Abrir / Descargar documento';
+            const labelX = margin + 40;
+            const labelY = yPosition;
+            currentPage.drawText(openLabel, {
+              x: labelX,
+              y: labelY,
+              size: 10,
+              font: helveticaBoldFont,
+              color: rgb(0.16, 0.50, 0.73),
+            });
+            const wOpen = helveticaBoldFont.widthOfTextAtSize(openLabel, 10);
+            addUriLink(currentPage, labelX, labelY - 2, wOpen, 12, urlToOpen);
           }
 
           yPosition -= 18;
@@ -902,6 +917,22 @@ export async function GET(
           if (urlToOpen) {
             const w = helveticaFont.widthOfTextAtSize(label, 11);
             addUriLink(currentPage, x, y - 2, w, 12, urlToOpen);
+          }
+          // Agregar enlace visible debajo del nombre
+          if (urlToOpen) {
+            yPosition -= 15;
+            const openLabel = '   Abrir / Descargar documento';
+            const labelX = margin + 40;
+            const labelY = yPosition;
+            currentPage.drawText(openLabel, {
+              x: labelX,
+              y: labelY,
+              size: 10,
+              font: helveticaBoldFont,
+              color: rgb(0.16, 0.50, 0.73),
+            });
+            const wOpen = helveticaBoldFont.widthOfTextAtSize(openLabel, 10);
+            addUriLink(currentPage, labelX, labelY - 2, wOpen, 12, urlToOpen);
           }
 
           yPosition -= 18;
