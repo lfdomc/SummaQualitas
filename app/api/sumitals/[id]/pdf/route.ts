@@ -4,6 +4,9 @@ import { createAdminClient } from '@/lib/supabase/client';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import path from 'path';
 import fs from 'fs';
+// React-PDF para crear la página de anexos con enlaces reales (igual a reportes)
+import React from 'react';
+import { pdf as pdfRenderer, Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 
 export async function GET(
   request: NextRequest,
@@ -1320,6 +1323,207 @@ export async function GET(
       font: helveticaFont,
       color: rgb(0.5, 0.5, 0.5),
     });
+
+    // === PÁGINA DE ANEXOS (AL FINAL), IGUAL A LA DE REPORTES, CON ENLACES REALES ===
+    try {
+      // Construir documento React-PDF para anexos
+      const annexStyles = StyleSheet.create({
+        page: {
+          flexDirection: 'column',
+          backgroundColor: '#ffffff',
+          padding: 30,
+          fontSize: 10,
+          fontFamily: 'Helvetica'
+        },
+        header: {
+          marginBottom: 16,
+          textAlign: 'center',
+          borderBottomWidth: 2,
+          borderBottomColor: '#2c3e50',
+          paddingBottom: 8
+        },
+        title: {
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: '#2c3e50',
+          marginBottom: 3
+        },
+        subtitle: {
+          fontSize: 11,
+          color: '#7f8c8d'
+        },
+        sectionTitle: {
+          fontSize: 13,
+          fontWeight: 'bold',
+          color: '#2c3e50',
+          marginTop: 14,
+          marginBottom: 8,
+          textAlign: 'center',
+          textTransform: 'uppercase'
+        },
+        table: {
+          display: 'flex',
+          flexDirection: 'column',
+          width: 'auto',
+          borderWidth: 1,
+          borderStyle: 'solid',
+          borderColor: '#bdc3c7',
+          marginBottom: 10
+        },
+        row: { flexDirection: 'row' },
+        rowEven: { backgroundColor: '#f8f9fa' },
+        colHeader: {
+          borderStyle: 'solid', borderWidth: 1, borderLeftWidth: 0, borderTopWidth: 0, borderColor: '#bdc3c7',
+          backgroundColor: '#34495e', alignItems: 'center', justifyContent: 'center'
+        },
+        col: {
+          borderStyle: 'solid', borderWidth: 1, borderLeftWidth: 0, borderTopWidth: 0, borderColor: '#bdc3c7',
+          alignItems: 'center', justifyContent: 'center'
+        },
+        cellHeader: { margin: 'auto', marginTop: 4, marginBottom: 4, fontSize: 9, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' },
+        cell: { margin: 'auto', marginTop: 4, marginBottom: 4, fontSize: 8, textAlign: 'center' },
+        link: { color: '#2563eb', textDecoration: 'underline', fontSize: 8, textAlign: 'center', margin: 'auto', marginTop: 4, marginBottom: 4 },
+        noteContainer: { marginTop: 10, padding: 10, backgroundColor: '#ecf0f1', borderRadius: 5 },
+        noteText: { fontSize: 8, color: '#1565c0', textAlign: 'justify' }
+      });
+
+      const projectName = sumital.project?.name || 'Proyecto';
+      const documentAttachments = allAttachments.filter((att: any) => att.attachment_type === 'document' && !att.is_json_attachment);
+      const signedAttachments = allAttachments.filter((att: any) => att.attachment_type === 'signed_sumital');
+      const linkAttachments = allAttachments.filter((att: any) => att.is_json_attachment);
+
+      const AnnexDoc = (
+        <Document>
+          <Page size="A4" style={annexStyles.page}>
+            <View style={annexStyles.header}>
+              <Text style={annexStyles.title}>ANEXOS - DOCUMENTOS ADJUNTOS DEL SUMITAL</Text>
+              <Text style={annexStyles.subtitle}>{projectName}</Text>
+            </View>
+
+            {/* Documentos */}
+            {documentAttachments.length > 0 && (
+              <View>
+                <Text style={annexStyles.sectionTitle}>DOCUMENTOS</Text>
+                <View style={annexStyles.table}>
+                  <View style={annexStyles.row}>
+                    <View style={[annexStyles.colHeader, { width: '10%' }]}><Text style={annexStyles.cellHeader}>#</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '40%' }]}><Text style={annexStyles.cellHeader}>Nombre</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '20%' }]}><Text style={annexStyles.cellHeader}>Fecha</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '15%' }]}><Text style={annexStyles.cellHeader}>Archivo</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '15%' }]}><Text style={annexStyles.cellHeader}>Tipo</Text></View>
+                  </View>
+                  {documentAttachments.map((att: any, idx: number) => (
+                    <View key={`${att.id}-${idx}`} style={[annexStyles.row, idx % 2 === 0 ? annexStyles.rowEven : {}]}> 
+                      <View style={[annexStyles.col, { width: '10%' }]}><Text style={annexStyles.cell}>{idx + 1}</Text></View>
+                      <View style={[annexStyles.col, { width: '40%' }]}><Text style={annexStyles.cell}>{att.file_name || 'Sin nombre'}</Text></View>
+                      <View style={[annexStyles.col, { width: '20%' }]}>
+                        <Text style={annexStyles.cell}>
+                          {att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={[annexStyles.col, { width: '15%' }]}> 
+                        {att.id ? (
+                          <Link src={`${origin}/api/sumitals/attachments/${att.id}/open`} style={annexStyles.link}>Abrir</Link>
+                        ) : (
+                          <Text style={annexStyles.cell}>-</Text>
+                        )}
+                      </View>
+                      <View style={[annexStyles.col, { width: '15%' }]}>
+                        <Text style={annexStyles.cell}>
+                          {att.file_type?.includes('pdf') ? 'PDF' : att.file_type?.startsWith('image/') ? 'Imagen' : (att.file_type || 'N/A')}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Sumitales firmados */}
+            {signedAttachments.length > 0 && (
+              <View>
+                <Text style={annexStyles.sectionTitle}>SUMITALES FIRMADOS</Text>
+                <View style={annexStyles.table}>
+                  <View style={annexStyles.row}>
+                    <View style={[annexStyles.colHeader, { width: '10%' }]}><Text style={annexStyles.cellHeader}>#</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '45%' }]}><Text style={annexStyles.cellHeader}>Nombre</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '20%' }]}><Text style={annexStyles.cellHeader}>Fecha</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '25%' }]}><Text style={annexStyles.cellHeader}>Archivo</Text></View>
+                  </View>
+                  {signedAttachments.map((att: any, idx: number) => (
+                    <View key={`${att.id}-${idx}`} style={[annexStyles.row, idx % 2 === 0 ? annexStyles.rowEven : {}]}> 
+                      <View style={[annexStyles.col, { width: '10%' }]}><Text style={annexStyles.cell}>{idx + 1}</Text></View>
+                      <View style={[annexStyles.col, { width: '45%' }]}><Text style={annexStyles.cell}>{att.file_name || 'Sin nombre'}</Text></View>
+                      <View style={[annexStyles.col, { width: '20%' }]}>
+                        <Text style={annexStyles.cell}>
+                          {att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={[annexStyles.col, { width: '25%' }]}> 
+                        {att.id ? (
+                          <Link src={`${origin}/api/sumitals/attachments/${att.id}/open`} style={annexStyles.link}>Abrir / Descargar</Link>
+                        ) : (
+                          <Text style={annexStyles.cell}>-</Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Enlaces externos (adjuntos del campo JSON) */}
+            {linkAttachments.length > 0 && (
+              <View>
+                <Text style={annexStyles.sectionTitle}>ENLACES EXTERNOS</Text>
+                <View style={annexStyles.table}>
+                  <View style={annexStyles.row}>
+                    <View style={[annexStyles.colHeader, { width: '10%' }]}><Text style={annexStyles.cellHeader}>#</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '35%' }]}><Text style={annexStyles.cellHeader}>Nombre</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '20%' }]}><Text style={annexStyles.cellHeader}>Fecha</Text></View>
+                    <View style={[annexStyles.colHeader, { width: '35%' }]}><Text style={annexStyles.cellHeader}>URL</Text></View>
+                  </View>
+                  {linkAttachments.map((att: any, idx: number) => (
+                    <View key={`${att.id}-${idx}`} style={[annexStyles.row, idx % 2 === 0 ? annexStyles.rowEven : {}]}> 
+                      <View style={[annexStyles.col, { width: '10%' }]}><Text style={annexStyles.cell}>{idx + 1}</Text></View>
+                      <View style={[annexStyles.col, { width: '35%' }]}><Text style={annexStyles.cell}>{att.file_name || 'Sin nombre'}</Text></View>
+                      <View style={[annexStyles.col, { width: '20%' }]}>
+                        <Text style={annexStyles.cell}>
+                          {att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={[annexStyles.col, { width: '35%' }]}> 
+                        {att.url ? (
+                          <Link src={att.url} style={annexStyles.link}>Ver enlace</Link>
+                        ) : (
+                          <Text style={annexStyles.cell}>-</Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <View style={annexStyles.noteContainer}>
+              <Text style={annexStyles.noteText}>
+                <Text style={{ fontWeight: 'bold' }}>Nota:</Text> Los documentos listados en esta sección están disponibles digitalmente en el sistema. El texto subrayado indica enlaces clickeables para abrir o descargar los archivos.
+              </Text>
+            </View>
+          </Page>
+        </Document>
+      );
+
+      // Renderizar el PDF de anexos a un buffer
+      const annexBuffer = await pdfRenderer(AnnexDoc).toBuffer();
+
+      // Cargar el PDF de anexos y copiar sus páginas al documento principal
+      const annexPdfDoc = await PDFDocument.load(annexBuffer);
+      const annexPages = await pdfDoc.copyPages(annexPdfDoc, annexPdfDoc.getPageIndices());
+      annexPages.forEach((p) => pdfDoc.addPage(p));
+    } catch (annexError) {
+      console.error('Error generando/insertando página de anexos:', annexError);
+    }
 
     // Generar el PDF
     const pdfBytes = await pdfDoc.save();
