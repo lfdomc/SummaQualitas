@@ -346,21 +346,6 @@ const PDFAnnexesDocument: React.FC<PDFAnnexesDocumentProps> = ({
           </View>
         )}
         
-        {/* Debug: Información de expenses */}
-        <View style={{ padding: 10, backgroundColor: '#f0f0f0', margin: 5 }}>
-          <Text style={{ fontSize: 10 }}>
-            DEBUG - Total expenses: {expenses ? expenses.length : 0}
-          </Text>
-          <Text style={{ fontSize: 10 }}>
-            DEBUG - Expenses with receipt_url: {expenses ? expenses.filter(expense => expense.receipt_url).length : 0}
-          </Text>
-          {expenses && expenses.slice(0, 3).map((expense, i) => (
-            <Text key={i} style={{ fontSize: 8 }}>
-              Expense {i+1}: receipt_url={expense.receipt_url ? 'YES' : 'NO'}, description={expense.description?.substring(0, 30)}...
-            </Text>
-          ))}
-        </View>
-
         {/* Adjuntos de Gastos */}
         {expenses && expenses.some(expense => expense.receipt_url) && (
           <View>

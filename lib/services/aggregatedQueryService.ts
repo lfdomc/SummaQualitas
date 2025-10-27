@@ -399,6 +399,36 @@ export class AggregatedQueryService {
         console.log('✅ Todas las consultas completadas exitosamente');
       }
 
+      // =========================
+      // Enriquecer gastos con proveedor
+      // =========================
+      const rawExpenses = expensesData.data || [];
+
+      // Construir listado único de supplier_ids presentes en gastos
+      const supplierIds = Array.from(
+        new Set(
+          rawExpenses
+            .map((exp: any) => exp?.supplier_id)
+            .filter((id: any) => typeof id === 'string' && id.length > 0)
+        )
+      );
+
+      let suppliersMap = new Map<string, any>();
+      if (supplierIds.length > 0) {
+        const suppliersRes = await this.supabase
+          .from('suppliers')
+          .select('id, name, contact_person, email, phone, address, tax_id, supplier_type, status, notes, created_at, updated_at')
+          .in('id', supplierIds);
+
+        if (suppliersRes.error) {
+          console.warn('⚠️ No se pudo cargar proveedores para los gastos:', suppliersRes.error);
+        } else {
+          (suppliersRes.data || []).forEach((s: any) => {
+            suppliersMap.set(s.id, s);
+          });
+        }
+      }
+
       // Normalización de órdenes de cambio para tolerar diferencias de esquema
       const rawChangeOrders = changeOrdersData.data || [];
       const normalizedChangeOrders = rawChangeOrders.map((co: any) => {
@@ -453,7 +483,6 @@ export class AggregatedQueryService {
       }));
 
       // Normalización de gastos para cumplir con el tipo Expense esperado por el frontend
-      const rawExpenses = expensesData.data || [];
       const normalizedExpenses = rawExpenses.map((exp: any) => {
         const expenseDate: string = exp.expense_date || exp.date || new Date().toISOString().split('T')[0];
         return {
@@ -470,7 +499,7 @@ export class AggregatedQueryService {
           expense_date: expenseDate,
           date: exp.date || undefined,
           supplier_id: exp.supplier_id || undefined,
-          supplier: undefined, // Evitar discrepancias de tipado con Supplier parcial
+          supplier: suppliersMap.get(exp.supplier_id) || undefined, // Adjuntar proveedor si está disponible
           invoice_number: exp.invoice_number || undefined,
           payment_status: exp.payment_status || undefined,
           payment_date: exp.payment_date || undefined,
