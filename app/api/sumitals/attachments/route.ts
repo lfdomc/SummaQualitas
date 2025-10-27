@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient(request);
     const serviceRoleAvailable = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // Usar cliente de Storage con service role si está disponible para evitar problemas de RLS en storage.objects
+    const storageClient = serviceRoleAvailable ? createAdminClient() : supabase;
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
     // Nota: En entornos server, convertir a ArrayBuffer/Uint8Array mejora compatibilidad
     const fileBuffer = await file.arrayBuffer();
     const fileBytes = new Uint8Array(fileBuffer);
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await storageClient.storage
       .from('sumitals')
       .upload(fileName, fileBytes, {
         cacheControl: '3600',
@@ -91,11 +93,20 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Error uploading file:', uploadError);
+      const isRlsViolation = /row-level security|permission/i.test(uploadError.message || '');
+      console.error('Error uploading file (Storage):', {
+        message: uploadError.message,
+        name: uploadError.name,
+        statusCode: (uploadError as any)?.statusCode,
+        serviceRoleAvailable,
+        isRlsViolation
+      });
       return NextResponse.json({ 
-        error: 'Error al subir archivo',
+        error: isRlsViolation
+          ? 'Permisos insuficientes para subir al Storage (RLS)'
+          : 'Error al subir archivo',
         details: uploadError.message || null
-      }, { status: 500 });
+      }, { status: isRlsViolation ? 403 : 500 });
     }
 
     // Crear registro en la base de datos
@@ -138,7 +149,7 @@ export async function POST(request: NextRequest) {
       });
       
       // Eliminar archivo del storage si falla la inserción en BD
-      await supabase.storage
+      await storageClient.storage
         .from('sumitals')
         .remove([fileName]);
       
