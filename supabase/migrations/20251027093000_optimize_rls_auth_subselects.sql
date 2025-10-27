@@ -25,6 +25,7 @@ CREATE POLICY "Authenticated users can delete incomes" ON public.incomes
 
 -- EXPENSES: replace direct auth.role() references with (select auth.role())
 DROP POLICY IF EXISTS "Authenticated users can view expenses" ON public.expenses;
+DROP POLICY IF EXISTS "read_expenses_authenticated" ON public.expenses;
 CREATE POLICY "Authenticated users can view expenses" ON public.expenses
     FOR SELECT USING ((select auth.role()) = 'authenticated');
 
