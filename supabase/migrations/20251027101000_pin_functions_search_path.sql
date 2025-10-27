@@ -89,6 +89,7 @@ RETURNS TABLE (
   last_received_date DATE
 )
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
@@ -137,6 +138,7 @@ RETURNS TABLE (
   last_expense_date DATE
 )
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
