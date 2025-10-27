@@ -844,8 +844,9 @@ export async function GET(
 
           // Agregar enlace sobre el texto dibujado
           if (urlToOpen) {
-            const w = helveticaFont.widthOfTextAtSize(displayText, 11);
-            addUriLink(currentPage, textX, textY - 2, w, 12, urlToOpen);
+            // Ampliar el área clickeable a toda la línea para mayor compatibilidad con visores PDF
+            const clickableWidth = contentWidth - 60; // igual al ancho de bloque de texto en esta sección
+            addUriLink(currentPage, textX, textY - 2, clickableWidth, 14, urlToOpen);
           }
 
           // Si es un adjunto JSON, mostrar la URL en la siguiente línea y hacerla clicable también
@@ -861,8 +862,8 @@ export async function GET(
               font: helveticaFont,
               color: rgb(0.5, 0.5, 0.5),
             });
-            const wUrl = helveticaFont.widthOfTextAtSize(urlLabel, 9);
-            addUriLink(currentPage, urlX, urlY - 2, wUrl, 10, attachment.url);
+            const clickableWidthUrl = contentWidth - 60;
+            addUriLink(currentPage, urlX, urlY - 2, clickableWidthUrl, 12, attachment.url);
           } else if (!isJsonAttachment && urlToOpen) {
             // Para adjuntos físicos, agregar explícitamente un enlace visible debajo del nombre
             yPosition -= 15;
@@ -876,8 +877,8 @@ export async function GET(
               font: helveticaBoldFont,
               color: rgb(0.16, 0.50, 0.73),
             });
-            const wOpen = helveticaBoldFont.widthOfTextAtSize(openLabel, 10);
-            addUriLink(currentPage, labelX, labelY - 2, wOpen, 12, urlToOpen);
+            const clickableWidthOpen = contentWidth - 60;
+            addUriLink(currentPage, labelX, labelY - 2, clickableWidthOpen, 14, urlToOpen);
           }
 
           yPosition -= 18;
@@ -915,8 +916,8 @@ export async function GET(
           }
 
           if (urlToOpen) {
-            const w = helveticaFont.widthOfTextAtSize(label, 11);
-            addUriLink(currentPage, x, y - 2, w, 12, urlToOpen);
+            const clickableWidth = contentWidth - 60;
+            addUriLink(currentPage, x, y - 2, clickableWidth, 14, urlToOpen);
           }
           // Agregar enlace visible debajo del nombre
           if (urlToOpen) {
@@ -931,8 +932,8 @@ export async function GET(
               font: helveticaBoldFont,
               color: rgb(0.16, 0.50, 0.73),
             });
-            const wOpen = helveticaBoldFont.widthOfTextAtSize(openLabel, 10);
-            addUriLink(currentPage, labelX, labelY - 2, wOpen, 12, urlToOpen);
+            const clickableWidthOpen = contentWidth - 60;
+            addUriLink(currentPage, labelX, labelY - 2, clickableWidthOpen, 14, urlToOpen);
           }
 
           yPosition -= 18;
@@ -1132,8 +1133,8 @@ export async function GET(
             font: helveticaBoldFont,
             color: rgb(0.16, 0.50, 0.73),
           });
-          const wStable = helveticaBoldFont.widthOfTextAtSize(stableLabel, 12);
-          addUriLink(attachmentPage, margin, stableLinkY - 2, wStable, 12, stableUrl);
+          const clickableWidthStable = contentWidth; // página de adjunto: usar todo el ancho útil
+          addUriLink(attachmentPage, margin, stableLinkY - 2, clickableWidthStable, 16, stableUrl);
           attachmentY -= 20;
 
           attachmentY -= 20;
