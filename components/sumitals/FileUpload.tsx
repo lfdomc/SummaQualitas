@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Upload, X, File, Image, FileText, Download, Trash2 } from 'lucide-react';
+import { Upload, X, File, Image, FileText, Download, Trash2, ExternalLink } from 'lucide-react';
 import { SumitalAttachment, SumitalAttachmentType } from '@/lib/types';
 
 interface FileUploadProps {
