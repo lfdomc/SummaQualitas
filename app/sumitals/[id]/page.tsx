@@ -29,7 +29,8 @@ import {
   FileText,
   Download
 } from 'lucide-react';
-import { Sumital, UserProfile } from '@/lib/types';
+import { Sumital, UserProfile, SumitalAttachment } from '@/lib/types';
+import SumitalPDFAnnexesDocument from '@/components/sumitals/SumitalPDFAnnexesDocument';
 import AttachmentViewer from '@/components/sumitals/AttachmentViewer';
 
 export default function SumitalDetailPage() {
@@ -42,6 +43,7 @@ export default function SumitalDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [annexLoading, setAnnexLoading] = useState(false);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [observations, setObservations] = useState('');
@@ -137,7 +139,7 @@ export default function SumitalDetailPage() {
 
     try {
       setPdfLoading(true);
-      toast.info('Generando PDF completo...');
+      toast.info('Generando PDF completo (servidor: con header, logo y colores)...');
 
       const response = await fetch(`/api/sumitals/${sumital.id}/pdf`);
 
@@ -146,43 +148,141 @@ export default function SumitalDetailPage() {
         throw new Error(errorData.error || 'Error al generar PDF');
       }
 
-      // Crear blob del PDF
+      // Blob del PDF
       const blob = await response.blob();
-      
-      // Crear URL temporal para descarga
       const url = window.URL.createObjectURL(blob);
-      
-      // Crear elemento de descarga
       const a = document.createElement('a');
       a.href = url;
-      
-      // Generar nombre descriptivo del archivo
+
+      // Nombre del archivo
       const sumitalNumber = sumital.sumital_number || 'N/A';
       const projectName = sumital.project?.name || 'Proyecto';
       const createdDate = sumital.created_at ? new Date(sumital.created_at).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
-      
-      // Limpiar el nombre del proyecto para que sea válido como nombre de archivo
       const cleanProjectName = projectName
-        .replace(/[<>:"/\\|?*]/g, '') // Remover caracteres no válidos para nombres de archivo
-        .replace(/\s+/g, ' ') // Normalizar espacios
+        .replace(/[<>:"/\\|?*]/g, '')
+        .replace(/\s+/g, ' ')
         .trim()
-        .substring(0, 50); // Limitar longitud
-      
+        .substring(0, 50);
       const filename = `Sumital #${sumitalNumber} - ${cleanProjectName} - ${createdDate}.pdf`;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      
-      // Limpiar
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
-      toast.success('PDF descargado exitosamente');
+
+      toast.success('PDF generado desde el servidor con estilo clásico');
     } catch (error) {
-      console.error('Error downloading PDF:', error);
-      toast.error('Error al descargar PDF');
+      console.error('Error generando/descargando PDF:', error);
+      toast.error('Error al generar PDF');
     } finally {
       setPdfLoading(false);
+    }
+  };
+
+  const handleDownloadAnnexes = async () => {
+    if (!sumital) return;
+
+    try {
+      setAnnexLoading(true);
+      toast.info('Descargando anexos...');
+
+      // Reutilizamos la lógica de handleDownloadPDF para generar solo anexos
+      const { jsPDF } = await import('jspdf');
+
+      const attachmentsResp = await fetch(`/api/sumitals/attachments?sumital_id=${sumital.id}`);
+      let attachments: SumitalAttachment[] = [];
+      if (attachmentsResp.ok) {
+        const { attachments: apiAttachments } = await attachmentsResp.json();
+        attachments = apiAttachments || [];
+      }
+
+      const externalDocuments = (sumital.attached_documents || [])
+        .filter((doc: any) => !!doc?.url)
+        .map((doc: any) => ({ label: doc.name || 'Documento', url: String(doc.url) }));
+
+      const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+      const margin = 10;
+      let y = margin + 8;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(30, 30, 30);
+      doc.text('ARCHIVOS ADJUNTOS (Vista previa)', margin, y);
+      y += 8;
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+
+      if (attachments.length === 0 && externalDocuments.length === 0) {
+        doc.setTextColor(100, 100, 100);
+        doc.text('No hay documentos adjuntos.', margin, y);
+        y += 6;
+      } else {
+        if (attachments.length > 0) {
+          doc.setTextColor(50, 50, 50);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Adjuntos (almacenados):', margin, y);
+          y += 6;
+          doc.setFont('helvetica', 'normal');
+          attachments.forEach((att) => {
+            const fileLabel = att.file_name || att.description || 'Documento adjunto';
+            const linkText = `Abrir (${att.file_type || att.attachment_type || 'archivo'})`;
+            doc.setTextColor(26, 115, 232);
+            const linkX = margin;
+            const linkY = y;
+            doc.text(linkText, linkX, linkY);
+            const textWidth = doc.getTextWidth(linkText);
+            doc.link(linkX, linkY - 4, textWidth, 6, { url: `${window.location.origin}/api/sumitals/attachments/${att.id}/open` });
+            doc.setTextColor(80, 80, 80);
+            doc.text(` · ${fileLabel} · ${att.file_type || '—'}`, margin + textWidth + 2, y);
+            y += 6;
+          });
+          y += 2;
+        }
+
+        if (externalDocuments.length > 0) {
+          doc.setTextColor(50, 50, 50);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Documentos Externos:', margin, y);
+          y += 6;
+          doc.setFont('helvetica', 'normal');
+          externalDocuments.forEach((docExt) => {
+            const linkText = `Abrir (${docExt.label || 'documento'})`;
+            doc.setTextColor(26, 115, 232);
+            const linkX = margin;
+            const linkY = y;
+            doc.text(linkText, linkX, linkY);
+            const textWidth = doc.getTextWidth(linkText);
+            doc.link(linkX, linkY - 4, textWidth, 6, { url: docExt.url });
+            doc.setTextColor(80, 80, 80);
+            doc.text(` · ${docExt.url}`, margin + textWidth + 2, y);
+            y += 6;
+          });
+        }
+      }
+
+      const url = window.URL.createObjectURL(new Blob([doc.output('arraybuffer')], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      const sumitalNumber = sumital.sumital_number || 'N/A';
+      const projectName = sumital.project?.name || 'Proyecto';
+      const createdDate = sumital.created_at ? new Date(sumital.created_at).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES');
+      const cleanProjectName = projectName
+        .replace(/[<>:"/\\|?*]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 50);
+      a.download = `Anexos Sumital #${sumitalNumber} - ${cleanProjectName} - ${createdDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('Anexos descargados');
+    } catch (error) {
+      console.error('Error descargando anexos:', error);
+      toast.error('Error al descargar anexos');
+    } finally {
+      setAnnexLoading(false);
     }
   };
 
@@ -359,7 +459,16 @@ export default function SumitalDetailPage() {
             className="flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
-            {pdfLoading ? 'Generando...' : 'Descargar PDF'}
+            {pdfLoading ? 'Generando...' : 'Descargar sumital completo'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleDownloadAnnexes}
+            disabled={annexLoading}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {annexLoading ? 'Generando...' : 'Descargar Anexos'}
           </Button>
           
           <Button

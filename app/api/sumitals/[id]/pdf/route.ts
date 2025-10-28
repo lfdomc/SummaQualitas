@@ -7,6 +7,7 @@ import fs from 'fs';
 import React from 'react';
 import { pdf as pdfRenderer } from '@react-pdf/renderer';
 import SumitalAnnexesDocument from './SumitalAnnexesDocument';
+// React/React-PDF no utilizados: se eliminaron al quitar páginas de anexos
 
 export async function GET(
   request: NextRequest,
@@ -784,170 +785,9 @@ export async function GET(
       yPosition -= 20;
     }
 
-    // Lista de adjuntos (diseño ejecutivo)
-    if (allAttachments && allAttachments.length > 0) {
-      yPosition -= 20;
-      
-      // Verificar si necesitamos una nueva página para los adjuntos
-      const attachmentSpace = (allAttachments.length * 25) + 100;
-      checkPageBreak(attachmentSpace);
-      
-      // Título de sección con línea lateral
-      currentPage.drawRectangle({
-        x: margin - 5,
-        y: yPosition - 2,
-        width: 4,
-        height: 20,
-        color: rgb(0.16, 0.50, 0.73),
-      });
-
-      currentPage.drawText('ARCHIVOS ADJUNTOS', {
-        x: margin + 10,
-        y: yPosition,
-        size: 14,
-        font: helveticaBoldFont,
-        color: rgb(0.2, 0.2, 0.2),
-      });
-      yPosition -= 35;
-
-      // Agrupar adjuntos por tipo
-      const documentAttachments = allAttachments.filter(att => att.attachment_type === 'document');
-      const signedAttachments = allAttachments.filter(att => att.attachment_type === 'signed_sumital');
-
-      if (documentAttachments.length > 0) {
-        currentPage.drawText('Documentos:', {
-          x: margin + 20,
-          y: yPosition,
-          size: 12,
-          font: helveticaBoldFont,
-          color: rgb(0.4, 0.4, 0.4),
-        });
-        yPosition -= 25;
-
-        for (let index = 0; index < documentAttachments.length; index++) {
-          const attachment = documentAttachments[index];
-          const isJsonAttachment = attachment.is_json_attachment;
-          const displayText = isJsonAttachment 
-            ? `${index + 1}. ${attachment.file_name} (Enlace)`
-            : `${index + 1}. ${attachment.file_name}`;
-
-          // Dibujar nombre
-          const textX = margin + 40;
-          const textY = yPosition;
-          currentPage.drawText(displayText, {
-            x: textX,
-            y: textY,
-            size: 11,
-            font: helveticaFont,
-            color: rgb(0.2, 0.2, 0.2),
-          });
-
-          // URL estable: adjuntos físicos apuntan al endpoint /api/sumitals/attachments/:id/open
-          // adjuntos JSON usan su propia URL externa
-          let urlToOpen: string | undefined;
-          if (isJsonAttachment && attachment.url) {
-            urlToOpen = attachment.url;
-          } else if (attachment.id) {
-            urlToOpen = `${origin}/api/sumitals/attachments/${attachment.id}/open`;
-          }
-
-          // Agregar enlace sobre el texto dibujado
-          if (urlToOpen) {
-            const w = helveticaFont.widthOfTextAtSize(displayText, 11);
-            addUriLink(currentPage, textX, textY - 2, w, 12, urlToOpen);
-          }
-
-          // Si es un adjunto JSON, mostrar la URL en la siguiente línea y hacerla clicable también
-          if (isJsonAttachment && attachment.url) {
-            yPosition -= 15;
-            const urlLabel = `   URL: ${attachment.url}`;
-            const urlX = margin + 40;
-            const urlY = yPosition;
-            currentPage.drawText(urlLabel, {
-              x: urlX,
-              y: urlY,
-              size: 9,
-              font: helveticaFont,
-              color: rgb(0.5, 0.5, 0.5),
-            });
-            const wUrl = helveticaFont.widthOfTextAtSize(urlLabel, 9);
-            addUriLink(currentPage, urlX, urlY - 2, wUrl, 10, attachment.url);
-          } else if (!isJsonAttachment && urlToOpen) {
-            // Para adjuntos físicos, agregar explícitamente un enlace visible debajo del nombre
-            yPosition -= 15;
-            const openLabel = '   Abrir / Descargar documento';
-            const labelX = margin + 40;
-            const labelY = yPosition;
-            currentPage.drawText(openLabel, {
-              x: labelX,
-              y: labelY,
-              size: 10,
-              font: helveticaBoldFont,
-              color: rgb(0.16, 0.50, 0.73),
-            });
-            const wOpen = helveticaBoldFont.widthOfTextAtSize(openLabel, 10);
-            addUriLink(currentPage, labelX, labelY - 2, wOpen, 12, urlToOpen);
-          }
-
-          yPosition -= 18;
-        }
-        yPosition -= 10;
-      }
-
-      if (signedAttachments.length > 0) {
-        currentPage.drawText('Sumitales Firmados:', {
-          x: margin + 20,
-          y: yPosition,
-          size: 12,
-          font: helveticaBoldFont,
-          color: rgb(0.4, 0.4, 0.4),
-        });
-        yPosition -= 25;
-
-        for (let index = 0; index < signedAttachments.length; index++) {
-          const attachment = signedAttachments[index];
-          const label = `${index + 1}. ${attachment.file_name}`;
-          const x = margin + 40;
-          const y = yPosition;
-          currentPage.drawText(label, {
-            x,
-            y,
-            size: 11,
-            font: helveticaFont,
-            color: rgb(0.2, 0.2, 0.2),
-          });
-
-          // Enlace estable a archivo físico
-          let urlToOpen: string | undefined;
-          if (attachment.id) {
-            urlToOpen = `${origin}/api/sumitals/attachments/${attachment.id}/open`;
-          }
-
-          if (urlToOpen) {
-            const w = helveticaFont.widthOfTextAtSize(label, 11);
-            addUriLink(currentPage, x, y - 2, w, 12, urlToOpen);
-          }
-          // Agregar enlace visible debajo del nombre
-          if (urlToOpen) {
-            yPosition -= 15;
-            const openLabel = '   Abrir / Descargar documento';
-            const labelX = margin + 40;
-            const labelY = yPosition;
-            currentPage.drawText(openLabel, {
-              x: labelX,
-              y: labelY,
-              size: 10,
-              font: helveticaBoldFont,
-              color: rgb(0.16, 0.50, 0.73),
-            });
-            const wOpen = helveticaBoldFont.widthOfTextAtSize(openLabel, 10);
-            addUriLink(currentPage, labelX, labelY - 2, wOpen, 12, urlToOpen);
-          }
-
-          yPosition -= 18;
-        }
-      }
-    }
+    // (Eliminado) Lista de adjuntos en la página principal.
+    // Esta sección se ha removido para evitar que aparezca la página "ARCHIVOS ADJUNTOS"
+    // en el cuerpo del PDF. Los anexos ahora se generan con React-PDF y se agregan al final.
 
     // Agregar páginas para cada adjunto (solo PDFs e imágenes)
     let processedAttachments = 0;
@@ -958,101 +798,14 @@ export async function GET(
       console.log('Entering attachment processing loop...');
       for (const attachment of allAttachments) {
         try {
-          // Si es un adjunto JSON (enlace), crear una página informativa
+          // No crear páginas informativas para enlaces externos; se listan en los ANEXOS al final.
           if (attachment.is_json_attachment) {
-            const attachmentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-            let attachmentY = pageHeight - margin;
-            processedAttachments++;
-
-            // Encabezado del adjunto (diseño ejecutivo)
-            attachmentPage.drawRectangle({
-              x: 0,
-              y: attachmentY - 60,
-              width: pageWidth,
-              height: 60,
-              color: rgb(0.96, 0.97, 0.98),
-            });
-
-            attachmentPage.drawText(`ENLACE: ${attachment.file_name}`, {
-              x: margin,
-              y: attachmentY - 25,
-              size: 16,
-              font: helveticaBoldFont,
-              color: rgb(0.2, 0.2, 0.2),
-            });
-
-            attachmentPage.drawText('Tipo: Enlace externo', {
-              x: margin,
-              y: attachmentY - 45,
-              size: 12,
-              font: helveticaFont,
-              color: rgb(0.4, 0.4, 0.4),
-            });
-
-            attachmentY -= 80;
-
-            attachmentPage.drawText('URL del documento:', {
-              x: margin,
-              y: attachmentY,
-              size: 12,
-              font: helveticaBoldFont,
-              color: rgb(0.2, 0.2, 0.2),
-            });
-            attachmentY -= 25;
-
-            // Mostrar la URL (puede ser larga, así que la dividimos si es necesario)
-            const url = attachment.url || 'URL no disponible';
-            const maxUrlLength = 80;
-            if (url.length > maxUrlLength) {
-              const urlParts = [];
-              for (let i = 0; i < url.length; i += maxUrlLength) {
-                urlParts.push(url.substring(i, i + maxUrlLength));
-              }
-              urlParts.forEach((part, index) => {
-                const lineY = attachmentY - (index * 15);
-                attachmentPage.drawText(part, {
-                  x: margin,
-                  y: lineY,
-                  size: 10,
-                  font: helveticaFont,
-                  color: rgb(0.3, 0.3, 0.3),
-                });
-                const w = helveticaFont.widthOfTextAtSize(part, 10);
-                addUriLink(attachmentPage, margin, lineY - 2, w, 10, url);
-              });
-              attachmentY -= (urlParts.length * 15) + 20;
-            } else {
-              const linkY = attachmentY;
-              attachmentPage.drawText(url, {
-                x: margin,
-                y: linkY,
-                size: 10,
-                font: helveticaFont,
-                color: rgb(0.3, 0.3, 0.3),
-              });
-              const w = helveticaFont.widthOfTextAtSize(url, 10);
-              addUriLink(attachmentPage, margin, linkY - 2, w, 10, url);
-              attachmentY -= 35;
-            }
-
-            attachmentPage.drawText('Nota: Este es un enlace externo. Para acceder al documento,', {
-              x: margin,
-              y: attachmentY,
-              size: 11,
-              font: helveticaFont,
-              color: rgb(0.5, 0.5, 0.5),
-            });
-            attachmentY -= 15;
-
-            attachmentPage.drawText('copie y pegue la URL en su navegador web.', {
-              x: margin,
-              y: attachmentY,
-              size: 11,
-              font: helveticaFont,
-              color: rgb(0.5, 0.5, 0.5),
-            });
-
             continue; // Pasar al siguiente adjunto
+          }
+
+          // No embeber adjuntos del tipo "Sumital Firmado"; quedarán solo en ANEXOS.
+          if (attachment.attachment_type === 'signed_sumital') {
+            continue;
           }
 
           // Validar que el adjunto tenga la información necesaria (solo para adjuntos físicos)
@@ -1061,8 +814,11 @@ export async function GET(
             continue;
           }
 
-          // Obtener el archivo desde Supabase Storage
-          const { data: fileData, error: fileError } = await supabase.storage
+          // No crear páginas informativas. Solo embebemos el contenido cuando sea visualizable.
+
+          // Obtener el archivo desde Supabase Storage (usar Service Role si está disponible para evitar problemas de RLS)
+          const storageClient = adminSupabase || supabase;
+          const { data: fileData, error: fileError } = await storageClient.storage
             .from('sumitals')
             .download(attachment.file_path);
 
@@ -1079,92 +835,19 @@ export async function GET(
           const fileBuffer = await fileData.arrayBuffer();
           const uint8Array = new Uint8Array(fileBuffer);
 
-          // Agregar página para el adjunto
-          const attachmentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-          let attachmentY = pageHeight - margin;
-          processedAttachments++;
-
-          // Encabezado del adjunto (diseño ejecutivo)
-          attachmentPage.drawRectangle({
-            x: 0,
-            y: attachmentY - 60,
-            width: pageWidth,
-            height: 60,
-            color: rgb(0.96, 0.97, 0.98),
-          });
-
-          attachmentPage.drawText(`ADJUNTO: ${attachment.file_name}`, {
-            x: margin,
-            y: attachmentY - 25,
-            size: 16,
-            font: helveticaBoldFont,
-            color: rgb(0.2, 0.2, 0.2),
-          });
-
-          attachmentPage.drawText(`Tipo: ${attachment.attachment_type === 'document' ? 'Documento' : 'Sumital Firmado'}`, {
-            x: margin,
-            y: attachmentY - 45,
-            size: 12,
-            font: helveticaFont,
-            color: rgb(0.4, 0.4, 0.4),
-          });
-
-          attachmentY -= 80;
-
-          if (attachment.description) {
-            attachmentPage.drawText(`Descripción: ${attachment.description}`, {
-              x: margin,
-              y: attachmentY,
-              size: 12,
-              font: helveticaFont,
-              color: rgb(0.2, 0.2, 0.2),
-            });
-            attachmentY -= 20;
-          }
-
-          const uploadDate = new Date(attachment.created_at).toLocaleDateString('es-ES');
-          attachmentPage.drawText(`Fecha de subida: ${uploadDate}`, {
-            x: margin,
-            y: attachmentY,
-            size: 12,
-            font: helveticaFont,
-            color: rgb(0.5, 0.5, 0.5),
-          });
-          // Agregar un enlace directo estable para abrir/descargar el adjunto
-          const stableLabel = 'Abrir / Descargar documento';
-          const stableLinkY = attachmentY;
-          const stableUrl = attachment.id ? `${origin}/api/sumitals/attachments/${attachment.id}/open` : undefined;
-          attachmentPage.drawText(stableLabel, {
-            x: margin,
-            y: stableLinkY,
-            size: 12,
-            font: helveticaBoldFont,
-            color: rgb(0.16, 0.50, 0.73),
-          });
-          const wStable = helveticaBoldFont.widthOfTextAtSize(stableLabel, 12);
-          addUriLink(attachmentPage, margin, stableLinkY - 2, wStable, 12, stableUrl);
-          attachmentY -= 20;
-
-          attachmentY -= 20;
-
-          // Si es un PDF, intentar embebido
+          // Si es un PDF, embebemos solo sus páginas (sin página informativa)
           if (attachment.file_type === 'application/pdf') {
             try {
               const existingPdf = await PDFDocument.load(uint8Array);
               const pages = await pdfDoc.copyPages(existingPdf, existingPdf.getPageIndices());
               pages.forEach((page) => pdfDoc.addPage(page));
+              processedAttachments += pages.length;
             } catch (pdfError) {
               console.error(`Error embedding PDF ${attachment.file_name}:`, pdfError);
-              attachmentPage.drawText('Error: No se pudo cargar el contenido del PDF', {
-                x: margin,
-                y: attachmentY,
-                size: 12,
-                font: helveticaFont,
-                color: rgb(0.8, 0.2, 0.2),
-              });
+              // Sin páginas informativas: el acceso quedará en ANEXOS.
             }
           } 
-          // Si es una imagen, intentar embebida
+          // Si es una imagen, crear una página limpia y dibujarla (sin encabezados)
           else if (attachment.file_type?.startsWith('image/')) {
             try {
               let image;
@@ -1173,60 +856,31 @@ export async function GET(
               } else if (attachment.file_type === 'image/png') {
                 image = await pdfDoc.embedPng(uint8Array);
               }
-
               if (image) {
-                const imageDims = image.scale(0.5);
+                const imgPage = pdfDoc.addPage([pageWidth, pageHeight]);
                 const maxWidth = contentWidth;
-                const maxHeight = attachmentY - margin;
-                
-                let { width, height } = imageDims;
-                
-                // Escalar imagen si es muy grande
-                if (width > maxWidth) {
-                  const scale = maxWidth / width;
-                  width = maxWidth;
-                  height = height * scale;
-                }
-                
-                if (height > maxHeight) {
-                  const scale = maxHeight / height;
-                  height = maxHeight;
-                  width = width * scale;
-                }
-
-                attachmentPage.drawImage(image, {
+                const maxHeight = pageHeight - 2 * margin;
+                let width = image.width;
+                let height = image.height;
+                const scaleW = maxWidth / width;
+                const scaleH = maxHeight / height;
+                const scale = Math.min(scaleW, scaleH, 1);
+                width = width * scale;
+                height = height * scale;
+                imgPage.drawImage(image, {
                   x: margin + (contentWidth - width) / 2,
-                  y: attachmentY - height,
+                  y: margin + (maxHeight - height) / 2,
                   width,
                   height,
                 });
+                processedAttachments++;
               }
             } catch (imageError) {
               console.error(`Error embedding image ${attachment.file_name}:`, imageError);
-              attachmentPage.drawText('Error: No se pudo cargar la imagen', {
-                x: margin,
-                y: attachmentY,
-                size: 12,
-                font: helveticaFont,
-                color: rgb(0.8, 0.2, 0.2),
-              });
+              // Sin páginas informativas; el acceso quedará en ANEXOS.
             }
           } else {
-            attachmentPage.drawText('Archivo no visualizable en PDF', {
-              x: margin,
-              y: attachmentY,
-              size: 12,
-              font: helveticaFont,
-              color: rgb(0.5, 0.5, 0.5),
-            });
-            attachmentY -= 20;
-            attachmentPage.drawText(`Tipo de archivo: ${attachment.file_type}`, {
-              x: margin,
-              y: attachmentY,
-              size: 11,
-              font: helveticaFont,
-              color: rgb(0.5, 0.5, 0.5),
-            });
+            // Tipos no visualizables se omiten aquí; quedarán accesibles vía ANEXOS al final.
           }
 
         } catch (error) {
@@ -1329,128 +983,32 @@ export async function GET(
       color: rgb(0.5, 0.5, 0.5),
     });
 
-    // === PÁGINA DE ANEXOS (AL FINAL) CON ENLACES REALES (HECHA CON pdf-lib PARA EVITAR ERRORES DE SSR) ===
+    // === PÁGINAS DE ANEXOS GENERADAS POR SEPARADO (React-PDF) Y UNIDAS AL FINAL ===
     try {
-      let annexPage = pdfDoc.addPage([pageWidth, pageHeight]);
-      let annexY = pageHeight - margin;
-
-      // Header de anexos
-      annexPage.drawRectangle({ x: 0, y: annexY - 60, width: pageWidth, height: 60, color: rgb(0.96, 0.97, 0.98) });
-      annexPage.drawText('ANEXOS - DOCUMENTOS ADJUNTOS DEL SUMITAL', {
-        x: margin, y: annexY - 25, size: 16, font: helveticaBoldFont, color: rgb(0.2, 0.2, 0.2),
-      });
-      annexPage.drawText(String(sumital.project?.name || 'Proyecto'), {
-        x: margin, y: annexY - 45, size: 12, font: helveticaFont, color: rgb(0.4, 0.4, 0.4),
-      });
-      annexY -= 80;
-
-      const annexCheckBreak = (requiredSpace: number) => {
-        if (annexY - requiredSpace < margin + 50) {
-          // Iniciar una nueva página de anexos si no hay espacio
-          const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
-          // Actualizar referencias para continuar dibujando
-          annexPage = newPage;
-          annexY = pageHeight - margin;
-        }
-      };
-
       const documentAttachments = allAttachments.filter((att: any) => att.attachment_type === 'document' && !att.is_json_attachment);
-      const signedAttachments = allAttachments.filter((att: any) => att.attachment_type === 'signed_sumital');
+      const signedAttachments = allAttachments.filter((att: any) => att.attachment_type === 'signed_sumital' && !att.is_json_attachment);
       const linkAttachments = allAttachments.filter((att: any) => att.is_json_attachment);
 
-      // Sección DOCUMENTOS
-      if (documentAttachments.length > 0) {
-        annexCheckBreak(120 + documentAttachments.length * 20);
-        annexPage.drawText('DOCUMENTOS', { x: margin, y: annexY, size: 13, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
-        annexY -= 22;
+      const projectName = String(sumital.project?.name || 'Proyecto');
 
-        for (let i = 0; i < documentAttachments.length; i++) {
-          const att: any = documentAttachments[i];
-          const name = String(att.file_name || 'Sin nombre');
-          const date = att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A';
-          const x1 = margin;
-          const x2 = margin + 280;
-          const x3 = margin + 380;
-          const x4 = margin + 480;
-          // Número y nombre
-          annexPage.drawText(`${i + 1}. ${name}`, { x: x1, y: annexY, size: 10, font: helveticaFont, color: rgb(0.2, 0.2, 0.2) });
-          // Fecha
-          annexPage.drawText(date, { x: x2, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
-          // Link
-          const linkLabel = 'Abrir';
-          annexPage.drawText(linkLabel, { x: x3, y: annexY, size: 10, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
-          const w1 = helveticaBoldFont.widthOfTextAtSize(linkLabel, 10);
-          const url = att.id ? `${origin}/api/sumitals/attachments/${att.id}/open` : undefined;
-          addUriLink(annexPage, x3, annexY - 2, w1, 12, url);
-          // Tipo
-          const typeLabel = att.file_type?.includes('pdf') ? 'PDF' : att.file_type?.startsWith('image/') ? 'Imagen' : String(att.file_type || 'N/A');
-          annexPage.drawText(typeLabel, { x: x4, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
-          annexY -= 18;
-        }
-        annexY -= 8;
-      }
+      // Renderizar con React-PDF a un buffer
+      const annexStream = await pdfRenderer(
+        React.createElement(SumitalAnnexesDocument, {
+          projectName,
+          documentAttachments,
+          signedAttachments,
+          linkAttachments,
+          origin,
+        })
+      );
+      const annexBuffer = await annexStream.toBuffer();
 
-      // Sección SUMITALES FIRMADOS
-      if (signedAttachments.length > 0) {
-        annexCheckBreak(100 + signedAttachments.length * 20);
-        annexPage.drawText('SUMITALES FIRMADOS', { x: margin, y: annexY, size: 13, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
-        annexY -= 22;
-
-        for (let i = 0; i < signedAttachments.length; i++) {
-          const att: any = signedAttachments[i];
-          const name = String(att.file_name || 'Sin nombre');
-          const date = att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A';
-          const x1 = margin;
-          const x2 = margin + 300;
-          const x3 = margin + 420;
-          annexPage.drawText(`${i + 1}. ${name}`, { x: x1, y: annexY, size: 10, font: helveticaFont, color: rgb(0.2, 0.2, 0.2) });
-          annexPage.drawText(date, { x: x2, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
-          const linkLabel = 'Abrir / Descargar';
-          annexPage.drawText(linkLabel, { x: x3, y: annexY, size: 10, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
-          const w2 = helveticaBoldFont.widthOfTextAtSize(linkLabel, 10);
-          const url = att.id ? `${origin}/api/sumitals/attachments/${att.id}/open` : undefined;
-          addUriLink(annexPage, x3, annexY - 2, w2, 12, url);
-          annexY -= 18;
-        }
-        annexY -= 8;
-      }
-
-      // Sección ENLACES EXTERNOS
-      if (linkAttachments.length > 0) {
-        annexCheckBreak(120 + linkAttachments.length * 20);
-        annexPage.drawText('ENLACES EXTERNOS', { x: margin, y: annexY, size: 13, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
-        annexY -= 22;
-
-        for (let i = 0; i < linkAttachments.length; i++) {
-          const att: any = linkAttachments[i];
-          const name = String(att.file_name || 'Sin nombre');
-          const date = att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A';
-          const x1 = margin;
-          const x2 = margin + 280;
-          const x3 = margin + 380;
-          annexPage.drawText(`${i + 1}. ${name}`, { x: x1, y: annexY, size: 10, font: helveticaFont, color: rgb(0.2, 0.2, 0.2) });
-          annexPage.drawText(date, { x: x2, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
-          const linkLabel = 'Ver enlace';
-          annexPage.drawText(linkLabel, { x: x3, y: annexY, size: 10, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
-          const w3 = helveticaBoldFont.widthOfTextAtSize(linkLabel, 10);
-          const url = att.url ? String(att.url) : undefined;
-          addUriLink(annexPage, x3, annexY - 2, w3, 12, url);
-          annexY -= 18;
-        }
-        annexY -= 8;
-      }
-
-      // Nota al final
-      annexCheckBreak(60);
-      annexPage.drawText('Nota: El texto subrayado/azul es clickeable y abrirá el navegador para descargar/visualizar.', {
-        x: margin, y: annexY, size: 9, font: helveticaFont, color: rgb(0.5, 0.5, 0.5)
-      });
-      annexY -= 15;
-      annexPage.drawText('Los documentos físicos usan un enlace estable interno, los externos abren la URL directamente.', {
-        x: margin, y: annexY, size: 9, font: helveticaFont, color: rgb(0.5, 0.5, 0.5)
-      });
+      // Cargar el PDF de anexos y copiar sus páginas al final del PDF principal
+      const annexDoc = await PDFDocument.load(annexBuffer);
+      const annexPages = await pdfDoc.copyPages(annexDoc, annexDoc.getPageIndices());
+      annexPages.forEach((p) => pdfDoc.addPage(p));
     } catch (annexError) {
-      console.error('Error generando página de anexos con pdf-lib:', annexError);
+      console.error('Error generando/uniendo anexos (React-PDF):', annexError);
     }
 
     // Generar el PDF
