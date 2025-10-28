@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { formatCurrency } from '@/lib/utils';
 
 interface DashboardStats {
   totalProjects: number;
@@ -77,19 +78,19 @@ export default function DashboardPage() {
         // Obtener datos reales de proyectos
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('id, status, budget');
+          .select('id, status, presupuesto_final, presupuesto_inicial, presupuesto_original, budget, currency, exchange_rate_usd');
         
         if (projectsError) {
-          console.error('Error loading projects:', projectsError);
+          console.warn('Error loading projects:', (projectsError as any)?.message || projectsError);
         }
         
         // Obtener datos reales de gastos
         const { data: expenses, error: expensesError } = await supabase
           .from('expenses')
-          .select('id, amount');
+          .select('id, amount, currency, exchange_rate_usd');
         
         if (expensesError) {
-          console.error('Error loading expenses:', expensesError);
+          console.warn('Error loading expenses:', (expensesError as any)?.message || expensesError);
         }
         
         // Obtener datos reales de equipos
@@ -98,7 +99,7 @@ export default function DashboardPage() {
           .select('id, status');
         
         if (equipmentError) {
-          console.error('Error loading equipment:', equipmentError);
+          console.warn('Error loading equipment:', (equipmentError as any)?.message || equipmentError);
         }
         
         // Calcular estadísticas reales
@@ -110,8 +111,59 @@ export default function DashboardPage() {
         const availableEquipment = equipment?.filter(e => 
           e.status === 'available' || e.status === 'disponible'
         ).length || 0;
-        const totalBudgetAmount = projects?.reduce((sum, project) => sum + (project.budget || 0), 0) || 0;
-        const totalExpensesAmount = expenses?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0;
+        // Helper para convertir posibles strings a número
+        const toNumber = (value: any): number => {
+          if (value == null) return 0;
+          if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+          if (typeof value === 'string') {
+            let s = value
+              .replace(/\s+/g, '')
+              .replace(/CRC|USD|COLONES|DOLARES|₡|\$/gi, '');
+            const hasDot = s.includes('.');
+            const hasComma = s.includes(',');
+            if (hasDot && hasComma) {
+              s = s.replace(/\./g, '').replace(/,/g, '.');
+            } else if (hasComma && !hasDot) {
+              s = s.replace(/,/g, '.');
+            } else {
+              s = s.replace(/[^0-9.\-]/g, '');
+            }
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? n : 0;
+          }
+          return 0;
+        };
+
+        // Presupuesto total en CRC: priorizar presupuesto_final > presupuesto_inicial > budget
+        const totalBudgetAmount = projects?.reduce((sum, project: any) => {
+          // Prioridad: presupuesto_final (CRC) > presupuesto_inicial (CRC) > presupuesto_original (CRC) > budget (puede ser CRC o USD)
+          const pfNum = toNumber(project.presupuesto_final);
+          const piNum = toNumber(project.presupuesto_inicial);
+          const poNum = toNumber(project.presupuesto_original);
+          const bNum  = toNumber(project.budget);
+          let amount = 0;
+          if (pfNum > 0) amount = pfNum;
+          else if (piNum > 0) amount = piNum;
+          else if (poNum > 0) amount = poNum;
+          else amount = bNum;
+          // Si caímos al fallback 'budget' y el proyecto está en USD, convertir a CRC
+          if (amount === bNum && bNum > 0 && project.currency === 'USD') {
+            const rate = toNumber(project.exchange_rate_usd ?? 500);
+            amount = amount * rate;
+          }
+          return sum + amount;
+        }, 0) || 0;
+
+        // Gastos totales normalizados a CRC: usar currency y tipo de cambio si existen
+        const totalExpensesAmount = expenses?.reduce((sum, expense: any) => {
+          const amount = toNumber(expense.amount);
+          const currency = expense.currency || 'CRC';
+          if (currency === 'USD') {
+            const rate = toNumber(expense.exchange_rate_usd ?? 500);
+            return sum + amount * rate;
+          }
+          return sum + amount;
+        }, 0) || 0;
         
         setStats({
           totalProjects,
@@ -124,7 +176,7 @@ export default function DashboardPage() {
           totalExpenses: totalExpensesAmount
         });
       } catch (error) {
-        console.error('Error loading stats:', error);
+        console.warn('Error loading stats:', (error as any)?.message || error);
         // En caso de error, usar valores por defecto
         setStats({
           totalProjects: 0,
@@ -270,7 +322,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="text-lg sm:text-2xl font-bold">
-                  {loadingStats ? '...' : `$${(stats.totalBudget / 1000000).toFixed(1)}M`}
+                  {loadingStats ? '...' : formatCurrency(stats.totalBudget, 'CRC')}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Total proyectos
@@ -288,7 +340,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="text-lg sm:text-2xl font-bold">
-                  {loadingStats ? '...' : `$${stats.totalExpenses.toLocaleString()}`}
+                  {loadingStats ? '...' : formatCurrency(stats.totalExpenses, 'CRC')}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Registrados

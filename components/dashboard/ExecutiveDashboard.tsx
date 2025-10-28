@@ -99,11 +99,42 @@ export default function ExecutiveDashboard() {
         const activeProjects = allProjects.filter(p => p.status === 'en_progreso').length;
         const completedProjects = allProjects.filter(p => p.status === 'completado').length;
         
+        // Helper para convertir montos que pueden venir como string con símbolos/sep. de miles a número
+        const toNumber = (value: unknown): number => {
+          if (value == null) return 0;
+          if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+          if (typeof value === 'string') {
+            // Eliminar textos de moneda y espacios
+            let s = value
+              .replace(/\s+/g, '')
+              .replace(/CRC|USD|COLONES|DOLARES|₡|\$/gi, '');
+            // Si contiene ambos separadores, asumir que el último es decimal y el otro miles
+            const hasDot = s.includes('.')
+            const hasComma = s.includes(',');
+            if (hasDot && hasComma) {
+              // Quitar puntos (miles) y convertir coma a punto (decimal)
+              s = s.replace(/\./g, '').replace(/,/g, '.');
+            } else if (hasComma && !hasDot) {
+              // Solo comas: tratar como punto decimal
+              s = s.replace(/,/g, '.');
+            } else {
+              // Solo puntos o sin separadores: dejar tal cual pero quitar cualquier caracter no numérico
+              s = s.replace(/[^0-9.\-]/g, '');
+            }
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? n : 0;
+          }
+          // Otros tipos no soportados
+          return 0;
+        };
+
         // Calcular presupuesto total usando el presupuesto final (con fallbacks) y soportando posibles strings
         const getProjectBudget = (p: Project): number => {
-          const raw: any = (p as any).total_budget ?? p.presupuesto_final ?? p.presupuesto_inicial ?? p.budget ?? 0;
-          const val = typeof raw === 'string' ? parseFloat(raw) : raw;
-          return isNaN(val) ? 0 : (val || 0);
+          // Priorizar siempre los presupuestos en CRC: final > inicial > budget
+          // Dejar total_budget como último fallback (suele ser USD en datos antiguos)
+          const raw: any = p.presupuesto_final ?? p.presupuesto_inicial ?? p.budget ?? (p as any).total_budget ?? 0;
+          const val = toNumber(raw);
+          return val > 0 ? val : 0;
         };
 
         const totalBudget = allProjects.reduce((sum, p) => {
@@ -227,8 +258,9 @@ export default function ExecutiveDashboard() {
         // Preparar resumen de proyectos con datos reales (solo los primeros 10)
         const projectSummaries: ProjectSummary[] = await Promise.all(
           allProjects.slice(0, 10).map(async (project) => {
-            const budget = project.presupuesto_final || project.budget || project.presupuesto_inicial || 0;
-            const validBudget = isNaN(budget) ? 0 : budget;
+            // Mantener el mismo orden de prioridad que getProjectBudget
+            const budgetRaw = project.presupuesto_final ?? project.presupuesto_inicial ?? project.budget ?? (project as any).total_budget ?? 0;
+            const validBudget = toNumber(budgetRaw);
             
             // Obtener costos directos planificados del proyecto
             const plannedDirectCosts = project.costos_directos || 0;
