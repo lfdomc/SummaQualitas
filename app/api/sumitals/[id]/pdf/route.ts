@@ -101,27 +101,32 @@ export async function GET(
     const addUriLink = (page: any, x: number, y: number, width: number, height: number, url?: string) => {
       try {
         if (!url) return;
+        // Acción URI como diccionario indirecto, usando PDFName para claves tipo Name
         const uriAction = pdfDoc.context.obj({
-          Type: 'Action',
-          S: 'URI',
+          // El Type en acciones es opcional, pero si se incluye debe ser Name
+          Type: PDFName.of('Action'),
+          S: PDFName.of('URI'),
           URI: pdfDoc.context.str(url),
         });
         const uriActionRef = pdfDoc.context.register(uriAction);
+
+        // Anotación de enlace: diccionario indirecto con Type/Subtype como Name
         const linkAnnot = pdfDoc.context.obj({
-          Type: 'Annot',
-          Subtype: 'Link',
-          Rect: [x, y, x + width, y + height],
-          Border: [0, 0, 0],
+          Type: PDFName.of('Annot'),
+          Subtype: PDFName.of('Link'),
+          Rect: pdfDoc.context.obj([x, y, x + width, y + height]),
+          Border: pdfDoc.context.obj([0, 0, 0]),
           A: uriActionRef,
         });
         const linkAnnotRef = pdfDoc.context.register(linkAnnot);
-        // Usar PDFName para asegurar que la clave Annots sea válida
-        const annots = (page as any).node.get(PDFName.of('Annots'));
-        if (annots) {
-          annots.push(linkAnnotRef);
-        } else {
-          (page as any).node.set(PDFName.of('Annots'), pdfDoc.context.obj([linkAnnotRef]));
+
+        // Asegurar que la página tenga el arreglo Annots (PDFArray) y añadir la anotación
+        let annots = (page as any).node.get(PDFName.of('Annots'));
+        if (!annots) {
+          annots = pdfDoc.context.obj([]);
+          (page as any).node.set(PDFName.of('Annots'), annots);
         }
+        annots.push(linkAnnotRef);
       } catch (e: any) {
         console.warn('No se pudo agregar enlace al PDF:', e?.message || e);
       }
