@@ -99,10 +99,15 @@ export default function ExecutiveDashboard() {
         const activeProjects = allProjects.filter(p => p.status === 'en_progreso').length;
         const completedProjects = allProjects.filter(p => p.status === 'completado').length;
         
-        // Calcular presupuesto total con validación
+        // Calcular presupuesto total usando el presupuesto final (con fallbacks) y soportando posibles strings
+        const getProjectBudget = (p: Project): number => {
+          const raw: any = (p as any).total_budget ?? p.presupuesto_final ?? p.presupuesto_inicial ?? p.budget ?? 0;
+          const val = typeof raw === 'string' ? parseFloat(raw) : raw;
+          return isNaN(val) ? 0 : (val || 0);
+        };
+
         const totalBudget = allProjects.reduce((sum, p) => {
-          const budget = p.budget || 0;
-          return sum + (isNaN(budget) ? 0 : budget);
+          return sum + getProjectBudget(p);
         }, 0);
         
         // Calcular ingresos totales (convertir todo a CRC)
@@ -180,8 +185,8 @@ export default function ExecutiveDashboard() {
         }).length;
         
         const onBudgetProjects = allProjects.filter(p => {
-          const spent = p.total_expenses || 0;
-          const budget = p.budget || 0;
+          const spent = p.actualExpenses || p.total_expenses || 0;
+          const budget = getProjectBudget(p);
           return budget > 0 && spent <= budget;
         }).length;
         
