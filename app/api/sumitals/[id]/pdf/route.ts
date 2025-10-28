@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/client';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, PDFName } from 'pdf-lib';
 import path from 'path';
 import fs from 'fs';
 import React from 'react';
@@ -115,11 +115,12 @@ export async function GET(
           A: uriActionRef,
         });
         const linkAnnotRef = pdfDoc.context.register(linkAnnot);
-        const annots = (page as any).node.get('Annots');
+        // Usar PDFName para asegurar que la clave Annots sea válida
+        const annots = (page as any).node.get(PDFName.of('Annots'));
         if (annots) {
           annots.push(linkAnnotRef);
         } else {
-          (page as any).node.set('Annots', pdfDoc.context.obj([linkAnnotRef]));
+          (page as any).node.set(PDFName.of('Annots'), pdfDoc.context.obj([linkAnnotRef]));
         }
       } catch (e: any) {
         console.warn('No se pudo agregar enlace al PDF:', e?.message || e);
@@ -1323,27 +1324,128 @@ export async function GET(
       color: rgb(0.5, 0.5, 0.5),
     });
 
-    // === PÁGINA DE ANEXOS (AL FINAL), IGUAL A LA DE REPORTES, CON ENLACES REALES ===
+    // === PÁGINA DE ANEXOS (AL FINAL) CON ENLACES REALES (HECHA CON pdf-lib PARA EVITAR ERRORES DE SSR) ===
     try {
-      const projectNameAnnex = sumital.project?.name || 'Proyecto';
+      let annexPage = pdfDoc.addPage([pageWidth, pageHeight]);
+      let annexY = pageHeight - margin;
+
+      // Header de anexos
+      annexPage.drawRectangle({ x: 0, y: annexY - 60, width: pageWidth, height: 60, color: rgb(0.96, 0.97, 0.98) });
+      annexPage.drawText('ANEXOS - DOCUMENTOS ADJUNTOS DEL SUMITAL', {
+        x: margin, y: annexY - 25, size: 16, font: helveticaBoldFont, color: rgb(0.2, 0.2, 0.2),
+      });
+      annexPage.drawText(String(sumital.project?.name || 'Proyecto'), {
+        x: margin, y: annexY - 45, size: 12, font: helveticaFont, color: rgb(0.4, 0.4, 0.4),
+      });
+      annexY -= 80;
+
+      const annexCheckBreak = (requiredSpace: number) => {
+        if (annexY - requiredSpace < margin + 50) {
+          // Iniciar una nueva página de anexos si no hay espacio
+          const newPage = pdfDoc.addPage([pageWidth, pageHeight]);
+          // Actualizar referencias para continuar dibujando
+          annexPage = newPage;
+          annexY = pageHeight - margin;
+        }
+      };
+
       const documentAttachments = allAttachments.filter((att: any) => att.attachment_type === 'document' && !att.is_json_attachment);
       const signedAttachments = allAttachments.filter((att: any) => att.attachment_type === 'signed_sumital');
       const linkAttachments = allAttachments.filter((att: any) => att.is_json_attachment);
 
-      const annexElement = React.createElement(SumitalAnnexesDocument, {
-        projectName: projectNameAnnex,
-        documentAttachments,
-        signedAttachments,
-        linkAttachments,
-        origin,
-      });
+      // Sección DOCUMENTOS
+      if (documentAttachments.length > 0) {
+        annexCheckBreak(120 + documentAttachments.length * 20);
+        annexPage.drawText('DOCUMENTOS', { x: margin, y: annexY, size: 13, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
+        annexY -= 22;
 
-      const annexBuffer = await pdfRenderer(annexElement).toBuffer();
-      const annexPdfDoc = await PDFDocument.load(annexBuffer);
-      const annexPages = await pdfDoc.copyPages(annexPdfDoc, annexPdfDoc.getPageIndices());
-      annexPages.forEach((p) => pdfDoc.addPage(p));
+        for (let i = 0; i < documentAttachments.length; i++) {
+          const att: any = documentAttachments[i];
+          const name = String(att.file_name || 'Sin nombre');
+          const date = att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A';
+          const x1 = margin;
+          const x2 = margin + 280;
+          const x3 = margin + 380;
+          const x4 = margin + 480;
+          // Número y nombre
+          annexPage.drawText(`${i + 1}. ${name}`, { x: x1, y: annexY, size: 10, font: helveticaFont, color: rgb(0.2, 0.2, 0.2) });
+          // Fecha
+          annexPage.drawText(date, { x: x2, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
+          // Link
+          const linkLabel = 'Abrir';
+          annexPage.drawText(linkLabel, { x: x3, y: annexY, size: 10, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
+          const w1 = helveticaBoldFont.widthOfTextAtSize(linkLabel, 10);
+          const url = att.id ? `${origin}/api/sumitals/attachments/${att.id}/open` : undefined;
+          addUriLink(annexPage, x3, annexY - 2, w1, 12, url);
+          // Tipo
+          const typeLabel = att.file_type?.includes('pdf') ? 'PDF' : att.file_type?.startsWith('image/') ? 'Imagen' : String(att.file_type || 'N/A');
+          annexPage.drawText(typeLabel, { x: x4, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
+          annexY -= 18;
+        }
+        annexY -= 8;
+      }
+
+      // Sección SUMITALES FIRMADOS
+      if (signedAttachments.length > 0) {
+        annexCheckBreak(100 + signedAttachments.length * 20);
+        annexPage.drawText('SUMITALES FIRMADOS', { x: margin, y: annexY, size: 13, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
+        annexY -= 22;
+
+        for (let i = 0; i < signedAttachments.length; i++) {
+          const att: any = signedAttachments[i];
+          const name = String(att.file_name || 'Sin nombre');
+          const date = att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A';
+          const x1 = margin;
+          const x2 = margin + 300;
+          const x3 = margin + 420;
+          annexPage.drawText(`${i + 1}. ${name}`, { x: x1, y: annexY, size: 10, font: helveticaFont, color: rgb(0.2, 0.2, 0.2) });
+          annexPage.drawText(date, { x: x2, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
+          const linkLabel = 'Abrir / Descargar';
+          annexPage.drawText(linkLabel, { x: x3, y: annexY, size: 10, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
+          const w2 = helveticaBoldFont.widthOfTextAtSize(linkLabel, 10);
+          const url = att.id ? `${origin}/api/sumitals/attachments/${att.id}/open` : undefined;
+          addUriLink(annexPage, x3, annexY - 2, w2, 12, url);
+          annexY -= 18;
+        }
+        annexY -= 8;
+      }
+
+      // Sección ENLACES EXTERNOS
+      if (linkAttachments.length > 0) {
+        annexCheckBreak(120 + linkAttachments.length * 20);
+        annexPage.drawText('ENLACES EXTERNOS', { x: margin, y: annexY, size: 13, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
+        annexY -= 22;
+
+        for (let i = 0; i < linkAttachments.length; i++) {
+          const att: any = linkAttachments[i];
+          const name = String(att.file_name || 'Sin nombre');
+          const date = att.created_at ? new Date(att.created_at).toLocaleDateString('es-ES') : 'N/A';
+          const x1 = margin;
+          const x2 = margin + 280;
+          const x3 = margin + 380;
+          annexPage.drawText(`${i + 1}. ${name}`, { x: x1, y: annexY, size: 10, font: helveticaFont, color: rgb(0.2, 0.2, 0.2) });
+          annexPage.drawText(date, { x: x2, y: annexY, size: 10, font: helveticaFont, color: rgb(0.4, 0.4, 0.4) });
+          const linkLabel = 'Ver enlace';
+          annexPage.drawText(linkLabel, { x: x3, y: annexY, size: 10, font: helveticaBoldFont, color: rgb(0.16, 0.50, 0.73) });
+          const w3 = helveticaBoldFont.widthOfTextAtSize(linkLabel, 10);
+          const url = att.url ? String(att.url) : undefined;
+          addUriLink(annexPage, x3, annexY - 2, w3, 12, url);
+          annexY -= 18;
+        }
+        annexY -= 8;
+      }
+
+      // Nota al final
+      annexCheckBreak(60);
+      annexPage.drawText('Nota: El texto subrayado/azul es clickeable y abrirá el navegador para descargar/visualizar.', {
+        x: margin, y: annexY, size: 9, font: helveticaFont, color: rgb(0.5, 0.5, 0.5)
+      });
+      annexY -= 15;
+      annexPage.drawText('Los documentos físicos usan un enlace estable interno, los externos abren la URL directamente.', {
+        x: margin, y: annexY, size: 9, font: helveticaFont, color: rgb(0.5, 0.5, 0.5)
+      });
     } catch (annexError) {
-      console.error('Error generando/insertando página de anexos:', annexError);
+      console.error('Error generando página de anexos con pdf-lib:', annexError);
     }
 
     // Generar el PDF
