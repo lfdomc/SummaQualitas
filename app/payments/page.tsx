@@ -518,21 +518,21 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
         <div>
           <h1 className="text-3xl font-bold">Gestión de Pagos</h1>
           <p className="text-muted-foreground mt-1">
             Administra los pagos de clientes y pagos a proveedores
           </p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2 max-[350px]:space-x-0">
           {permissions.canManagePayments && (
             <>
               <Dialog open={isClientPaymentDialogOpen} onOpenChange={setIsClientPaymentDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Pago Cliente
                   </Button>
@@ -541,7 +541,7 @@ export default function PaymentsPage() {
               
               <Dialog open={isSupplierPaymentDialogOpen} onOpenChange={setIsSupplierPaymentDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">
+                  <Button variant="outline" className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Pago Proveedor
                   </Button>
@@ -615,13 +615,13 @@ export default function PaymentsPage() {
 
       {/* Filtros */}
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4 sm:p-6">
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 max-[350px]:gap-3">
             <div className="space-y-2">
-              <Label htmlFor="search">Buscar</Label>
+              <Label htmlFor="search" className="text-sm font-medium max-[350px]:text-xs">Buscar</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -635,7 +635,7 @@ export default function PaymentsPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="status">Estado</Label>
+              <Label htmlFor="status" className="text-sm font-medium max-[350px]:text-xs">Estado</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los estados" />
@@ -650,7 +650,7 @@ export default function PaymentsPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="project">Proyecto</Label>
+              <Label htmlFor="project" className="text-sm font-medium max-[350px]:text-xs">Proyecto</Label>
               <Select value={projectFilter} onValueChange={setProjectFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los proyectos" />
@@ -667,7 +667,7 @@ export default function PaymentsPage() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="date">Período</Label>
+              <Label htmlFor="date" className="text-sm font-medium max-[350px]:text-xs">Período</Label>
               <Select value={dateFilter} onValueChange={setDateFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos los períodos" />
@@ -687,7 +687,7 @@ export default function PaymentsPage() {
 
       {/* Tabs para pagos */}
       <Tabs defaultValue="client-payments" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex flex-wrap gap-2">
           <TabsTrigger value="client-payments" className="flex items-center space-x-2">
             <TrendingUp className="h-4 w-4" />
             <span>Pagos de Clientes</span>
@@ -718,13 +718,14 @@ export default function PaymentsPage() {
                       : 'Aún no se han registrado pagos de clientes.'}
                   </p>
                   {permissions.canManagePayments && (
-                    <Button onClick={() => setIsClientPaymentDialogOpen(true)}>
+                    <Button onClick={() => setIsClientPaymentDialogOpen(true)} className="w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
                       Registrar Primer Pago
                     </Button>
                   )}
                 </div>
               ) : (
+                <div className="overflow-x-auto max-[350px]:-mx-2 max-[350px]:px-2">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -808,6 +809,7 @@ export default function PaymentsPage() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -833,13 +835,14 @@ export default function PaymentsPage() {
                       : 'Aún no se han registrado pagos a proveedores.'}
                   </p>
                   {permissions.canManagePayments && (
-                    <Button onClick={() => setIsSupplierPaymentDialogOpen(true)}>
+                    <Button onClick={() => setIsSupplierPaymentDialogOpen(true)} className="w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
                       Registrar Primer Pago
                     </Button>
                   )}
                 </div>
               ) : (
+                <div className="overflow-x-auto max-[350px]:-mx-2 max-[350px]:px-2">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -922,6 +925,7 @@ export default function PaymentsPage() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

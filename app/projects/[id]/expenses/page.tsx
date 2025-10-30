@@ -331,9 +331,9 @@ function ProjectExpensesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm max-[350px]:text-xs text-gray-500 mb-6">
         <Link href="/projects" className="hover:text-gray-700">
           Proyectos
         </Link>
@@ -346,14 +346,14 @@ function ProjectExpensesPage() {
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gastos del Proyecto</h1>
           <p className="text-gray-600 mt-1">{project?.name}</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <Link href={`/projects/${projectId}`}>
-            <Button variant="outline">
+            <Button variant="outline" className="w-full sm:w-auto">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver al Proyecto
             </Button>
@@ -361,7 +361,7 @@ function ProjectExpensesPage() {
           {canEdit && (
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar Gasto
                 </Button>
@@ -374,9 +374,9 @@ function ProjectExpensesPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="category">Categoría *</Label>
+                      <Label htmlFor="category" className="text-sm max-[350px]:text-xs">Categoría *</Label>
                       <Select
                         value={expenseForm.category}
                         onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value as CreateExpenseData['category'], subcategory_direct: undefined, subcategory_indirect: undefined })}
@@ -394,7 +394,7 @@ function ProjectExpensesPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="subcategory">Subcategoría</Label>
+                      <Label htmlFor="subcategory" className="text-sm max-[350px]:text-xs">Subcategoría</Label>
                       <Input
                         id="subcategory"
                         value={
@@ -415,7 +415,7 @@ function ProjectExpensesPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">Descripción *</Label>
+                    <Label htmlFor="description" className="text-sm max-[350px]:text-xs">Descripción *</Label>
                     <Input
                       id="description"
                       value={expenseForm.description}
@@ -423,9 +423,9 @@ function ProjectExpensesPage() {
                       placeholder="Descripción del gasto"
                     />
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="amount">Monto *</Label>
+                      <Label htmlFor="amount" className="text-sm max-[350px]:text-xs">Monto *</Label>
                       <Input
                         id="amount"
                         type="number"
@@ -436,7 +436,7 @@ function ProjectExpensesPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="currency">Moneda</Label>
+                      <Label htmlFor="currency" className="text-sm max-[350px]:text-xs">Moneda</Label>
                       <Select
                         value={expenseForm.currency}
                         onValueChange={(value: 'CRC' | 'USD') => setExpenseForm({ ...expenseForm, currency: value })}
@@ -451,7 +451,7 @@ function ProjectExpensesPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="exchange_rate_usd">Tipo de Cambio</Label>
+                      <Label htmlFor="exchange_rate_usd" className="text-sm max-[350px]:text-xs">Tipo de Cambio</Label>
                       <Input
                         id="exchange_rate_usd"
                         type="number"
@@ -462,9 +462,9 @@ function ProjectExpensesPage() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="expense_date">Fecha</Label>
+                      <Label htmlFor="expense_date" className="text-sm max-[350px]:text-xs">Fecha</Label>
                       <Input
                         id="expense_date"
                         type="date"
@@ -473,7 +473,7 @@ function ProjectExpensesPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="supplier">Proveedor</Label>
+                      <Label htmlFor="supplier" className="text-sm max-[350px]:text-xs">Proveedor</Label>
                       <Select
                         value={expenseForm.supplier_id}
                         onValueChange={(value) => setExpenseForm({ ...expenseForm, supplier_id: value })}
@@ -492,10 +492,10 @@ function ProjectExpensesPage() {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                     <div className="space-y-2">
-                      <Label htmlFor="reference">Referencia</Label>
+                      <Label htmlFor="reference" className="text-sm max-[350px]:text-xs">Referencia</Label>
                       <Input
                         id="reference"
                         value={expenseForm.reference}
@@ -505,7 +505,7 @@ function ProjectExpensesPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="details">Detalles</Label>
+                    <Label htmlFor="details" className="text-sm max-[350px]:text-xs">Detalles</Label>
                     <Textarea
                       id="details"
                       value={expenseForm.details}
@@ -515,7 +515,7 @@ function ProjectExpensesPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Notas</Label>
+                    <Label htmlFor="notes" className="text-sm max-[350px]:text-xs">Notas</Label>
                     <Textarea
                       id="notes"
                       value={expenseForm.notes}
@@ -526,10 +526,10 @@ function ProjectExpensesPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="w-full sm:w-auto">
                     Cancelar
                   </Button>
-                  <Button onClick={handleAddExpense}>
+                  <Button onClick={handleAddExpense} className="w-full sm:w-auto">
                     Agregar Gasto
                   </Button>
                 </DialogFooter>
@@ -542,7 +542,7 @@ function ProjectExpensesPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -563,7 +563,7 @@ function ProjectExpensesPage() {
           
           return (
             <Card key={category}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
                 <CardTitle className="text-sm font-medium">{categoryInfo?.label || category}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -591,7 +591,7 @@ function ProjectExpensesPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Buscar</Label>
+              <Label className="text-sm max-[350px]:text-xs">Buscar</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -603,7 +603,7 @@ function ProjectExpensesPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label className="text-sm max-[350px]:text-xs">Category</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
                   <SelectValue />
@@ -625,6 +625,7 @@ function ProjectExpensesPage() {
                   setSearchTerm('');
                   setSelectedCategory('all');
                 }}
+                className="w-full sm:w-auto"
               >
                 <Filter className="h-4 w-4 mr-2" />
 Clear Filters
@@ -700,7 +701,7 @@ Clear Filters
                       </td>
                       {canEdit && (
                         <td className="p-4 text-center">
-                          <div className="flex justify-center space-x-2">
+                          <div className="flex justify-center flex-wrap gap-2">
                             <Button
                               variant="outline"
                               size="sm"
@@ -746,9 +747,9 @@ Clear Filters
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-category">Categoría *</Label>
+                <Label htmlFor="edit-category" className="text-sm max-[350px]:text-xs">Categoría *</Label>
                 <Select
                   value={expenseForm.category}
                   onValueChange={(value) => setExpenseForm({ ...expenseForm, category: value as CreateExpenseData['category'], subcategory_direct: undefined, subcategory_indirect: undefined })}
@@ -766,7 +767,7 @@ Clear Filters
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-subcategory">Subcategoría</Label>
+                <Label htmlFor="edit-subcategory" className="text-sm max-[350px]:text-xs">Subcategoría</Label>
                 <Input
                   id="edit-subcategory"
                   value={
@@ -787,7 +788,7 @@ Clear Filters
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Descripción *</Label>
+              <Label htmlFor="edit-description" className="text-sm max-[350px]:text-xs">Descripción *</Label>
               <Input
                 id="edit-description"
                 value={expenseForm.description}
@@ -795,9 +796,9 @@ Clear Filters
                 placeholder="Descripción del gasto"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-amount">Monto *</Label>
+                <Label htmlFor="edit-amount" className="text-sm max-[350px]:text-xs">Monto *</Label>
                 <Input
                   id="edit-amount"
                   type="number"
@@ -808,7 +809,7 @@ Clear Filters
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-currency">Moneda</Label>
+                <Label htmlFor="edit-currency" className="text-sm max-[350px]:text-xs">Moneda</Label>
                 <Select
                   value={expenseForm.currency}
                   onValueChange={(value: 'CRC' | 'USD') => setExpenseForm({ ...expenseForm, currency: value })}
@@ -823,7 +824,7 @@ Clear Filters
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-exchange_rate_usd">Tipo de Cambio</Label>
+                <Label htmlFor="edit-exchange_rate_usd" className="text-sm max-[350px]:text-xs">Tipo de Cambio</Label>
                 <Input
                   id="edit-exchange_rate_usd"
                   type="number"
@@ -834,9 +835,9 @@ Clear Filters
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-expense_date">Fecha</Label>
+                <Label htmlFor="edit-expense_date" className="text-sm max-[350px]:text-xs">Fecha</Label>
                 <Input
                   id="edit-expense_date"
                   type="date"
@@ -845,7 +846,7 @@ Clear Filters
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-supplier">Proveedor</Label>
+                <Label htmlFor="edit-supplier" className="text-sm max-[350px]:text-xs">Proveedor</Label>
                 <Select
                   value={expenseForm.supplier_id}
                   onValueChange={(value) => setExpenseForm({ ...expenseForm, supplier_id: value })}
@@ -864,10 +865,10 @@ Clear Filters
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
               <div className="space-y-2">
-                <Label htmlFor="edit-reference">Referencia</Label>
+                <Label htmlFor="edit-reference" className="text-sm max-[350px]:text-xs">Referencia</Label>
                 <Input
                   id="edit-reference"
                   value={expenseForm.reference}
@@ -877,7 +878,7 @@ Clear Filters
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-details">Detalles</Label>
+              <Label htmlFor="edit-details" className="text-sm max-[350px]:text-xs">Detalles</Label>
               <Textarea
                 id="edit-details"
                 value={expenseForm.details}
@@ -887,7 +888,7 @@ Clear Filters
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-notes">Notas</Label>
+              <Label htmlFor="edit-notes" className="text-sm max-[350px]:text-xs">Notas</Label>
               <Textarea
                 id="edit-notes"
                 value={expenseForm.notes}
@@ -898,10 +899,10 @@ Clear Filters
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={handleCancelEdit}>
+            <Button variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={handleUpdateExpense}>
+            <Button onClick={handleUpdateExpense} className="w-full sm:w-auto">
               Actualizar Gasto
             </Button>
           </DialogFooter>

@@ -368,20 +368,32 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
     return <>{children}</>;
   }
 
-  // Fallback: mostrar siempre la barra superior con el botón de menú, incluso si
-  // el usuario no está autenticado o el estado está en loading, para una UX consistente
+  // Fallback: en rutas privadas, mostrar SIEMPRE el sidebar aunque el estado de auth
+  // esté cargando o el usuario aún no se haya resuelto. Esto evita que el menú
+  // desaparezca por discrepancias temporales entre SSR y cliente.
   if (!user || loading) {
+    const filteredNavigationGroups = getFilteredNavigationGroups();
     return (
-      <SidebarProvider>
+      <SidebarProvider defaultOpen>
         <div className="relative flex min-h-screen w-full flex-1 overflow-hidden">
+          <DashboardSidebar variant="inset">
+            <SidebarContentWithAutoClose
+              filteredNavigationGroups={filteredNavigationGroups}
+              pathname={pathname}
+              profile={profile}
+              handleLogout={handleLogout}
+              isLoggingOut={isLoggingOut}
+            />
+            <SidebarRail />
+          </DashboardSidebar>
           <SidebarInset className="flex flex-col min-h-0 flex-1">
+            {/* Header interno del sidebar - visible también durante loading/no-user para UX consistente */}
             <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-4 min-w-0 flex-wrap">
               <SidebarTrigger className="-ml-1" />
               <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
                 <Building className="h-4 w-4 shrink-0" />
                 {/* Ocultar texto largo en pantallas ultra pequeñas para evitar overflow horizontal */}
                 <span className="max-[350px]:hidden">Sistema de Gestión de Construcción</span>
-                <span className="hidden sm:inline text-xs">(menú disponible tras iniciar sesión)</span>
               </div>
             </header>
             <main className="flex-1 overflow-auto min-h-0 p-2 sm:p-4">

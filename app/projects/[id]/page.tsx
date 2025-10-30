@@ -256,9 +256,9 @@ function ProjectDetailPage() {
   const statusInfo = statusConfig[project.status] || statusConfig.planificacion;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto p-4 sm:p-6">
       {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm max-[350px]:text-xs text-gray-500 mb-6">
         <Link href="/projects" className="hover:text-gray-700">
           Proyectos
         </Link>
@@ -267,7 +267,7 @@ function ProjectDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 mb-8">
         <div className="flex items-center space-x-4">
           <div className="p-3 bg-blue-100 rounded-lg">
             <Building2 className="h-8 w-8 text-blue-600" />
@@ -284,16 +284,16 @@ function ProjectDetailPage() {
           </div>
         </div>
         
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/projects" prefetch={false}>
-            <Button variant="outline">
+            <Button variant="outline" className="w-full sm:w-auto">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Button>
           </Link>
           {canEdit && (
             <Link href={`/projects/${project.id}/edit`} prefetch={false}>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Edit className="mr-2 h-4 w-4" />
                 Editar
               </Button>
@@ -303,7 +303,7 @@ function ProjectDetailPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap gap-2">
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="financial">Financiero</TabsTrigger>
           {canEdit && <TabsTrigger value="expenses">Gastos</TabsTrigger>}
