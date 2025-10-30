@@ -220,30 +220,30 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8">
+    <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-full overflow-x-hidden max-[350px]:px-1">
       {/* Header */}
-      <div className="flex flex-col space-y-4 mb-6 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:mb-8">
+      <div className="flex flex-col space-y-4 max-[350px]:space-y-2 mb-6 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:mb-8 min-w-0 max-[350px]:gap-1">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Gestión de Proyectos</h1>
           <p className="mt-1 text-sm text-gray-600 sm:text-base sm:mt-2">
             Administra todos los proyectos de construcción
           </p>
         </div>
-        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3">
+        <div className="flex flex-col space-y-2 max-[350px]:space-y-1 sm:flex-row sm:space-y-0 sm:space-x-3 w-full min-w-0">
           <Button
             variant="outline"
             onClick={() => setIsCreateClientDialogOpen(true)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto max-[350px]:h-8 max-[350px]:px-2 max-[350px]:text-xs max-[350px]:leading-tight"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2 sm:h-4 sm:w-4 sm:mr-2 max-[350px]:hidden" />
             <span className="sm:hidden">Cliente</span>
             <span className="hidden sm:inline">Nuevo Cliente</span>
           </Button>
           <Button
             onClick={() => router.push('/projects/new')}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto max-[350px]:h-8 max-[350px]:px-2 max-[350px]:text-xs max-[350px]:leading-tight"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2 sm:h-4 sm:w-4 sm:mr-2 max-[350px]:hidden" />
             <span className="sm:hidden">Proyecto</span>
             <span className="hidden sm:inline">Nuevo Proyecto</span>
           </Button>
@@ -284,9 +284,9 @@ export default function ProjectsPage() {
           <CardTitle className="text-lg font-semibold">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 max-[350px]:gap-2">
             <div className="space-y-2">
-              <Label htmlFor="search" className="text-sm font-medium">Buscar</Label>
+              <Label htmlFor="search" className="text-sm font-medium max-[350px]:text-xs">Buscar</Label>
               <Input
                 id="search"
                 placeholder="Buscar proyectos..."
@@ -296,7 +296,7 @@ export default function ProjectsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="status" className="text-sm font-medium">Estado</Label>
+              <Label htmlFor="status" className="text-sm font-medium max-[350px]:text-xs">Estado</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Todos los estados" />
@@ -312,7 +312,7 @@ export default function ProjectsPage() {
               </Select>
             </div>
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-              <Label htmlFor="client" className="text-sm font-medium">Cliente</Label>
+              <Label htmlFor="client" className="text-sm font-medium max-[350px]:text-xs">Cliente</Label>
               <Select value={clientFilter} onValueChange={setClientFilter}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Todos los clientes" />
@@ -355,8 +355,9 @@ export default function ProjectsPage() {
               </p>
               <Button 
                 onClick={() => router.push('/projects/new')}
+                className="max-[350px]:h-8 max-[350px]:px-2 max-[350px]:text-xs max-[350px]:leading-tight"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2 sm:h-4 sm:w-4 sm:mr-2 max-[350px]:hidden" />
                 <span className="lg:hidden">Crear Proyecto</span>
                 <span className="hidden lg:inline">Crear Primer Proyecto</span>
               </Button>
@@ -365,7 +366,7 @@ export default function ProjectsPage() {
             <>
               {/* Vista móvil con tarjetas */}
               <div className="block lg:hidden">
-                <div className="space-y-4">
+                <div className="space-y-4 max-[350px]:space-y-3">
                   {filteredProjects.map((project) => {
                     const client = project.client || clients.find(c => c.id === project.client_id);
                     const totalExpenses = (project as any)?.actualExpenses ?? (project as any)?.actual_expenses ?? 0;
@@ -376,7 +377,7 @@ export default function ProjectsPage() {
 
                     return (
                       <Card key={project.id} className="border border-border/50 hover:border-border transition-colors">
-                        <CardContent className="p-4">
+                        <CardContent className="p-4 max-[350px]:p-3">
                           <div className="flex justify-between items-start mb-3 gap-2">
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-base text-gray-900 truncate leading-tight">{project.name}</h3>
@@ -397,7 +398,7 @@ export default function ProjectsPage() {
                             </p>
                           )}
 
-                          <div className="flex items-center text-sm text-gray-500 mb-3">
+                          <div className="flex items-center text-sm text-gray-500 mb-3 max-[350px]:text-xs">
                             <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
                             <span className="truncate">{project.location}</span>
                           </div>
@@ -459,12 +460,12 @@ export default function ProjectsPage() {
                             </div>
                           </div>
 
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-2 max-[350px]:flex-wrap max-[350px]:space-x-0 max-[350px]:space-y-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => router.push(`/projects/${project.id}`)}
-                              className="flex-1 text-xs"
+                              className="flex-1 text-xs min-w-0"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               Ver
@@ -473,7 +474,7 @@ export default function ProjectsPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => router.push(`/projects/${project.id}/edit`)}
-                              className="flex-1 text-xs"
+                              className="flex-1 text-xs min-w-0"
                             >
                               <Edit className="h-4 w-4 mr-1" />
                               Editar
@@ -616,7 +617,7 @@ export default function ProjectsPage() {
           
           {/* Controles de Paginación */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 border-t gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 border-t gap-4 max-[350px]:px-2">
               <div className="text-sm text-gray-700 order-2 sm:order-1">
                 <span className="hidden sm:inline">
                   Mostrando {((currentPage - 1) * projectsPerPage) + 1} a {Math.min(currentPage * projectsPerPage, totalProjects)} de {totalProjects} proyectos

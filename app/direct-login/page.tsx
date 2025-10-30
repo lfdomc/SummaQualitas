@@ -41,12 +41,28 @@ export default function DirectLoginPage() {
 
         console.log('📋 Sesión verificada:', sessionData);
         setStatus('✅ Sesión establecida! Redirigiendo...');
+        // Detener el spinner para evitar la sensación de "cargando infinito"
+        setIsLoading(false);
         
-        // Esperar un momento para que la sesión se propague
-        setTimeout(() => {
+        // Redirigir de forma robusta
+        // Preferimos una navegación dura para asegurar que el contexto de auth y el sidebar
+        // se rehidraten correctamente en el viewer del IDE.
+        try {
           console.log('🔄 Redirigiendo a /projects...');
+          // Intentar con router primero
           router.push('/projects');
-        }, 2000);
+          // Como respaldo, hacer una navegación dura si el router no aplica en ~1s
+          setTimeout(() => {
+            if (typeof window !== 'undefined') {
+              window.location.assign('/projects');
+            }
+          }, 1000);
+        } catch (navErr) {
+          console.warn('⚠️ Fallback a navegación dura /projects:', navErr);
+          if (typeof window !== 'undefined') {
+            window.location.assign('/projects');
+          }
+        }
 
       } catch (error: unknown) {
         console.error('❌ Error en login:', error);
@@ -93,6 +109,17 @@ export default function DirectLoginPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         )}
+
+        {/* En caso de que la redirección no ocurra por restricciones del viewer,
+            mostramos un botón para ir manualmente a /projects */}
+        <div className="mt-4 text-center">
+          <a
+            href="/projects"
+            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Ir a Projects
+          </a>
+        </div>
       </div>
     </div>
   );

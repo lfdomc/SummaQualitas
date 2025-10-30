@@ -154,38 +154,38 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden px-2 sm:px-0">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
+      <div className="flex justify-between items-center min-w-0 max-[350px]:flex-col max-[350px]:items-start max-[350px]:gap-2">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 max-[350px]:text-lg max-[350px]:gap-1">
+            <Building2 className="h-6 w-6 max-[350px]:h-5 max-[350px]:w-5" />
             Proyectos
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground max-[350px]:text-xs">
             {totalCount} proyecto{totalCount !== 1 ? 's' : ''} encontrado{totalCount !== 1 ? 's' : ''}
           </p>
         </div>
         {canCreateProjects && showActions && (
           <Link href="/projects/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Proyecto
+            <Button className="max-[350px]:h-8 max-[350px]:px-2 max-[350px]:text-xs">
+              <Plus className="h-4 w-4 mr-2 max-[350px]:hidden" />
+              <span className="max-[350px]:leading-4">Nuevo Proyecto</span>
             </Button>
           </Link>
         )}
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
+      <div className="flex gap-4 flex-wrap max-[350px]:gap-2">
+        <div className="flex-1 min-w-[200px] max-[350px]:min-w-0">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground max-[350px]:h-3 max-[350px]:w-3" />
             <Input
               placeholder="Buscar proyectos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 max-[350px]:pl-8 max-[350px]:h-8 max-[350px]:text-xs"
             />
           </div>
         </div>
@@ -193,8 +193,8 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
           value={statusFilter}
           onValueChange={(value: ProjectStatus | 'all') => setStatusFilter(value)}
         >
-          <SelectTrigger className="w-[180px]">
-            <Filter className="h-4 w-4 mr-2" />
+          <SelectTrigger className="w-[180px] max-[350px]:w-full max-[350px]:h-8 max-[350px]:text-xs">
+            <Filter className="h-4 w-4 mr-2 max-[350px]:h-3 max-[350px]:w-3" />
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -212,18 +212,18 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
         {projects.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No hay proyectos</h3>
-              <p className="text-muted-foreground text-center mb-4">
+              <Building2 className="h-12 w-12 text-muted-foreground mb-4 max-[350px]:h-10 max-[350px]:w-10" />
+              <h3 className="text-lg font-semibold mb-2 max-[350px]:text-base">No hay proyectos</h3>
+              <p className="text-muted-foreground text-center mb-4 max-[350px]:text-xs">
                 {searchTerm || statusFilter !== 'all'
                   ? 'No se encontraron proyectos con los filtros aplicados'
                   : 'Aún no hay proyectos creados'}
               </p>
               {canCreateProjects && showActions && (
                 <Link href="/projects/new">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear Primer Proyecto
+                  <Button className="max-[350px]:h-9 max-[350px]:px-3 max-[350px]:text-xs max-[350px]:leading-4">
+                    <Plus className="h-4 w-4 mr-2 max-[350px]:hidden" />
+                    <span>Crear Primer Proyecto</span>
                   </Button>
                 </Link>
               )}
@@ -265,9 +265,9 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
               <CardContent>
                 <div className="space-y-4">
                   {/* Basic Info */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <User className="h-4 w-4 text-muted-foreground max-[350px]:h-3 max-[350px]:w-3" />
                       <span className="text-muted-foreground">Cliente:</span>
                       <span className="font-medium">
                         {(() => {
@@ -283,7 +283,7 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <DollarSign className="h-4 w-4 text-muted-foreground max-[350px]:h-3 max-[350px]:w-3" />
                       <span className="text-muted-foreground">Presupuesto:</span>
                       <div className="flex flex-col">
                         {(project.presupuesto_original || project.presupuesto_inicial) && project.presupuesto_final ? (
@@ -297,7 +297,7 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <Calendar className="h-4 w-4 text-muted-foreground max-[350px]:h-3 max-[350px]:w-3" />
                       <span className="text-muted-foreground">Inicio:</span>
                       <span className="font-medium">
                         {project.actual_start_date || project.estimated_start_date || project.start_date ? 
@@ -305,7 +305,7 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <MapPin className="h-4 w-4 text-muted-foreground max-[350px]:h-3 max-[350px]:w-3" />
                       <span className="text-muted-foreground">Ubicación:</span>
                       <span className="font-medium">{project.location || 'Sin definir'}</span>
                     </div>
@@ -315,7 +315,7 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
                   {(project.costos_directos || project.costos_indirectos || project.mano_obra) && (
                     <div className="border-t pt-3">
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">Desglose Presupuestario:</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                         {project.costos_directos && (
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -371,9 +371,9 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
             onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
             disabled={pagination.page === 1}
           >
-            Anterior
+            <span className="max-[350px]:text-xs">Anterior</span>
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground max-[350px]:text-xs">
             Página {pagination.page} de {totalPages}
           </span>
           <Button
@@ -382,7 +382,7 @@ export default function ProjectList({ clientId, showActions = true }: ProjectLis
             onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
             disabled={pagination.page === totalPages}
           >
-            Siguiente
+            <span className="max-[350px]:text-xs">Siguiente</span>
           </Button>
         </div>
       )}

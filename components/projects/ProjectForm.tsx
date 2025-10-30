@@ -791,23 +791,23 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-4">
+            <div className="flex justify-end gap-4 max-[350px]:gap-2 max-[350px]:flex-wrap">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleCancel}
                 disabled={loading}
               >
-                <X className="h-4 w-4 mr-2" />
-                Cancelar
+                <X className="h-4 w-4 mr-2 max-[350px]:hidden" />
+                <span className="max-[350px]:text-xs max-[350px]:leading-4">Cancelar</span>
               </Button>
               <Button 
                 type="submit" 
                 disabled={loading}
               >
-                {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                <Save className="h-4 w-4 mr-2" />
-                {isEditing ? 'Actualizar' : 'Crear'} Proyecto
+                {loading && <Loader2 className="h-4 w-4 animate-spin mr-2 max-[350px]:hidden" />}
+                <Save className="h-4 w-4 mr-2 max-[350px]:hidden" />
+                <span className="max-[350px]:text-xs max-[350px]:leading-4">{isEditing ? 'Actualizar' : 'Crear'} Proyecto</span>
               </Button>
             </div>
           </form>

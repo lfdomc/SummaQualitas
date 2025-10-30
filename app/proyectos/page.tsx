@@ -69,7 +69,7 @@ export default function ProyectosPage() {
               Let us be part of your next project and create something extraordinary together
             </p>
             <Link href="/cotizacion" className="inline-block">
-            <Button size="lg" className="bg-white text-blue-900 hover:bg-gray-100 py-3 px-6">
+            <Button size="lg" className="bg-white text-blue-900 hover:bg-gray-100 py-3 px-6 max-[350px]:py-2 max-[350px]:px-4 max-[350px]:text-sm">
               Start Project
             </Button>
             </Link>

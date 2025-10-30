@@ -143,6 +143,43 @@ export function useAuthFixed(): UseAuthReturn {
     refreshAuth();
   }, [refreshAuth]);
 
+  // Escuchar cambios de autenticación para actualizar estado inmediatamente
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      try {
+        // Normalizar eventos que indican sesión válida
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          const currentUser = session?.user ?? null;
+          if (currentUser) {
+            const profile = await fetchUserProfile(currentUser);
+            setAuthState({
+              user: currentUser,
+              profile,
+              loading: false,
+              error: null,
+            });
+            return;
+          }
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setAuthState({ user: null, profile: null, loading: false, error: null });
+          return;
+        }
+
+        // Para otros eventos, garantizar que no quede loading infinito
+        setAuthState(prev => ({ ...prev, loading: false }));
+      } catch (err) {
+        console.warn('⚠️ [useAuthFixed] Error en onAuthStateChange:', err);
+        setAuthState(prev => ({ ...prev, loading: false }));
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
   // Función de login
   const signIn = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
@@ -163,7 +200,8 @@ export function useAuthFixed(): UseAuthReturn {
         return { error };
       }
       
-      // El estado se actualizará automáticamente por el listener
+      // Refrescar inmediatamente por si el listener se retrasa en ciertos viewers
+      await refreshAuth();
       return { error: null };
 
     } catch (error) {

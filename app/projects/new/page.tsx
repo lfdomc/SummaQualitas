@@ -27,17 +27,17 @@ function NewProjectPage() {
    };
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="container mx-auto py-6 px-2 sm:px-4">
+      <div className="flex items-center gap-4 mb-6 max-[350px]:flex-wrap max-[350px]:gap-2">
         <Link href="/projects">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
+          <Button variant="outline" size="sm" className="max-[350px]:h-8 max-[350px]:px-2 max-[350px]:text-xs">
+            <ArrowLeft className="h-4 w-4 mr-2 max-[350px]:hidden" />
+            <span className="max-[350px]:leading-4">Volver</span>
           </Button>
         </Link>
-        <div className="flex items-center gap-2">
-          <Building2 className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Nuevo Proyecto</h1>
+        <div className="flex items-center gap-2 max-[350px]:gap-1">
+          <Building2 className="h-6 w-6 max-[350px]:h-5 max-[350px]:w-5" />
+          <h1 className="text-2xl font-bold max-[350px]:text-lg">Nuevo Proyecto</h1>
         </div>
       </div>
 

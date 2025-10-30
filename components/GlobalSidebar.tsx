@@ -363,9 +363,34 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
     }
   }, [user, loading, pathname, router]);
 
-  // No mostrar sidebar en rutas públicas o si el usuario no está logueado
-  if (!user || loading || PUBLIC_ROUTES.has(pathname)) {
+  // No mostrar sidebar en rutas públicas
+  if (PUBLIC_ROUTES.has(pathname)) {
     return <>{children}</>;
+  }
+
+  // Fallback: mostrar siempre la barra superior con el botón de menú, incluso si
+  // el usuario no está autenticado o el estado está en loading, para una UX consistente
+  if (!user || loading) {
+    return (
+      <SidebarProvider>
+        <div className="relative flex min-h-screen w-full flex-1 overflow-hidden">
+          <SidebarInset className="flex flex-col min-h-0 flex-1">
+            <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-4 min-w-0 flex-wrap">
+              <SidebarTrigger className="-ml-1" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+                <Building className="h-4 w-4 shrink-0" />
+                {/* Ocultar texto largo en pantallas ultra pequeñas para evitar overflow horizontal */}
+                <span className="max-[350px]:hidden">Sistema de Gestión de Construcción</span>
+                <span className="hidden sm:inline text-xs">(menú disponible tras iniciar sesión)</span>
+              </div>
+            </header>
+            <main className="flex-1 overflow-auto min-h-0 p-2 sm:p-4">
+              {children}
+            </main>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
   }
 
   const filteredNavigationGroups = getFilteredNavigationGroups();
@@ -387,11 +412,12 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
         
         <SidebarInset className="flex flex-col min-h-0 flex-1">
           {/* Header interno del sidebar - siempre visible para usuarios autenticados */}
-          <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-4">
+          <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-4 min-w-0 flex-wrap">
             <SidebarTrigger className="-ml-1" />
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Building className="h-4 w-4" />
-              <span>Sistema de Gestión de Construcción</span>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+              <Building className="h-4 w-4 shrink-0" />
+              {/* Ocultar texto largo en pantallas ultra pequeñas para evitar overflow horizontal */}
+              <span className="max-[350px]:hidden">Sistema de Gestión de Construcción</span>
             </div>
           </header>
           
