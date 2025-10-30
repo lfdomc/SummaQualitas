@@ -103,20 +103,20 @@ export interface UpdateExpenseData {
   description?: string;
   amount?: number;
   currency?: Currency;
-  exchange_rate_usd?: number;
+  exchange_rate_usd?: number | null;
   expense_date?: string;
-  supplier_id?: string;
+  supplier_id?: string | null;
   invoice_number?: string;
   payment_status?: PaymentStatus;
-  payment_date?: string;
-  notes?: string;
-  receipt_url?: string;
-  reference?: string;
-  reference_attachment_url?: string;
-  reference_attachment_name?: string;
-  reference_attachment_type?: string;
-  reference_attachment_size?: number;
-  details?: string;
+  payment_date?: string | null;
+  notes?: string | null;
+  receipt_url?: string | null;
+  reference?: string | null;
+  reference_attachment_url?: string | null;
+  reference_attachment_name?: string | null;
+  reference_attachment_type?: string | null;
+  reference_attachment_size?: number | null;
+  details?: string | null;
 }
 
 // Interface para el formulario de gastos
