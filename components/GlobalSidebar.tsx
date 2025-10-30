@@ -199,12 +199,14 @@ function SidebarContentWithAutoClose({
   filteredNavigationGroups, 
   pathname, 
   profile, 
+  user,
   handleLogout, 
   isLoggingOut 
 }: {
   filteredNavigationGroups: NavigationGroup[];
   pathname: string;
   profile: { role?: string; name?: string; email?: string } | null;
+  user: { email?: string; user_metadata?: Record<string, any> } | null;
   handleLogout: () => void;
   isLoggingOut: boolean;
 }) {
@@ -216,6 +218,29 @@ function SidebarContentWithAutoClose({
       setOpenMobile(false);
     }
   };
+
+  // Derivar nombre y rol de forma más resiliente usando sesión como fallback
+  const displayName = (
+    profile?.name ??
+    (typeof user?.user_metadata?.name === 'string' ? user?.user_metadata?.name : undefined) ??
+    (user?.email ? user.email.split('@')[0] : undefined) ??
+    'Usuario'
+  );
+
+  const roleKey = (
+    profile?.role ??
+    (typeof user?.user_metadata?.role === 'string' ? (user?.user_metadata?.role as string) : undefined)
+  );
+
+  const displayRole = roleKey === 'gerencia'
+    ? 'Gerencia'
+    : roleKey === 'administrativo'
+      ? 'Administrativo'
+      : roleKey === 'operativo'
+        ? 'Operativo'
+        : roleKey === 'cliente'
+          ? 'Cliente'
+          : 'Cargando...';
 
   return (
     <>
@@ -267,12 +292,8 @@ function SidebarContentWithAutoClose({
             <div className="flex items-center gap-2 px-2 py-1 text-sm">
               <Users className="h-4 w-4" />
               <div className="flex flex-col">
-                <span className="font-medium">{profile?.name || 'Usuario'}</span>
-                <span className="text-xs text-muted-foreground">
-                  {profile?.role === 'gerencia' ? 'Gerencia' :
-                   profile?.role === 'administrativo' ? 'Administrativo' :
-                   profile?.role === 'operativo' ? 'Operativo' : 'Cliente'}
-                </span>
+                <span className="font-medium">{displayName}</span>
+                <span className="text-xs text-muted-foreground">{displayRole}</span>
               </div>
             </div>
           </SidebarMenuItem>
@@ -381,6 +402,7 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
               filteredNavigationGroups={filteredNavigationGroups}
               pathname={pathname}
               profile={profile}
+              user={user}
               handleLogout={handleLogout}
               isLoggingOut={isLoggingOut}
             />
@@ -416,6 +438,7 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
             filteredNavigationGroups={filteredNavigationGroups}
             pathname={pathname}
             profile={profile}
+            user={user}
             handleLogout={handleLogout}
             isLoggingOut={isLoggingOut}
           />
