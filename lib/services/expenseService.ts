@@ -35,7 +35,9 @@ export class ExpenseService {
   private sanitizePayload<T extends Record<string, any>>(payload: T): T {
     const clean: Record<string, any> = {};
     for (const [k, v] of Object.entries(payload)) {
-      if (v !== undefined && v !== null && v !== '') {
+      // Conservamos valores null para poder limpiar columnas en la base de datos.
+      // Solo filtramos undefined (campos no enviados) y strings vacíos.
+      if (v !== undefined && v !== '') {
         clean[k] = v;
       }
     }
