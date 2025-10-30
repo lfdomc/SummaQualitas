@@ -520,8 +520,11 @@ export default function ExpensesPage() {
                               expense.subcategory_direct === selectedSubcategory || 
                               expense.subcategory_indirect === selectedSubcategory;
     const matchesSupplier = selectedSupplier === 'all' || expense.supplier_id === selectedSupplier;
-    const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         expense.supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const term = searchTerm.toLowerCase();
+    const supplierName = suppliers.find(s => s.id === expense.supplier_id)?.name || '';
+    const matchesSearch = expense.description.toLowerCase().includes(term) ||
+                          supplierName.toLowerCase().includes(term);
     
     // Filtro de fecha
     let matchesDate = true;
@@ -1718,6 +1721,7 @@ export default function ExpensesPage() {
                   const project = projects.find(p => p.id === expense.project_id);
                   const category = EXPENSE_CATEGORIES.find(cat => cat.value === expense.category);
                   const categoryColors = getCategoryColors(expense.category);
+                  const supplier = suppliers.find(s => s.id === expense.supplier_id);
                   
                   return (
                     <Card key={expense.id} className="p-4">
@@ -1739,9 +1743,9 @@ export default function ExpensesPage() {
                           )}
                         </div>
                         
-                        {expense.supplier?.name && (
+                        {supplier?.name && (
                           <div className="text-xs text-gray-600">
-                            <span className="font-medium">Proveedor:</span> {expense.supplier.name}
+                            <span className="font-medium">Proveedor:</span> {supplier.name}
                           </div>
                         )}
                         
@@ -1822,6 +1826,7 @@ export default function ExpensesPage() {
                   const project = projects.find(p => p.id === expense.project_id);
                   const category = EXPENSE_CATEGORIES.find(cat => cat.value === expense.category);
                   const categoryColors = getCategoryColors(expense.category);
+                  const supplier = suppliers.find(s => s.id === expense.supplier_id);
                   
                   return (
                     <TableRow key={expense.id}>
@@ -1843,7 +1848,7 @@ export default function ExpensesPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {expense.supplier?.name || '-'}
+                        {supplier?.name || '-'}
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         <div className="space-y-1">

@@ -52,11 +52,9 @@ export class ExpenseService {
     try {
       let query = this.supabase
         .from('expenses')
-        .select(`
-          *,
-          project:projects(id, name, status),
-          supplier:suppliers(id, name, email, phone, status)
-        `, { count: 'exact' });
+        // Seleccionamos solo la tabla principal y evitamos joins para mejorar el rendimiento.
+        // También cambiamos el conteo a 'planned' para evitar el costo de COUNT(*) exacto.
+        .select('*', { count: 'planned' });
 
       // Aplicar filtros
       if (filters) {
