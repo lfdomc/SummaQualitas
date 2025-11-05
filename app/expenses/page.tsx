@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1074,30 +1077,53 @@ export default function ExpensesPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="supplier">Proveedor</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsNewSupplierModalOpen(true)}
-                    className="h-8 px-2"
-                  >
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    Nuevo
-                  </Button>
+                  <Link href="/suppliers/new">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      Nuevo
+                    </Button>
+                  </Link>
                 </div>
-                <Select value={expenseForm.supplier_id} onValueChange={(value) => setExpenseForm(prev => ({ ...prev, supplier_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar proveedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin proveedor</SelectItem>
-                    {suppliers.map(supplier => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded="false" className="w-full justify-between">
+                      {(() => {
+                        const selected = suppliers.find(s => s.id === expenseForm.supplier_id);
+                        return selected ? selected.name : (expenseForm.supplier_id === 'none' ? 'Sin proveedor' : 'Seleccionar proveedor');
+                      })()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar proveedor por nombre..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontraron proveedores.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            onSelect={() => setExpenseForm(prev => ({ ...prev, supplier_id: 'none' }))}
+                            value="none"
+                          >
+                            Sin proveedor
+                          </CommandItem>
+                          {suppliers.map(supplier => (
+                            <CommandItem
+                              key={supplier.id}
+                              onSelect={() => setExpenseForm(prev => ({ ...prev, supplier_id: supplier.id }))}
+                              value={supplier.name}
+                            >
+                              {supplier.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
 
@@ -1328,30 +1354,53 @@ export default function ExpensesPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="edit_supplier">Proveedor</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsNewSupplierModalOpen(true)}
-                    className="h-8 px-2"
-                  >
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    Nuevo
-                  </Button>
+                  <Link href="/suppliers/new">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      Nuevo
+                    </Button>
+                  </Link>
                 </div>
-                <Select value={expenseForm.supplier_id} onValueChange={(value) => setExpenseForm(prev => ({ ...prev, supplier_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un proveedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin proveedor</SelectItem>
-                    {suppliers.map(supplier => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name} - {supplier.supplier_type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded="false" className="w-full justify-between">
+                      {(() => {
+                        const selected = suppliers.find(s => s.id === expenseForm.supplier_id);
+                        return selected ? `${selected.name} ${selected.supplier_type ? '- ' + selected.supplier_type : ''}` : (expenseForm.supplier_id === 'none' ? 'Sin proveedor' : 'Selecciona un proveedor');
+                      })()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar proveedor por nombre..." />
+                      <CommandList>
+                        <CommandEmpty>No se encontraron proveedores.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            onSelect={() => setExpenseForm(prev => ({ ...prev, supplier_id: 'none' }))}
+                            value="none"
+                          >
+                            Sin proveedor
+                          </CommandItem>
+                          {suppliers.map(supplier => (
+                            <CommandItem
+                              key={supplier.id}
+                              onSelect={() => setExpenseForm(prev => ({ ...prev, supplier_id: supplier.id }))}
+                              value={supplier.name}
+                            >
+                              {supplier.name} {supplier.supplier_type ? `- ${supplier.supplier_type}` : ''}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
