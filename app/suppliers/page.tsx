@@ -206,48 +206,31 @@ function SuppliersPage() {
 
   const handleDeleteSupplier = async (supplierId: string) => {
     try {
-      // Verificar si el proveedor tiene gastos asociados
-      const { data: supplierExpenses, error: expensesError } = await supabase
-        .from('expenses')
-        .select('id')
-        .eq('supplier_id', supplierId)
-        .limit(1);
-
-      if (expensesError) {
-        console.error('Error checking supplier expenses:', expensesError);
-        toast.error('Error al verificar los gastos del proveedor');
-        return;
-      }
-
-      // Si el proveedor tiene gastos asociados, no permitir la eliminación
-      if (supplierExpenses && supplierExpenses.length > 0) {
-        toast.error('No se puede borrar porque el proveedor tiene gastos en un proyecto');
-        return;
-      }
-
-      // Primera confirmación
+      // Confirmación
       if (!window.confirm('¿Estás seguro de que deseas eliminar este proveedor?')) {
         return;
       }
 
-      // Segunda confirmación
-      if (!window.confirm('Esta acción no se puede deshacer. ¿Realmente deseas continuar?')) {
+      const resp = await fetch(`/api/suppliers/${supplierId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await resp.json().catch(() => ({}));
+
+      if (!resp.ok || !result?.success) {
+        const message = result?.error || `No se pudo eliminar (HTTP ${resp.status})`;
+        toast.error(message);
         return;
       }
 
-      // Tercera confirmación
-      if (!window.confirm('ÚLTIMA CONFIRMACIÓN: ¿Eliminar definitivamente este proveedor?')) {
+      // Si hay soft delete, actualizar estado y avisar
+      if (result.softDeleted && result.data) {
+        setSuppliers(prev => prev.map(s => s.id === supplierId ? { ...s, status: 'INACTIVO' } : s));
+        toast.success('Proveedor marcado como INACTIVO (tiene movimientos asociados)');
         return;
       }
 
-      // Proceder con la eliminación
-      const { error } = await supabase
-        .from('suppliers')
-        .delete()
-        .eq('id', supplierId);
-
-      if (error) throw error;
-
+      // Eliminación física
       setSuppliers(prev => prev.filter(supplier => supplier.id !== supplierId));
       toast.success('Proveedor eliminado exitosamente');
     } catch (error) {

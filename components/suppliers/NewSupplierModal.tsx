@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, X } from 'lucide-react';
-import { SupplierService } from '@/lib/supabase/database';
+// Usaremos el endpoint API para crear proveedores, que valida y mapea campos según la tabla real
+// Esto evita desalineaciones de tipos entre lib/types y types/database
+// import { SupplierService } from '@/lib/supabase/database';
 import { toast } from 'sonner';
 // Note: We only need the new supplier's id for the callback
 
@@ -43,23 +45,32 @@ export function NewSupplierModal({ isOpen, onClose, onSupplierCreated }: NewSupp
 
     try {
       setLoading(true);
-      const supplierService = new SupplierService();
-
-      // Align with Supplier type used by SupplierService (from lib/types)
-      const supplierData = {
+      // Construir payload alineado con la tabla 'suppliers'
+      const payload = {
         name: formData.name.trim(),
-        // Map UI field to expected key
-        contact_name: formData.contact_person.trim() || undefined,
+        contact_person: formData.contact_person.trim(),
         email: formData.email.trim() || undefined,
         phone: formData.phone.trim() || undefined,
         address: formData.address.trim() || undefined,
         tax_id: formData.tax_id.trim() || undefined,
-        // Derive is_active from selected status
-        is_active: formData.status === 'ACTIVO',
-        // 'notes' is not part of Supplier type in lib/types
-      } as const;
+        supplier_type: formData.supplier_type,
+        status: formData.status,
+        notes: formData.notes.trim() || undefined,
+      };
 
-      const newSupplier = await supplierService.createSupplier(supplierData);
+      const res = await fetch('/api/suppliers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        const msg = json?.error || 'Error al crear el proveedor';
+        throw new Error(msg);
+      }
+
+      const newSupplier = json?.data as { id: string };
       toast.success('Proveedor creado exitosamente');
       
       // Resetear formulario
@@ -76,10 +87,13 @@ export function NewSupplierModal({ isOpen, onClose, onSupplierCreated }: NewSupp
       });
       
       // Notificar al componente padre y cerrar modal
-      onSupplierCreated(newSupplier);
+      if (newSupplier?.id) {
+        onSupplierCreated({ id: newSupplier.id });
+      }
       onClose();
     } catch (error) {
-      toast.error('Error al crear el proveedor');
+      const message = error instanceof Error ? error.message : 'Error al crear el proveedor';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

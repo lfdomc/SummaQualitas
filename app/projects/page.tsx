@@ -222,14 +222,14 @@ export default function ProjectsPage() {
   return (
     <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-full overflow-x-hidden max-[350px]:px-1">
       {/* Header */}
-      <div className="flex flex-col space-y-4 max-[350px]:space-y-2 mb-6 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:mb-8 min-w-0 max-[350px]:gap-1">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col space-y-4 max-[350px]:space-y-2 mb-6 sm:mb-8 min-w-0 max-[350px]:gap-1">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Gestión de Proyectos</h1>
           <p className="mt-1 text-sm text-gray-600 sm:text-base sm:mt-2">
             Administra todos los proyectos de construcción
           </p>
         </div>
-        <div className="flex flex-col space-y-2 max-[350px]:space-y-1 sm:flex-row sm:space-y-0 sm:space-x-3 w-full min-w-0">
+        <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 max-[350px]:space-y-1">
           <Button
             variant="outline"
             onClick={() => setIsCreateClientDialogOpen(true)}

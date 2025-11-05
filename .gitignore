@@ -6,6 +6,7 @@
 # next.js
 /.next/
 /.next.bak/
+/.next.bak-*/
 /.next_old*/
 /out/
 
