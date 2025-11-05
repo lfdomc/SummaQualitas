@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -147,22 +147,22 @@ function SuppliersPage() {
         email: supplierForm.email?.trim() || null
       };
 
-      const { data, error } = await supabase
-        .from('suppliers')
-        .insert([dataToInsert])
-        .select()
-        .single();
+      // Usar API interna (POST) que valida rol y usa service role para insertar
+      const resp = await fetch('/api/suppliers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToInsert)
+      });
 
-      if (error) {
-        if (error.code === 'PGRST204') {
-          toast.error('Error: La tabla suppliers no existe en la base de datos. Por favor, ejecute las migraciones desde el dashboard de Supabase.');
-        } else {
-          toast.error(`Error al agregar proveedor: ${error.message || error.details || 'Error desconocido'}`);
-        }
+      const result = await resp.json();
+      if (!resp.ok || !result?.success) {
+        const message = result?.error || `HTTP ${resp.status}`;
+        toast.error(`Error al agregar proveedor: ${message}`);
         return;
       }
 
-      setSuppliers(prev => [data, ...prev]);
+      const created = result.data;
+      setSuppliers(prev => [created, ...prev]);
       setSupplierForm(initialSupplierForm);
       setIsAddDialogOpen(false);
       toast.success('Proveedor agregado exitosamente');
@@ -389,6 +389,9 @@ function SuppliersPage() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>Agregar Nuevo Proveedor</DialogTitle>
+              <DialogDescription>
+                Completa los datos del proveedor. Los campos marcados con * son obligatorios.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4 overflow-y-auto flex-1 pr-2">
               <div className="space-y-2">

@@ -226,6 +226,7 @@ export class ExpenseService {
 
       if (error) {
         const unknownColumn = this.extractUnknownColumnFromError(error);
+        const errText = this.getErrorText(error);
 
         // Fallbacks específicos
         // Subcategorías: si el esquema no las reconoce, quitarlas ambas para asegurar la inserción
@@ -263,6 +264,13 @@ export class ExpenseService {
           }
           delete payload.expense_date;
           ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+        } else if (errText && /numeric field overflow|value out of range|out of range/i.test(errText)) {
+          // Manejo específico para desbordes numéricos: intentar quitar campos numéricos opcionales y reintentar
+          // Candidato principal: reference_attachment_size (puede ser SMALLINT en algunos esquemas)
+          if (typeof payload.reference_attachment_size !== 'undefined') {
+            delete (payload as any).reference_attachment_size;
+            ({ data, error } = await tryInsert(this.sanitizePayload(payload)));
+          }
         } else if (unknownColumn) {
           // Fallback genérico: quitar la columna desconocida y reintentar
           delete (payload as any)[unknownColumn];
