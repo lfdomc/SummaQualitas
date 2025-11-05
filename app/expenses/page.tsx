@@ -1077,17 +1077,16 @@ export default function ExpensesPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="supplier">Proveedor</Label>
-                  <Link href="/suppliers/new">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-2"
-                    >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      Nuevo
-                    </Button>
-                  </Link>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsNewSupplierModalOpen(true)}
+                    className="h-8 px-2"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Nuevo
+                  </Button>
                 </div>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -1354,17 +1353,16 @@ export default function ExpensesPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="edit_supplier">Proveedor</Label>
-                  <Link href="/suppliers/new">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-2"
-                    >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      Nuevo
-                    </Button>
-                  </Link>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsNewSupplierModalOpen(true)}
+                    className="h-8 px-2"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Nuevo
+                  </Button>
                 </div>
                 <Popover>
                   <PopoverTrigger asChild>
