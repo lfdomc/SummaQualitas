@@ -151,10 +151,14 @@ export function useSessionTimeout({
     const now = Date.now();
     const timeSinceLastActivity = now - lastActivityRef.current;
     
-    // Solo reiniciar si han pasado al menos 30 segundos desde la última actividad
-    // Esto evita reiniciar el timeout constantemente
-    if (timeSinceLastActivity > 30000) {
+    // Reiniciar el timeout ante actividad del usuario.
+    // Usamos un umbral pequeño (5s) para evitar resets excesivos,
+    // pero permitir que tecleos y clics frecuentes extiendan la sesión.
+    if (timeSinceLastActivity > 5000) {
       resetTimeout();
+    } else {
+      // Actualizar la marca de última actividad para que el siguiente evento pueda evaluar correctamente
+      lastActivityRef.current = now;
     }
   }, [resetTimeout]);
 

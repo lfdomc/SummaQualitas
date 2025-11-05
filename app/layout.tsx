@@ -80,7 +80,7 @@ export default function RootLayout({
           <LoginStateProvider>
             <AuthProvider>
               <SessionTimeoutProvider
-                timeoutMinutes={20}
+                timeoutMinutes={60}
                 warningMinutes={5}
                 enabled={true}
               >

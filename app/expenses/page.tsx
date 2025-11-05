@@ -34,6 +34,7 @@ import {
 import { ExpenseService } from '@/lib/services/expenseService';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import { uploadFile } from '@/lib/services/fileService';
 import { NewSupplierModal } from '@/components/suppliers/NewSupplierModal';
 
@@ -52,6 +53,7 @@ interface ProjectSummary {
 const expenseService = new ExpenseService();
 
 export default function ExpensesPage() {
+  const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -246,6 +248,9 @@ export default function ExpensesPage() {
 
   const handleAddExpense = async () => {
     try {
+      // Asegurar sesión fresca antes de guardar
+      const isSessionOk = await ensureFreshSession();
+      if (!isSessionOk) return;
       // Validaciones básicas
       if (!expenseForm.project_id) {
         toast.error('Debe seleccionar un proyecto');
@@ -371,6 +376,9 @@ export default function ExpensesPage() {
     let updateData: UpdateExpenseData | null = null;
     
     try {
+      // Asegurar sesión fresca antes de actualizar
+      const isSessionOk = await ensureFreshSession();
+      if (!isSessionOk) return;
       // Validaciones básicas
       if (!expenseForm.project_id) {
         toast.error('Debe seleccionar un proyecto');
@@ -454,6 +462,34 @@ export default function ExpensesPage() {
     setIsEditDialogOpen(false);
     setEditingExpense(null);
     resetExpenseForm();
+  };
+
+  // Verifica y refresca la sesión si está próxima a expirar antes de operaciones críticas
+  const ensureFreshSession = async (): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+        router.push('/login?next=/expenses');
+        return false;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at || 0;
+      const timeUntilExpiry = expiresAt - now;
+      // Si queda menos de 2 minutos, intentar renovar
+      if (timeUntilExpiry < 120) {
+        const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+        if (error || !newSession) {
+          toast.error('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+          router.push('/login?next=/expenses');
+          return false;
+        }
+      }
+      return true;
+    } catch (err) {
+      toast.error('Error verificando tu sesión. Intenta nuevamente.');
+      return false;
+    }
   };
 
   const handleNewSupplierCreated = async (newSupplier: { id: string }) => {
