@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useLoginState } from '@/lib/contexts/LoginStateContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ export function LoginForm({ redirectTo = '/projects' }: LoginFormProps) {
   const [localLoading, setLocalLoading] = useState(false);
   const router = useRouter();
   const { signIn, loading: authLoading, error: authError, user, isAuthenticated } = useAuthContext();
+  const { startLogin } = useLoginState();
 
   // Verificar si ya hay una sesión activa y redirigir automáticamente
   useEffect(() => {
@@ -41,6 +43,9 @@ export function LoginForm({ redirectTo = '/projects' }: LoginFormProps) {
     setLocalError('');
 
     try {
+      // Guardar email para mostrarlo inmediatamente en el sidebar
+      startLogin(email);
+
       const { error } = await signIn(email, password);
 
       if (error) {
@@ -48,11 +53,8 @@ export function LoginForm({ redirectTo = '/projects' }: LoginFormProps) {
         return;
       }
       
-      // Esperar un momento para que el estado de autenticación se actualice
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Usar window.location para una redirección más robusta
-      window.location.href = redirectTo;
+      // Navegación de cliente para mantener el contexto y mostrar datos inmediatamente
+      router.push(redirectTo);
       
     } catch (err) {
       setLocalError('Error inesperado. Por favor intenta de nuevo.');

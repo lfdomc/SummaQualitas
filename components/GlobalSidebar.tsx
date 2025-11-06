@@ -46,6 +46,7 @@ import {
   Package,
 } from 'lucide-react';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { useLoginState } from '@/lib/contexts/LoginStateContext';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -210,6 +211,7 @@ function SidebarContentWithAutoClose({
   handleLogout: () => void;
   isLoggingOut: boolean;
 }) {
+  const { loginState, completeLogin } = useLoginState();
   const { isMobile, setOpenMobile } = useSidebar();
 
   const handleLinkClick = () => {
@@ -224,6 +226,7 @@ function SidebarContentWithAutoClose({
     profile?.name ??
     (typeof user?.user_metadata?.name === 'string' ? user?.user_metadata?.name : undefined) ??
     (user?.email ? user.email.split('@')[0] : undefined) ??
+    (loginState.loginEmail ? loginState.loginEmail.split('@')[0] : undefined) ??
     'Usuario'
   );
 
@@ -241,6 +244,13 @@ function SidebarContentWithAutoClose({
         : roleKey === 'cliente'
           ? 'Cliente'
           : 'Sesión iniciada';
+
+  // Una vez que haya usuario, limpiar el estado de login para no dejar fallback activo
+  useEffect(() => {
+    if (user && loginState.isLoggingIn) {
+      completeLogin();
+    }
+  }, [user, loginState.isLoggingIn, completeLogin]);
 
   return (
     <>
