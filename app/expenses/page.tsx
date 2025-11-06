@@ -70,6 +70,7 @@ export default function ExpensesPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false);
+  const [isSavingAdd, setIsSavingAdd] = useState(false);
   
   const supabase = createClient();
   const [expenseForm, setExpenseForm] = useState<ExpenseFormType>({
@@ -297,6 +298,10 @@ export default function ExpensesPage() {
         return;
       }
       
+      // Indicar que estamos guardando para evitar múltiples clics
+      setIsSavingAdd(true);
+      toast.info('Guardando gasto...', { duration: 1500 });
+
       const inputAmount = parseFloat(expenseForm.amount);
       
       // Preparar datos para la base de datos
@@ -347,6 +352,8 @@ export default function ExpensesPage() {
       } else {
         toast.error('Error al agregar el gasto');
       }
+    } finally {
+      setIsSavingAdd(false);
     }
   };
 
@@ -1269,9 +1276,10 @@ export default function ExpensesPage() {
               <Button onClick={handleAddExpense} disabled={
                   !expenseForm.project_id || 
                   !expenseForm.description || 
-                  !expenseForm.amount
+                  !expenseForm.amount ||
+                  isSavingAdd
                 }>
-                Agregar Gasto
+                {isSavingAdd ? 'Guardando...' : 'Agregar Gasto'}
               </Button>
             </DialogFooter>
           </DialogContent>
