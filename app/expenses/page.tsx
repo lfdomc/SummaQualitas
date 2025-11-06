@@ -274,6 +274,13 @@ export default function ExpensesPage() {
 
   const handleAddExpense = async () => {
     try {
+      // Telemetría mínima para confirmar el clic
+      console.log('[expenses] handleAddExpense click start', {
+        ts: Date.now(),
+        form: expenseForm
+      });
+      // Feedback inmediato para confirmar que el clic se recibió
+      toast.info('Procesando...', { duration: 800 });
       // Verificar conexión antes de continuar
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         toast.error('Sin conexión a Internet. Verifica tu red y vuelve a intentar.');
@@ -1273,7 +1280,7 @@ export default function ExpensesPage() {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleAddExpense} disabled={
+              <Button type="button" onClick={handleAddExpense} disabled={
                   !expenseForm.project_id || 
                   !expenseForm.description || 
                   !expenseForm.amount ||
