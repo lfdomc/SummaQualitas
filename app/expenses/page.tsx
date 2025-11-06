@@ -123,6 +123,31 @@ export default function ExpensesPage() {
     updateExchangeRateForCurrency();
   }, [expenseForm.currency]);
 
+  // Keepalive mientras el diálogo de agregar gasto está abierto
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    const doPing = async () => {
+      try {
+        // Ping liviano al backend para mantener la conexión activa
+        await fetch('/api/health', { cache: 'no-store' });
+        // Si la sesión expira en menos de 10 minutos, intentar renovar
+        await ensureFreshSession();
+      } catch {
+        // Ignorar errores del ping; el usuario verá mensajes adecuados al intentar guardar
+      }
+    };
+
+    if (isAddDialogOpen) {
+      // Ejecutar un ping inicial y luego cada 60 segundos
+      doPing();
+      interval = setInterval(doPing, 60 * 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isAddDialogOpen]);
+
   const handleFileUpload = async (file: File) => {
     try {
       const result = await uploadFile(file);
@@ -248,6 +273,11 @@ export default function ExpensesPage() {
 
   const handleAddExpense = async () => {
     try {
+      // Verificar conexión antes de continuar
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        toast.error('Sin conexión a Internet. Verifica tu red y vuelve a intentar.');
+        return;
+      }
       // Asegurar sesión fresca antes de guardar
       const isSessionOk = await ensureFreshSession();
       if (!isSessionOk) return;
@@ -310,7 +340,13 @@ export default function ExpensesPage() {
       resetExpenseForm();
       toast.success('Gasto agregado exitosamente');
     } catch (error) {
-      toast.error('Error al agregar el gasto');
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      // Mensaje específico si el navegador perdió conexión
+      if (typeof message === 'string' && message.toLowerCase().includes('failed to fetch')) {
+        toast.error('Error al agregar el gasto: problema de conexión. Intenta nuevamente.');
+      } else {
+        toast.error('Error al agregar el gasto');
+      }
     }
   };
 
@@ -476,8 +512,8 @@ export default function ExpensesPage() {
       const now = Math.floor(Date.now() / 1000);
       const expiresAt = session.expires_at || 0;
       const timeUntilExpiry = expiresAt - now;
-      // Si queda menos de 2 minutos, intentar renovar
-      if (timeUntilExpiry < 120) {
+      // Si queda menos de 10 minutos, intentar renovar
+      if (timeUntilExpiry < 600) {
         const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
         if (error || !newSession) {
           toast.error('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
