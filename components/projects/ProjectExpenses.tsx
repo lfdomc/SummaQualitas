@@ -177,12 +177,22 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
     if (!editingExpense) return;
 
     try {
+      // Ajustar subcategorías según la categoría para cumplir el constraint check_subcategory_usage
+      const category = expenseForm.category;
+      const subcategory_direct = category === 'costos_directos'
+        ? (expenseForm.subcategory_direct || 'otros')
+        : null;
+      const subcategory_indirect = category === 'costos_indirectos'
+        ? (expenseForm.subcategory_indirect || 'otros')
+        : null;
+
       const { error } = await supabase
         .from('expenses')
         .update({
-          category: expenseForm.category,
-          subcategory_direct: expenseForm.subcategory_direct || null,
-          subcategory_indirect: expenseForm.subcategory_indirect || null,
+          category: category,
+          // Enviar únicamente la subcategoría correspondiente y limpiar la otra
+          subcategory_direct: subcategory_direct,
+          subcategory_indirect: subcategory_indirect,
           description: expenseForm.description,
           amount: expenseForm.amount,
           currency: expenseForm.currency,
@@ -209,7 +219,13 @@ export function ProjectExpenses({ project, canEdit = true, showHeader = true }: 
       loadExpenses();
     } catch (error: unknown) {
       console.error('Error updating expense:', error);
-      toast.error('Error al actualizar el gasto');
+      // Mensaje claro si llega a fallar por constraint
+      const raw = (error as any)?.message || '';
+      if (String(raw).toLowerCase().includes('check_subcategory_usage')) {
+        toast.error('Seleccioná una subcategoría válida según la categoría (Directo/Indirecto)');
+      } else {
+        toast.error('Error al actualizar el gasto');
+      }
     }
   };
 

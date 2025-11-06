@@ -210,6 +210,21 @@ export class ExpenseService {
       // Limpiar undefined/null/''
       let payload = this.sanitizePayload(initialPayload);
 
+      // Asegurar consistencia de subcategorías según la categoría (evita violar check_subcategory_usage)
+      switch (payload.category) {
+        case 'costos_directos':
+          payload.subcategory_indirect = null;
+          if (!payload.subcategory_direct) payload.subcategory_direct = 'otros';
+          break;
+        case 'costos_indirectos':
+          payload.subcategory_direct = null;
+          if (!payload.subcategory_indirect) payload.subcategory_indirect = 'otros';
+          break;
+        default:
+          payload.subcategory_direct = null;
+          payload.subcategory_indirect = null;
+      }
+
       const tryInsert = async (p: Record<string, any>) => {
         return await this.supabase
           .from('expenses')
@@ -323,6 +338,21 @@ export class ExpenseService {
         reference_attachment_size: updateData.reference_attachment_size,
         details: (updateData as any).details,
       });
+
+      // Asegurar consistencia de subcategorías según la categoría (evita violar check_subcategory_usage)
+      switch (payload.category) {
+        case 'costos_directos':
+          payload.subcategory_indirect = null;
+          if (!payload.subcategory_direct) payload.subcategory_direct = 'otros';
+          break;
+        case 'costos_indirectos':
+          payload.subcategory_direct = null;
+          if (!payload.subcategory_indirect) payload.subcategory_indirect = 'otros';
+          break;
+        default:
+          payload.subcategory_direct = null;
+          payload.subcategory_indirect = null;
+      }
 
       const tryUpdate = async (p: Record<string, any>) => {
         return await this.supabase
