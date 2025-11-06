@@ -1276,7 +1276,7 @@ export default function ExpensesPage() {
                 />
               </div>
             </div>
-            <DialogFooter className="flex-shrink-0 mt-4">
+            <DialogFooter className="flex-shrink-0 mt-4 relative z-10">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancelar
               </Button>

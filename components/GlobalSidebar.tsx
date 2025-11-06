@@ -231,7 +231,7 @@ function SidebarContentWithAutoClose({
     profile?.role ??
     (typeof user?.user_metadata?.role === 'string' ? (user?.user_metadata?.role as string) : undefined)
   );
-
+  
   const displayRole = roleKey === 'gerencia'
     ? 'Gerencia'
     : roleKey === 'administrativo'
@@ -240,7 +240,7 @@ function SidebarContentWithAutoClose({
         ? 'Operativo'
         : roleKey === 'cliente'
           ? 'Cliente'
-          : 'Cargando...';
+          : 'Sesión iniciada';
 
   return (
     <>
@@ -314,7 +314,7 @@ function SidebarContentWithAutoClose({
 }
 
 export function GlobalSidebar({ children }: GlobalSidebarProps) {
-  const { user, profile, loading, isAuthenticated } = useAuthContext();
+  const { user, profile, loading, isAuthenticated, refreshAuth } = useAuthContext();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -383,6 +383,26 @@ export function GlobalSidebar({ children }: GlobalSidebarProps) {
       return () => clearTimeout(timer);
     }
   }, [user, loading, pathname, router]);
+
+  // Refrescar proactivamente el estado de autenticación al entrar a rutas privadas
+  useEffect(() => {
+    let t1: any;
+    let t2: any;
+    // Si no hay usuario, o hay sesión pero aún no hay perfil, forzar refresh
+    if (!user || (!profile && isAuthenticated)) {
+      refreshAuth().catch(err => console.warn('⚠️ Error en refreshAuth (inicial):', err));
+      t1 = setTimeout(() => {
+        refreshAuth().catch(err => console.warn('⚠️ Error en refreshAuth (retry 250ms):', err));
+      }, 250);
+      t2 = setTimeout(() => {
+        refreshAuth().catch(err => console.warn('⚠️ Error en refreshAuth (retry 1500ms):', err));
+      }, 1500);
+    }
+    return () => {
+      if (t1) clearTimeout(t1);
+      if (t2) clearTimeout(t2);
+    };
+  }, [pathname, isAuthenticated, user, profile, refreshAuth]);
 
   // No mostrar sidebar en rutas públicas
   if (PUBLIC_ROUTES.has(pathname)) {
