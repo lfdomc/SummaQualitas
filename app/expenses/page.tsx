@@ -1269,9 +1269,7 @@ export default function ExpensesPage() {
               <Button onClick={handleAddExpense} disabled={
                   !expenseForm.project_id || 
                   !expenseForm.description || 
-                  !expenseForm.amount ||
-                  (expenseForm.category === 'costos_directos' && !expenseForm.subcategory_direct) ||
-                  (expenseForm.category === 'costos_indirectos' && !expenseForm.subcategory_indirect)
+                  !expenseForm.amount
                 }>
                 Agregar Gasto
               </Button>
