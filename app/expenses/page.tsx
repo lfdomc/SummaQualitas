@@ -850,6 +850,113 @@ export default function ExpensesPage() {
     }
   };
 
+  // Función para exportar a Excel con hojas por categoría y una hoja Total
+  const exportToExcelByCategory = async () => {
+    try {
+      const XLSX = await import('xlsx');
+
+      // Helper para construir filas consistentes
+      const buildRows = (expenses: Expense[]) => {
+        return expenses.map(expense => {
+          const project = projects.find(p => p.id === expense.project_id);
+          const supplier = suppliers.find(s => s.id === expense.supplier_id);
+          const category = EXPENSE_CATEGORIES.find(cat => cat.value === expense.category);
+
+          let subcategory = 'N/A';
+          if (expense.subcategory_direct) {
+            const directSubcat = DIRECT_COST_SUBCATEGORIES.find(sub => sub.value === expense.subcategory_direct);
+            subcategory = directSubcat?.label || expense.subcategory_direct;
+          } else if (expense.subcategory_indirect) {
+            const indirectSubcat = INDIRECT_COST_SUBCATEGORIES.find(sub => sub.value === expense.subcategory_indirect);
+            subcategory = indirectSubcat?.label || expense.subcategory_indirect;
+          }
+
+          const exchangeRate = expense.exchange_rate_usd || 500;
+          const amountCRC = expense.currency === 'USD' ? expense.amount * exchangeRate : expense.amount;
+          const amountUSD = expense.currency === 'CRC' ? expense.amount / exchangeRate : expense.amount;
+
+          return {
+            'Fecha': new Date(expense.expense_date).toLocaleDateString('es-CR'),
+            'Proyecto': project?.name || 'N/A',
+            'Descripción': expense.description,
+            'Categoría': category?.label || expense.category,
+            'Subcategoría': subcategory,
+            'Proveedor': supplier?.name || 'N/A',
+            'Referencia': expense.reference || 'N/A',
+            'Monto Original': expense.amount.toLocaleString('es-CR', { style: 'currency', currency: expense.currency }),
+            'Moneda': expense.currency,
+            'Tipo de Cambio USD': expense.exchange_rate_usd?.toFixed(2) || 'N/A',
+            'Monto CRC': amountCRC.toLocaleString('es-CR', { style: 'currency', currency: 'CRC' }),
+            'Monto USD': amountUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
+            'Adjunto de Factura': expense.receipt_url || 'Sin adjunto',
+            'Adjunto de Referencia': expense.reference_attachment_url || 'Sin adjunto',
+            'Notas': expense.notes || '',
+            'Detalles': expense.details || ''
+          };
+        });
+      };
+
+      const workbook = XLSX.utils.book_new();
+
+      const columnWidths = [
+        { wch: 12 }, // Fecha
+        { wch: 25 }, // Proyecto
+        { wch: 30 }, // Descripción
+        { wch: 20 }, // Categoría
+        { wch: 20 }, // Subcategoría
+        { wch: 25 }, // Proveedor
+        { wch: 20 }, // Referencia
+        { wch: 15 }, // Monto Original
+        { wch: 8 },  // Moneda
+        { wch: 15 }, // Tipo de Cambio USD
+        { wch: 15 }, // Monto CRC
+        { wch: 15 }, // Monto USD
+        { wch: 35 }, // Adjunto de Factura
+        { wch: 35 }, // Adjunto de Referencia
+        { wch: 30 }, // Notas
+        { wch: 30 }  // Detalles
+      ];
+
+      // Crear una hoja por cada categoría con gastos
+      EXPENSE_CATEGORIES.forEach(cat => {
+        const categoryExpenses = filteredExpenses.filter(e => e.category === cat.value);
+        if (categoryExpenses.length > 0) {
+          const rows = buildRows(categoryExpenses);
+          const ws = XLSX.utils.json_to_sheet(rows);
+          ws['!cols'] = columnWidths;
+          const sheetName = cat.label.length > 31 ? cat.label.slice(0, 31) : cat.label; // Límite Excel
+          XLSX.utils.book_append_sheet(workbook, ws, sheetName);
+        }
+      });
+
+      // Hoja Total con todos los gastos filtrados
+      const totalRows = buildRows(filteredExpenses);
+      const totalWs = XLSX.utils.json_to_sheet(totalRows);
+      totalWs['!cols'] = columnWidths;
+      XLSX.utils.book_append_sheet(workbook, totalWs, 'Total');
+
+      const currentDate = new Date().toISOString().split('T')[0];
+      let fileName = `gastos_por_categoria_${currentDate}`;
+      if (selectedProject !== 'all') {
+        const selectedProjectData = projects.find(p => p.id === selectedProject);
+        if (selectedProjectData) {
+          const cleanProjectName = selectedProjectData.name
+            .replace(/[^a-zA-Z0-9\s]/g, '')
+            .replace(/\s+/g, '_')
+            .substring(0, 30);
+          fileName = `gastos_por_categoria_${cleanProjectName}_${currentDate}`;
+        }
+      }
+      fileName += '.xlsx';
+
+      XLSX.writeFile(workbook, fileName);
+      toast.success(`Archivo ${fileName} descargado exitosamente`);
+    } catch (error) {
+      console.error('Error al exportar Excel por categoría:', error);
+      toast.error('Error al exportar Excel por categoría');
+    }
+  };
+
   // Componente de resumen por categorías
   const CategorySummaryCard = () => {
     const categories = [
@@ -1814,16 +1921,28 @@ export default function ExpensesPage() {
               </CardDescription>
             </div>
             {filteredExpenses.length > 0 && (
-              <Button 
-                onClick={exportToExcel}
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                <span className="sm:hidden">Exportar Excel</span>
-                <span className="hidden sm:inline">Export to Excel</span>
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                <Button 
+                  onClick={exportToExcel}
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  <span className="sm:hidden">Exportar Excel</span>
+                  <span className="hidden sm:inline">Export to Excel</span>
+                </Button>
+                <Button 
+                  onClick={exportToExcelByCategory}
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  <span className="sm:hidden">Exportar Excel (por categoría)</span>
+                  <span className="hidden sm:inline">Export to Excel (by category)</span>
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>
