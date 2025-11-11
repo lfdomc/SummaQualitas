@@ -855,7 +855,7 @@ export default function ExpensesPage() {
     try {
       const XLSX = await import('xlsx');
 
-      // Helper para construir filas consistentes
+      // Helper para construir filas consistentes (valores NUMÉRICOS para montos)
       const buildRows = (expenses: Expense[]) => {
         return expenses.map(expense => {
           const project = projects.find(p => p.id === expense.project_id);
@@ -872,8 +872,12 @@ export default function ExpensesPage() {
           }
 
           const exchangeRate = expense.exchange_rate_usd || 500;
-          const amountCRC = expense.currency === 'USD' ? expense.amount * exchangeRate : expense.amount;
-          const amountUSD = expense.currency === 'CRC' ? expense.amount / exchangeRate : expense.amount;
+          const amountCRCRaw = expense.currency === 'USD' ? expense.amount * exchangeRate : expense.amount;
+          const amountUSDRaw = expense.currency === 'CRC' ? expense.amount / exchangeRate : expense.amount;
+          // Redondear a 2 decimales para manejo homogéneo en Excel
+          const amountCRC = Math.round(amountCRCRaw * 100) / 100;
+          const amountUSD = Math.round(amountUSDRaw * 100) / 100;
+          const montoOriginal = Math.round(expense.amount * 100) / 100;
 
           return {
             'Fecha': new Date(expense.expense_date).toLocaleDateString('es-CR'),
@@ -883,11 +887,11 @@ export default function ExpensesPage() {
             'Subcategoría': subcategory,
             'Proveedor': supplier?.name || 'N/A',
             'Referencia': expense.reference || 'N/A',
-            'Monto Original': expense.amount.toLocaleString('es-CR', { style: 'currency', currency: expense.currency }),
+            'Monto Original': montoOriginal, // NUMÉRICO
             'Moneda': expense.currency,
-            'Tipo de Cambio USD': expense.exchange_rate_usd?.toFixed(2) || 'N/A',
-            'Monto CRC': amountCRC.toLocaleString('es-CR', { style: 'currency', currency: 'CRC' }),
-            'Monto USD': amountUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
+            'Tipo de Cambio USD': exchangeRate, // NUMÉRICO
+            'Monto CRC': amountCRC, // NUMÉRICO
+            'Monto USD': amountUSD, // NUMÉRICO
             'Adjunto de Factura': expense.receipt_url || 'Sin adjunto',
             'Adjunto de Referencia': expense.reference_attachment_url || 'Sin adjunto',
             'Notas': expense.notes || '',
