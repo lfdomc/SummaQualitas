@@ -879,15 +879,16 @@ export default function ExpensesPage() {
           const amountUSD = Math.round(amountUSDRaw * 100) / 100;
           const montoOriginal = Math.round(expense.amount * 100) / 100;
 
+          // Orden de columnas: Proveedor, Descripción, Referencia, Fecha, Monto Original, ...
           return {
-            'Fecha': new Date(expense.expense_date).toLocaleDateString('es-CR'),
-            'Proyecto': project?.name || 'N/A',
+            'Proveedor': supplier?.name || 'N/A',
             'Descripción': expense.description,
+            'Referencia': expense.reference || 'N/A',
+            'Fecha': new Date(expense.expense_date).toLocaleDateString('es-CR'),
+            'Monto Original': montoOriginal, // NUMÉRICO
+            'Proyecto': project?.name || 'N/A',
             'Categoría': category?.label || expense.category,
             'Subcategoría': subcategory,
-            'Proveedor': supplier?.name || 'N/A',
-            'Referencia': expense.reference || 'N/A',
-            'Monto Original': montoOriginal, // NUMÉRICO
             'Moneda': expense.currency,
             'Tipo de Cambio USD': exchangeRate, // NUMÉRICO
             'Monto CRC': amountCRC, // NUMÉRICO
@@ -902,15 +903,35 @@ export default function ExpensesPage() {
 
       const workbook = XLSX.utils.book_new();
 
+      // Orden de columnas explícito para el Excel
+      const headerOrder = [
+        'Proveedor',
+        'Descripción',
+        'Referencia',
+        'Fecha',
+        'Monto Original',
+        'Proyecto',
+        'Categoría',
+        'Subcategoría',
+        'Moneda',
+        'Tipo de Cambio USD',
+        'Monto CRC',
+        'Monto USD',
+        'Adjunto de Factura',
+        'Adjunto de Referencia',
+        'Notas',
+        'Detalles',
+      ];
+
       const columnWidths = [
-        { wch: 12 }, // Fecha
-        { wch: 25 }, // Proyecto
+        { wch: 25 }, // Proveedor
         { wch: 30 }, // Descripción
+        { wch: 20 }, // Referencia
+        { wch: 12 }, // Fecha
+        { wch: 15 }, // Monto Original
+        { wch: 25 }, // Proyecto
         { wch: 20 }, // Categoría
         { wch: 20 }, // Subcategoría
-        { wch: 25 }, // Proveedor
-        { wch: 20 }, // Referencia
-        { wch: 15 }, // Monto Original
         { wch: 8 },  // Moneda
         { wch: 15 }, // Tipo de Cambio USD
         { wch: 15 }, // Monto CRC
@@ -926,7 +947,7 @@ export default function ExpensesPage() {
         const categoryExpenses = filteredExpenses.filter(e => e.category === cat.value);
         if (categoryExpenses.length > 0) {
           const rows = buildRows(categoryExpenses);
-          const ws = XLSX.utils.json_to_sheet(rows);
+          const ws = XLSX.utils.json_to_sheet(rows, { header: headerOrder });
           ws['!cols'] = columnWidths;
           const sheetName = cat.label.length > 31 ? cat.label.slice(0, 31) : cat.label; // Límite Excel
           XLSX.utils.book_append_sheet(workbook, ws, sheetName);
@@ -935,7 +956,7 @@ export default function ExpensesPage() {
 
       // Hoja Total con todos los gastos filtrados
       const totalRows = buildRows(filteredExpenses);
-      const totalWs = XLSX.utils.json_to_sheet(totalRows);
+      const totalWs = XLSX.utils.json_to_sheet(totalRows, { header: headerOrder });
       totalWs['!cols'] = columnWidths;
       XLSX.utils.book_append_sheet(workbook, totalWs, 'Total');
 
